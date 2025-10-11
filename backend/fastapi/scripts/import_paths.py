@@ -93,7 +93,7 @@ def import_path_data(
             existing = get_path_by_osm_id(db, path_import.id)
             if existing:
                 if skip_existing:
-                    if i % 100 == 0 or i == 1:  # 100件ごとまたは最初だけ表示
+                    if i % batch_size == 0 or i == 1:  # 1000件ごとまたは最初だけ表示
                         print(
                             f"  [{i}/{len(paths_data)}] Skipped: OSM ID {path_import.id} - already exists"
                         )
@@ -115,6 +115,14 @@ def import_path_data(
                 {"lat": g.lat, "lon": g.lon} for g in path_import.geometry
             ]
 
+            if len(geometries_dict) < 20:
+                if i % batch_size == 0 or i == 1:  # 100件ごとまたは最初だけ表示
+                    print(
+                        f"  [{i}/{len(paths_data)}] Skipped: OSM ID {path_import.id} - less than 20 geometry points"
+                    )
+                stats["skipped"] += 1
+                continue
+
             # DBに保存
             created = create_path(
                 db=db,
@@ -127,7 +135,7 @@ def import_path_data(
             )
 
             # 100件ごとまたは最初だけ表示
-            if i % 100 == 0 or stats["created"] == 0:
+            if i % batch_size == 0 or stats["created"] == 0:
                 highway = path_import.tags.get("highway", "unknown")
                 print(
                     f"  [{i}/{len(paths_data)}] Created: OSM ID {created.osm_id} (ID: {created.id}, highway: {highway})"
@@ -159,7 +167,7 @@ def main():
     data_folder = Path(__file__).parent.parent.parent / "datas" / "paths"
     files = list(data_folder.glob("*.json"))
 
-    batch_size = 100
+    batch_size = 1000
 
     # DBセッションを作成
     db = SessionLocal()
@@ -169,12 +177,11 @@ def main():
         print("Path Data Import")
         print("=" * 60)
 
-        for json_path in files:
-
+        for i, json_path in enumerate(files, 1):
+            print(f"\n[{i}/{len(files)}] Importing from {json_path}...")
             result = import_path_data(
                 json_path, db, skip_existing=True, batch_size=batch_size
             )
-
 
             print("\n" + "=" * 60)
             print("📊 Import Summary")
