@@ -326,5 +326,45 @@ export const MapTerrain = ({
     addOrUpdateMountains();
   }, [addOrUpdateMountains]);
 
-  return <div ref={mapContainer} style={{ width: "100%", height: "100%" }} />;
+  const toggle2D3D = useCallback(() => {
+    const m = map.current;
+    if (!m) return;
+
+    const currentPitch = m.getPitch();
+    if (currentPitch > 0) {
+      m.easeTo({ pitch: 0, bearing: 0 }); // 3D → 2D（鉛直上方向）
+    } else {
+      m.easeTo({ pitch: 60, bearing: 30 }); // 2D → 3D（高さ方向斜め）
+    }
+  }, []);
+
+  return (
+    <div className="relative w-full h-full">
+      <div ref={mapContainer} className="w-full h-full" />
+      {/* ✨ ボタンコンテナ */}
+      <div className="absolute top-2 right-2 z-10 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => map.current?.zoomIn()}
+          className="p-2 bg-white border border-gray-300 rounded shadow hover:bg-gray-100"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={() => map.current?.zoomOut()}
+          className="p-2 bg-white border border-gray-300 rounded shadow hover:bg-gray-100"
+        >
+          -
+        </button>
+        <button
+          type="button"
+          onClick={toggle2D3D}
+          className="p-2 bg-white border border-gray-300 rounded shadow hover:bg-gray-100"
+        >
+          2D/3D
+        </button>
+      </div>
+    </div>
+  );
 };

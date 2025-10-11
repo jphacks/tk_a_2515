@@ -39,6 +39,14 @@ export default function PanelContent({
     }
   }, [selectedMountain, scrollPosition]); // selectedMountainが変わるたびにチェック
 
+  // ✨ 5. mountains が変化した際にスクロール位置をリセットする副作用フック
+  // biome-ignore lint/correctness/useExhaustiveDependencies: force re-render only when mountains change
+  useEffect(() => {
+    if (listContainerRef.current) {
+      listContainerRef.current.scrollTop = 0;
+    }
+  }, [mountains]); // mountains が変化するたびに実行
+
   if (selectedMountain) {
     // 詳細表示 (このブロックは変更ありません)
     return (
