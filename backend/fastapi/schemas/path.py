@@ -18,7 +18,7 @@ class PathGeometryBase(BaseModel):
 class PathGeometry(PathGeometryBase):
     """PathGeometry API応答スキーマ"""
 
-    id: int
+    id: Optional[int] = None
     node_id: int
 
     model_config = ConfigDict(from_attributes=True)
@@ -59,9 +59,9 @@ class PathTagBase(BaseModel):
 class PathTag(PathTagBase):
     """PathTag API応答スキーマ"""
 
-    id: int
-    path_id: int
-    created_at: datetime
+    id: Optional[int] = None
+    path_id: Optional[int] = None
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -83,11 +83,11 @@ class PathBase(BaseModel):
 class Path(PathBase):
     """Path API応答スキーマ（関連データ含む）"""
 
-    id: int
+    id: Optional[int] = None
     geometries: list[PathGeometry] = Field(default_factory=list)
     tags: list[PathTag] = Field(default_factory=list)
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 

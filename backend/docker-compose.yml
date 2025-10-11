@@ -30,6 +30,7 @@ services:
       - "${API_PORT:-8000}:${API_PORT:-8000}"
     volumes:
       - ./fastapi:/app:cached # ローカルのコードをマウント（ホットリロード用）
+      - ./datas:/datas:cached # データディレクトリをマウント
     environment:
       WATCHFILES_FORCE_POLLING: "true"
       DATABASE_URL: postgresql://app:app@db:5432/app
