@@ -4,12 +4,13 @@
  * Collect Map API
  * OpenAPI spec version: 0.1.0
  */
-import type { PathMinlat } from './pathMinlat';
-import type { PathMinlon } from './pathMinlon';
-import type { PathMaxlat } from './pathMaxlat';
-import type { PathMaxlon } from './pathMaxlon';
-import type { PathGeometry } from './pathGeometry';
-import type { PathTag } from './pathTag';
+
+import type { PathGeometry } from "./pathGeometry";
+import type { PathMaxlat } from "./pathMaxlat";
+import type { PathMaxlon } from "./pathMaxlon";
+import type { PathMinlat } from "./pathMinlat";
+import type { PathMinlon } from "./pathMinlon";
+import type { PathTag } from "./pathTag";
 
 /**
  * Path API応答スキーマ（関連データ含む）

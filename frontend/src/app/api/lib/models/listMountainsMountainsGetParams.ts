@@ -6,8 +6,8 @@
  */
 
 export type ListMountainsMountainsGetParams = {
-skip?: number;
-limit?: number;
-name?: string | null;
-prefecture_id?: number | null;
+  skip?: number;
+  limit?: number;
+  name?: string | null;
+  prefecture_id?: number | null;
 };

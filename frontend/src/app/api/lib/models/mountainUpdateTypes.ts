@@ -4,6 +4,6 @@
  * Collect Map API
  * OpenAPI spec version: 0.1.0
  */
-import type { MountainTypeDetail } from './mountainTypeDetail';
+import type { MountainTypeDetail } from "./mountainTypeDetail";
 
 export type MountainUpdateTypes = MountainTypeDetail[] | null;

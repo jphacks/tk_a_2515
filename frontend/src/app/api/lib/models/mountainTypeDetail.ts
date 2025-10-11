@@ -4,7 +4,7 @@
  * Collect Map API
  * OpenAPI spec version: 0.1.0
  */
-import type { MountainTypeDetailDetail } from './mountainTypeDetailDetail';
+import type { MountainTypeDetailDetail } from "./mountainTypeDetailDetail";
 
 /**
  * Mountain-Type関係の詳細情報（中間テーブルのdetailフィールド用）

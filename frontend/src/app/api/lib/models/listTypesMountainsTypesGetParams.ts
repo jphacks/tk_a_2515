@@ -6,6 +6,6 @@
  */
 
 export type ListTypesMountainsTypesGetParams = {
-skip?: number;
-limit?: number;
+  skip?: number;
+  limit?: number;
 };
