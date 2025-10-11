@@ -185,15 +185,8 @@ def import_mountain_data(
 
 
 def main():
-    """メイン関数"""
-    if len(sys.argv) < 2:
-        print("Usage: python scripts/import_mountains.py <json_file_path> [batch_size]")
-        print("Example: python scripts/import_mountains.py data/mountains.json 100")
-        print("  batch_size: Number of items per batch (default: 100)")
-        sys.exit(1)
-
-    json_path = sys.argv[1]
-    batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 100
+    json_path = Path(__file__).parent.parent.parent / "datas" / "yamareco.json" 
+    batch_size = 100
 
     # DBセッションを作成
     db = SessionLocal()

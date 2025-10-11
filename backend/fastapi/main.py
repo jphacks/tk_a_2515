@@ -3,6 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -14,7 +15,7 @@ load_dotenv(dotenv_path=env_path)
 
 # Database connection settings
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://postgres:password@db:5432/collectmap"
+    "DATABASE_URL", "postgresql://app:app@db:5432/app"
 )
 # Create SQLAlchemy engine
 engine = create_engine(DATABASE_URL)
@@ -22,6 +23,15 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # FastAPI app
 app = FastAPI(title="Collect Map API")
+
+# CORS設定 - 全てのオリジンを許可
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 全てのオリジンを許可
+    allow_credentials=True,
+    allow_methods=["*"],  # 全てのHTTPメソッドを許可
+    allow_headers=["*"],  # 全てのヘッダーを許可
+)
 
 # Include routers
 app.include_router(mountains.router)

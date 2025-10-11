@@ -1,6 +1,8 @@
 // Orvalの標準の機能ではBaseURLを動的に変更できないため、fetchのラッパーを作成
 // 参考: https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts
 
+import nextConfig from "next.config";
+
 // NOTE: Supports cases where `content-type` is other than `json`
 const getBody = <T>(c: Response | Request): Promise<T> => {
     const contentType = c.headers.get("content-type");
@@ -18,7 +20,7 @@ const getBody = <T>(c: Response | Request): Promise<T> => {
   
   // NOTE: Update just base url
   const getUrl = (contextUrl: string): string => {
-    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:8000"; // .envから取得、なければデフォルト
+    const baseUrl = nextConfig.env?.NEXT_PUBLIC_BASE_URL || "http://localhost:8000";
     const url = new URL(contextUrl, baseUrl);
     const pathname = url.pathname;
     const search = url.search;

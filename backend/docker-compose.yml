@@ -3,7 +3,7 @@ version: "3.9"
 services:
   db:
     image: postgres:16-alpine
-    container_name: fastapi-db
+    container_name: terview-backend-db
     environment:
       POSTGRES_DB: app
       POSTGRES_USER: app
@@ -22,7 +22,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fastapi-api
+    container_name: jphacks-backend-api
     env_file:
       - .env
     command: uvicorn main:app --reload --host 0.0.0.0 --port 8000
