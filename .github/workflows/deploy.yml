@@ -6,7 +6,9 @@ on:
       - main
 
 env:
+  NEXT_PUBLIC_FULL_URL: ${{ secrets.NEXT_PUBLIC_FULL_URL }}
   MAPTILER_KEY: ${{ secrets.MAPTILER_KEY }}
+  REDIS_URL: ${{ secrets.REDIS_URL }}
 
 jobs:
   deploy:
