@@ -95,6 +95,8 @@ export default function HomePage() {
           mountains={mountains}
           paths={paths}
           onBoundsChange={handleBoundsChange}
+          onSelectMountain={handleSelectMountain}
+          selectedMountain={selectedMountain} // ✨ 選択された山を渡す
         />
       </main>
       <BottomSheet
