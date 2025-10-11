@@ -4,6 +4,6 @@
  * Collect Map API
  * OpenAPI spec version: 0.1.0
  */
-import type { PrefectureBase } from './prefectureBase';
+import type { PrefectureBase } from "./prefectureBase";
 
 export type MountainUpdatePrefs = PrefectureBase[] | null;

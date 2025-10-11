@@ -4,10 +4,11 @@
  * Collect Map API
  * OpenAPI spec version: 0.1.0
  */
-import type { PathTagHighway } from './pathTagHighway';
-import type { PathTagSource } from './pathTagSource';
-import type { PathTagDifficulty } from './pathTagDifficulty';
-import type { PathTagKuma } from './pathTagKuma';
+
+import type { PathTagDifficulty } from "./pathTagDifficulty";
+import type { PathTagHighway } from "./pathTagHighway";
+import type { PathTagKuma } from "./pathTagKuma";
+import type { PathTagSource } from "./pathTagSource";
 
 /**
  * PathTag API応答スキーマ

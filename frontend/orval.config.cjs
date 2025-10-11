@@ -1,18 +1,17 @@
 module.exports = {
-    "oil-openapi-file": {
-      input: "../docs/openapi.yaml",
-      output: {
-        mode: "tags-split",
-        target: "app/lib/api/client.ts",
-        schemas: "app/lib/api/models",
-        client: "fetch",
-        override: {
-          mutator: {
-            path: "app/lib/api/custom-fetch.ts",
-            name: "customFetch",
-          },
+  "oil-openapi-file": {
+    input: "../docs/openapi.yaml",
+    output: {
+      mode: "tags-split",
+      target: "src/app/api/lib/client.ts",
+      schemas: "src/app/api/lib/models",
+      client: "fetch",
+      override: {
+        mutator: {
+          path: "src/app/api/lib/custom-fetch.ts",
+          name: "customFetch",
         },
       },
     },
-  };
-  
+  },
+};

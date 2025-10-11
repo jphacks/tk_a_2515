@@ -4,14 +4,14 @@
  * Collect Map API
  * OpenAPI spec version: 0.1.0
  */
-import type { Mountain } from './mountain';
+import type { Path } from "./path";
 
 /**
- * Mountain一覧応答スキーマ
+ * Path一覧応答スキーマ
  */
-export interface MountainList {
+export interface PathList {
   total: number;
   skip: number;
   limit: number;
-  items: Mountain[];
+  items: Path[];
 }

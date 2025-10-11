@@ -6,6 +6,6 @@
  */
 
 export type ListPrefecturesMountainsPrefecturesGetParams = {
-skip?: number;
-limit?: number;
+  skip?: number;
+  limit?: number;
 };

@@ -24,3 +24,10 @@ depends = ["backend-uv"]
 description = "Import initial database data"
 run = "cd backend && uv run python fastapi/scripts/import_mountains.py && uv run python fastapi/scripts/import_paths.py"
 depends = ["create-db-schema"]
+
+[tasks.frontend-setup]
+run = "cd frontend && pnpm install && docker compose up -d"
+
+[tasks.frontend-dev]
+run = "cd frontend && pnpm dev"
+depends = ["frontend-setup"]
