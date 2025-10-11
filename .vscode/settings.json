@@ -2,6 +2,7 @@
 	"biome.lsp.bin": "./frontend/node_modules/@biomejs/biome/bin/biome",
 	"editor.formatOnSave": true,
 	"editor.defaultFormatter": "biomejs.biome",
+	"python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
 	"editor.codeActionsOnSave": {
 		"source.organizeImports.biome": "explicit",
 		"source.fixAll.biome": "explicit"

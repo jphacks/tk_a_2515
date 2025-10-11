@@ -1,0 +1,900 @@
+openapi: 3.1.0
+info:
+  title: Collect Map API
+  version: 0.1.0
+paths:
+  /mountains/:
+    post:
+      tags:
+      - mountains
+      summary: Create Mountain
+      description: 新規Mountainを作成
+      operationId: create_mountain_mountains__post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MountainCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mountain'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - mountains
+      summary: List Mountains
+      description: Mountain一覧を取得（フィルタリング・ページネーション対応）
+      operationId: list_mountains_mountains__get
+      parameters:
+      - name: skip
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+          title: Skip
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 100
+          title: Limit
+      - name: name
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+      - name: prefecture_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Prefecture Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MountainList'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mountains/{mountain_id}:
+    get:
+      tags:
+      - mountains
+      summary: Get Mountain
+      description: 指定されたIDのMountainを取得
+      operationId: get_mountain_mountains__mountain_id__get
+      parameters:
+      - name: mountain_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Mountain Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mountain'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - mountains
+      summary: Update Mountain
+      description: Mountain情報を更新（部分更新）
+      operationId: update_mountain_mountains__mountain_id__patch
+      parameters:
+      - name: mountain_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Mountain Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MountainUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mountain'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - mountains
+      summary: Delete Mountain
+      description: Mountainを削除
+      operationId: delete_mountain_mountains__mountain_id__delete
+      parameters:
+      - name: mountain_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Mountain Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mountains/types/:
+    get:
+      tags:
+      - mountains
+      - types
+      summary: List Types
+      description: Type一覧を取得
+      operationId: list_types_mountains_types__get
+      parameters:
+      - name: skip
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+          title: Skip
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Type'
+                title: Response List Types Mountains Types  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /mountains/prefectures/:
+    get:
+      tags:
+      - mountains
+      - prefectures
+      summary: List Prefectures
+      description: Prefecture一覧を取得
+      operationId: list_prefectures_mountains_prefectures__get
+      parameters:
+      - name: skip
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+          title: Skip
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Prefecture'
+                title: Response List Prefectures Mountains Prefectures  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /paths/{path_id}:
+    get:
+      tags:
+      - paths
+      summary: Get Path
+      description: 指定されたIDのPathを取得
+      operationId: get_path_paths__path_id__get
+      parameters:
+      - name: path_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Path Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Path'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /paths/:
+    get:
+      tags:
+      - paths
+      summary: List Paths
+      description: "Path一覧を取得（フィルタリング・ページネーション対応）\n\nArgs:\n    skip: スキップする件数\n \
+        \   limit: 取得する最大件数\n    highway: highwayタグでフィルタ（例: \"path\", \"track\"）\n\
+        \    minlat: 検索範囲の最小緯度\n    minlon: 検索範囲の最小経度\n    maxlat: 検索範囲の最大緯度\n   \
+        \ maxlon: 検索範囲の最大経度"
+      operationId: list_paths_paths__get
+      parameters:
+      - name: skip
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+          title: Skip
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 100
+          title: Limit
+      - name: highway
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Highway
+      - name: minlat
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Minlat
+      - name: minlon
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Minlon
+      - name: maxlat
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Maxlat
+      - name: maxlon
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Maxlon
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PathList'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /:
+    get:
+      summary: Root
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /health:
+    get:
+      summary: Health Check
+      description: Database connection health check
+      operationId: health_check_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /db/test:
+    get:
+      summary: Test Db Connection
+      description: Test database connection and return PostgreSQL version
+      operationId: test_db_connection_db_test_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    Mountain:
+      properties:
+        ptid:
+          type: string
+          title: Ptid
+        name:
+          type: string
+          title: Name
+        yomi:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Yomi
+        other_names:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Other Names
+        yamatan:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Yamatan
+        name_en:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name En
+        elevation:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Elevation
+        lat:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Lat
+        lon:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Lon
+        detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Detail
+        area:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Area
+        photo_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Photo Url
+        page_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Page Url
+        id:
+          type: integer
+          title: Id
+        types:
+          items:
+            $ref: '#/components/schemas/Type'
+          type: array
+          title: Types
+        prefectures:
+          items:
+            $ref: '#/components/schemas/Prefecture'
+          type: array
+          title: Prefectures
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - ptid
+      - name
+      - id
+      - created_at
+      - updated_at
+      title: Mountain
+      description: MountainのAPI応答スキーマ
+    MountainCreate:
+      properties:
+        ptid:
+          type: string
+          title: Ptid
+        name:
+          type: string
+          title: Name
+        yomi:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Yomi
+        other_names:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Other Names
+        yamatan:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Yamatan
+        name_en:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name En
+        elevation:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Elevation
+        lat:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Lat
+        lon:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Lon
+        detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Detail
+        area:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Area
+        photo_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Photo Url
+        page_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Page Url
+        types:
+          items:
+            $ref: '#/components/schemas/MountainTypeDetail'
+          type: array
+          title: Types
+        prefs:
+          items:
+            $ref: '#/components/schemas/PrefectureBase'
+          type: array
+          title: Prefs
+      type: object
+      required:
+      - ptid
+      - name
+      title: MountainCreate
+      description: Mountain作成時のスキーマ
+    MountainList:
+      properties:
+        total:
+          type: integer
+          title: Total
+        skip:
+          type: integer
+          title: Skip
+        limit:
+          type: integer
+          title: Limit
+        items:
+          items:
+            $ref: '#/components/schemas/Mountain'
+          type: array
+          title: Items
+      type: object
+      required:
+      - total
+      - skip
+      - limit
+      - items
+      title: MountainList
+      description: Mountain一覧応答スキーマ
+    MountainTypeDetail:
+      properties:
+        type_id:
+          type: string
+          title: Type Id
+        name:
+          type: string
+          title: Name
+        detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Detail
+      type: object
+      required:
+      - type_id
+      - name
+      title: MountainTypeDetail
+      description: Mountain-Type関係の詳細情報（中間テーブルのdetailフィールド用）
+    MountainUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        yomi:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Yomi
+        other_names:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Other Names
+        yamatan:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Yamatan
+        name_en:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name En
+        elevation:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Elevation
+        lat:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Lat
+        lon:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Lon
+        detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Detail
+        area:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Area
+        photo_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Photo Url
+        page_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Page Url
+        types:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/MountainTypeDetail'
+            type: array
+          - type: 'null'
+          title: Types
+        prefs:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/PrefectureBase'
+            type: array
+          - type: 'null'
+          title: Prefs
+      type: object
+      title: MountainUpdate
+      description: Mountain更新時のスキーマ（すべてオプショナル）
+    Path:
+      properties:
+        osm_id:
+          type: integer
+          title: Osm Id
+        type:
+          type: string
+          title: Type
+        minlat:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Minlat
+        minlon:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Minlon
+        maxlat:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Maxlat
+        maxlon:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Maxlon
+        id:
+          type: integer
+          title: Id
+        geometries:
+          items:
+            $ref: '#/components/schemas/PathGeometry'
+          type: array
+          title: Geometries
+        tags:
+          items:
+            $ref: '#/components/schemas/PathTag'
+          type: array
+          title: Tags
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - osm_id
+      - type
+      - id
+      - created_at
+      - updated_at
+      title: Path
+      description: Path API応答スキーマ（関連データ含む）
+    PathGeometry:
+      properties:
+        lat:
+          type: number
+          title: Lat
+        lon:
+          type: number
+          title: Lon
+        sequence:
+          type: integer
+          title: Sequence
+        id:
+          type: integer
+          title: Id
+        node_id:
+          type: integer
+          title: Node Id
+      type: object
+      required:
+      - lat
+      - lon
+      - sequence
+      - id
+      - node_id
+      title: PathGeometry
+      description: PathGeometry API応答スキーマ
+    PathList:
+      properties:
+        total:
+          type: integer
+          title: Total
+        skip:
+          type: integer
+          title: Skip
+        limit:
+          type: integer
+          title: Limit
+        items:
+          items:
+            $ref: '#/components/schemas/Path'
+          type: array
+          title: Items
+      type: object
+      required:
+      - total
+      - skip
+      - limit
+      - items
+      title: PathList
+      description: Path一覧応答スキーマ
+    PathTag:
+      properties:
+        highway:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Highway
+        source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+        id:
+          type: integer
+          title: Id
+        path_id:
+          type: integer
+          title: Path Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - path_id
+      - created_at
+      title: PathTag
+      description: PathTag API応答スキーマ
+    Prefecture:
+      properties:
+        pref_id:
+          type: string
+          title: Pref Id
+        name:
+          type: string
+          title: Name
+        id:
+          type: integer
+          title: Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - pref_id
+      - name
+      - id
+      - created_at
+      title: Prefecture
+      description: PrefectureのAPI応答スキーマ
+    PrefectureBase:
+      properties:
+        pref_id:
+          type: string
+          title: Pref Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - pref_id
+      - name
+      title: PrefectureBase
+      description: 共通のPrefectureフィールド
+    Type:
+      properties:
+        type_id:
+          type: string
+          title: Type Id
+        name:
+          type: string
+          title: Name
+        id:
+          type: integer
+          title: Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - type_id
+      - name
+      - id
+      - created_at
+      title: Type
+      description: TypeのAPI応答スキーマ
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError

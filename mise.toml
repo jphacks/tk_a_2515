@@ -1,3 +1,12 @@
 [tools]
 node = "22.16.0"
 pnpm = "10.18.0"
+
+[tasks.export-openapi]
+description = "Export FastAPI OpenAPI schema to YAML"
+run = "cd backend/fastapi && uv run python scripts/export_openapi.py ../../docs/openapi.yaml"
+
+[tasks.generate-lib-api]
+description = "docs/openapi.yamlに基づいてlib/apiを作成"
+run = "npx orval --config ./frontend/orval.config.cjs"
+depends = ["export-openapi"]
