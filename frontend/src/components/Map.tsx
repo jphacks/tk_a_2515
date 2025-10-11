@@ -1,39 +1,48 @@
-import { LocateFixed, ZoomIn, ZoomOut } from "lucide-react";
+"use client";
 
-export default function CustomMap() {
+import { useState } from "react";
+import { MapTerrain } from "@/components/MapTerrain";
+
+// MapTerrainが受け取るパスの型定義
+type Path = {
+  lat: number;
+  lon: number;
+}[];
+
+type StyleMode = "hybrid" | "normal";
+
+interface Props {
+  initialPaths: Path[]; // サーバーから整形済みのパスデータを受け取る
+}
+
+export const MapPageClient = ({ initialPaths }: Props) => {
+  const [mode, setMode] = useState<StyleMode>("normal");
+
   return (
-    <div className="relative flex-1 bg-slate-200">
-      {/* マップコンテナ */}
-      <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
-        <p className="text-2xl font-semibold text-slate-400 tracking-wider">
-          MAP AREA
-        </p>
-      </div>
-
-      {/* マップコントロール */}
-      <div className="absolute bottom-5 right-5 flex flex-col gap-2">
+    <div className="w-full h-full relative">
+      <div className="absolute top-2.5 left-2.5 z-10 bg-white p-2.5 rounded shadow-md">
         <button
           type="button"
-          className="bg-white p-2.5 rounded-full shadow-lg hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
+          onClick={() => setMode("normal")}
+          className={`mr-2 font-medium ${
+            mode === "normal" ? "font-bold text-blue-500" : "text-gray-700"
+          }`}
         >
-          <LocateFixed className="h-5 w-5 text-slate-600" />
+          通常地図
         </button>
-        <div className="flex flex-col bg-white rounded-full shadow-lg">
-          <button
-            type="button"
-            className="p-2.5 hover:bg-slate-100 transition-colors rounded-t-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500"
-          >
-            <ZoomIn className="h-5 w-5 text-slate-600" />
-          </button>
-          <hr />
-          <button
-            type="button"
-            className="p-2.5 hover:bg-slate-100 transition-colors rounded-b-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500"
-          >
-            <ZoomOut className="h-5 w-5 text-slate-600" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setMode("hybrid")}
+          className={`font-medium ${
+            mode === "hybrid" ? "font-bold text-blue-500" : "text-gray-700"
+          }`}
+        >
+          航空写真
+        </button>
       </div>
+
+      {/* MapTerrainにモードと整形済みパスデータを渡す */}
+      <MapTerrain styleMode={mode} paths={initialPaths} />
     </div>
   );
-}
+};
