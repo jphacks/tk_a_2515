@@ -17,7 +17,7 @@ export async function GET(
 
   try {
     const redis = await getRedisClient();
-    const cachedData = await redis.get(Buffer.from(cacheKey));
+    const cachedData = await redis.get(cacheKey);
     if (cachedData) {
       return new NextResponse(cachedData, {
         headers: {

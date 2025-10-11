@@ -18,6 +18,12 @@ interface Props {
 }
 
 export const MapTerrain = ({ styleMode = "hybrid", paths = [] }: Props) => {
+  if (!process.env.NEXT_PUBLIC_FULL_URL) {
+    throw new Error(
+      "Environment variable NEXT_PUBLIC_FULL_URL is not defined. Please set it in your environment.",
+    );
+  }
+
   const demTilesJsonUrl = `${process.env.NEXT_PUBLIC_FULL_URL}/api/proxy/tiles/terrain-rgb-v2/tiles.json`;
   const styleUrls = useMemo(
     () => ({

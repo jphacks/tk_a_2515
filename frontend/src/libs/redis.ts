@@ -5,6 +5,10 @@ let redisClient: RedisClientType | null = null;
 
 // Redisクライアントを取得・接続するための非同期関数
 export const getRedisClient = async (): Promise<RedisClientType> => {
+  if (!process.env.REDIS_URL) {
+    throw new Error("REDIS_URL environment variable is not defined.");
+  }
+
   // 既に接続済みのクライアントがあれば再利用
   if (redisClient?.isOpen) {
     return redisClient;
