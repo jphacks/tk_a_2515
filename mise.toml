@@ -31,3 +31,15 @@ run = "cd frontend && pnpm install && docker compose up -d"
 [tasks.frontend-dev]
 run = "cd frontend && pnpm dev"
 depends = ["frontend-setup"]
+
+[tasks.deploy-setup]
+run = [
+  "cd backend && docker compose up -d",
+  "cd frontend && pnpm install",
+]
+
+[tasks.deploy-start]
+run = [
+  "cd frontend && pnpm build && pm2 restart pm2.config.cjs --update-env",
+]
+depends = ["deploy-setup", "import-db-data"]

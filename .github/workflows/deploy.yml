@@ -48,8 +48,5 @@ jobs:
           script: |
             cd ${{ secrets.DEPLOY_TARGET }}
             git pull origin main
-            cd frontend
             ~/.local/bin/mise install
-            pnpm install --frozen-lockfile
-            pnpm build
-            ~/.volta/bin/pm2 restart pm2.config.cjs --update-env
+            ~/.local/bin/mise deploy-setup
