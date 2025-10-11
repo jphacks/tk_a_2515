@@ -1,11 +1,10 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
-
 import crud
 import schemas
 from database import get_db
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/mountains",
@@ -31,13 +30,33 @@ def list_mountains(
     limit: int = 100,
     name: Optional[str] = None,
     prefecture_id: Optional[int] = None,
+    minlat: Optional[float] = None,
+    minlon: Optional[float] = None,
+    maxlat: Optional[float] = None,
+    maxlon: Optional[float] = None,
     db: Session = Depends(get_db),
 ):
     """Mountain一覧を取得（フィルタリング・ページネーション対応）"""
     mountains = crud.get_mountains(
-        db, skip=skip, limit=limit, name=name, prefecture_id=prefecture_id
+        db,
+        skip=skip,
+        limit=limit,
+        name=name,
+        prefecture_id=prefecture_id,
+        minlat=minlat,
+        minlon=minlon,
+        maxlat=maxlat,
+        maxlon=maxlon,
     )
-    total = crud.count_mountains(db, name=name, prefecture_id=prefecture_id)
+    total = crud.count_mountains(
+        db,
+        name=name,
+        prefecture_id=prefecture_id,
+        minlat=minlat,
+        minlon=minlon,
+        maxlat=maxlat,
+        maxlon=maxlon,
+    )
     return schemas.MountainList(total=total, skip=skip, limit=limit, items=mountains)
 
 
@@ -65,7 +84,9 @@ def list_types(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return crud.get_types(db, skip=skip, limit=limit)
 
 
-@router.get("/prefectures/", response_model=list[schemas.Prefecture], tags=["prefectures"])
+@router.get(
+    "/prefectures/", response_model=list[schemas.Prefecture], tags=["prefectures"]
+)
 def list_prefectures(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """Prefecture一覧を取得"""
     return crud.get_prefectures(db, skip=skip, limit=limit)

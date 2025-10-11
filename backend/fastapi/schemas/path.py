@@ -129,3 +129,20 @@ class PathImport(BaseModel):
     nodes: list[int] = Field(default_factory=list)
     geometry: list[PathImportGeometry] = Field(default_factory=list)
     tags: dict[str, str] = Field(default_factory=dict)
+
+
+class Point(BaseModel):
+    """座標点のスキーマ"""
+
+    x: float
+    y: float
+
+
+class PathDetail(BaseModel):
+    """Pathの詳細情報スキーマ"""
+
+    id: int
+    path_id: int
+    description: Optional[str] = None
+    difficulty: Optional[int] = None
+    path_graphic: Optional[list[Point]] = None

@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import HTTPException, status
 from models.path import Path, PathGeometry, PathTag
+from schemas.path import PathDetail, Point
 from sqlalchemy.orm import Session
 
 
@@ -80,7 +81,7 @@ def create_path(
 # ============================================
 # Path CRUD - Read
 # ============================================
-def get_path(db: Session, path_id: int) -> Path:
+def get_path(db: Session, path_id: int) -> PathDetail:
     """IDでPathを取得
 
     Args:

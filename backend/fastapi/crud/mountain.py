@@ -5,8 +5,6 @@ from models.mountain import Mountain, Prefecture, Type
 from schemas.mountain import (
     MountainCreate,
     MountainUpdate,
-    PrefectureCreate,
-    TypeCreate,
 )
 from sqlalchemy.orm import Session
 
@@ -184,6 +182,10 @@ def get_mountains(
     limit: int = 100,
     name: Optional[str] = None,
     prefecture_id: Optional[int] = None,
+    minlat: Optional[float] = None,
+    minlon: Optional[float] = None,
+    maxlat: Optional[float] = None,
+    maxlon: Optional[float] = None,
 ) -> list[Mountain]:
     """Mountain一覧を取得（フィルタリング対応）
 
@@ -207,11 +209,23 @@ def get_mountains(
     if prefecture_id:
         query = query.join(Mountain.prefectures).filter(Prefecture.id == prefecture_id)
 
+    if minlat is not None and maxlat is not None:
+        query = query.filter(Mountain.lat.between(minlat, maxlat))
+
+    if minlon is not None and maxlon is not None:
+        query = query.filter(Mountain.lon.between(minlon, maxlon))
+
     return query.offset(skip).limit(limit).all()
 
 
 def count_mountains(
-    db: Session, name: Optional[str] = None, prefecture_id: Optional[int] = None
+    db: Session,
+    name: Optional[str] = None,
+    prefecture_id: Optional[int] = None,
+    minlat: Optional[float] = None,
+    minlon: Optional[float] = None,
+    maxlat: Optional[float] = None,
+    maxlon: Optional[float] = None,
 ) -> int:
     """Mountainの総数を取得
 
@@ -231,13 +245,21 @@ def count_mountains(
     if prefecture_id:
         query = query.join(Mountain.prefectures).filter(Prefecture.id == prefecture_id)
 
+    if minlat is not None and maxlat is not None:
+        query = query.filter(Mountain.lat.between(minlat, maxlat))
+
+    if minlon is not None and maxlon is not None:
+        query = query.filter(Mountain.lon.between(minlon, maxlon))
+
     return query.count()
 
 
 # ============================================
 # Mountain CRUD - Update
 # ============================================
-def update_mountain(db: Session, mountain_id: int, mountain_update: MountainUpdate) -> Mountain:
+def update_mountain(
+    db: Session, mountain_id: int, mountain_update: MountainUpdate
+) -> Mountain:
     """Mountain情報を更新
 
     Args:

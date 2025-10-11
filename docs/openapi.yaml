@@ -66,6 +66,38 @@ paths:
           - type: integer
           - type: 'null'
           title: Prefecture Id
+      - name: minlat
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Minlat
+      - name: minlon
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Minlon
+      - name: maxlat
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Maxlat
+      - name: maxlon
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Maxlon
       responses:
         '200':
           description: Successful Response

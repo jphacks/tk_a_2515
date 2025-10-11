@@ -1,8 +1,3 @@
-// Orvalの標準の機能ではBaseURLを動的に変更できないため、fetchのラッパーを作成
-// 参考: https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts
-
-import nextConfig from "next.config";
-
 // NOTE: Supports cases where `content-type` is other than `json`
 const getBody = <T>(c: Response | Request): Promise<T> => {
   const contentType = c.headers.get("content-type");
