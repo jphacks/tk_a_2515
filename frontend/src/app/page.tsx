@@ -45,19 +45,19 @@ export default function HomePage() {
         console.error("Failed to fetch mountains:", newMountains);
       }
 
-      const newPaths = await listPathsPathsGet({
-        limit: 12345,
-        minlon: newBounds.minLon,
-        minlat: newBounds.minLat,
-        maxlon: newBounds.maxLon,
-        maxlat: newBounds.maxLat,
-      });
-      if (newPaths.status === 200) {
-        console.log("Fetched paths within bounds:", newPaths.data.total);
-        setPaths(newPaths.data.items);
-      } else {
-        console.error("Failed to fetch paths:", newPaths);
-      }
+      // const newPaths = await listPathsPathsGet({
+      //   limit: 12345,
+      //   minlon: newBounds.minLon,
+      //   minlat: newBounds.minLat,
+      //   maxlon: newBounds.maxLon,
+      //   maxlat: newBounds.maxLat,
+      // });
+      // if (newPaths.status === 200) {
+      //   console.log("Fetched paths within bounds:", newPaths.data.total);
+      //   setPaths(newPaths.data.items);
+      // } else {
+      //   console.error("Failed to fetch paths:", newPaths);
+      // }
     } else {
       setMountains([]);
       setPaths([]);
