@@ -4,7 +4,7 @@ import { useState } from "react";
 import BottomSheet from "@/components/BottomSheet";
 import ContextPanel from "@/components/ContextPanel";
 import Header from "@/components/Header";
-import CustomMap from "@/components/Map";
+import { MapPageClient } from "@/components/Map";
 
 // サンプルデータ型
 type Mountain = {
@@ -47,16 +47,26 @@ const sampleMountains: Mountain[] = [
 ];
 
 export default function HomePage() {
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedMountain, setSelectedMountain] = useState<Mountain | null>(
     null,
   );
 
   const handleSelectMountain = (mountain: Mountain) => {
     setSelectedMountain(mountain);
+    setIsSheetOpen(true);
   };
 
   const handleClearSelection = () => {
     setSelectedMountain(null);
+  };
+
+  const handleToggleSheet = () => {
+    setIsSheetOpen(!isSheetOpen);
+  };
+
+  const handleCloseSheet = () => {
+    setIsSheetOpen(false);
   };
 
   return (
@@ -69,13 +79,16 @@ export default function HomePage() {
           onSelectMountain={handleSelectMountain}
           onClearSelection={handleClearSelection}
         />
-        <CustomMap />
+        <MapPageClient initialPaths={[]} />
       </main>
       <BottomSheet
         mountains={sampleMountains}
         selectedMountain={selectedMountain}
         onSelectMountain={handleSelectMountain}
         onClearSelection={handleClearSelection}
+        isOpen={isSheetOpen}
+        onToggle={handleToggleSheet}
+        onClose={handleCloseSheet}
       />
     </div>
   );
