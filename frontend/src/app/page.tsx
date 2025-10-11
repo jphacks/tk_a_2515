@@ -58,6 +58,9 @@ export default function HomePage() {
       // } else {
       //   console.error("Failed to fetch paths:", newPaths);
       // }
+    } else {
+      setMountains([]);
+      setPaths([]);
     }
   };
 

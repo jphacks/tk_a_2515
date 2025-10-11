@@ -39,6 +39,14 @@ export default function PanelContent({
     }
   }, [selectedMountain, scrollPosition]); // selectedMountainが変わるたびにチェック
 
+  // ✨ 5. mountains が変化した際にスクロール位置をリセットする副作用フック
+  // biome-ignore lint/correctness/useExhaustiveDependencies: force re-render only when mountains change
+  useEffect(() => {
+    if (listContainerRef.current) {
+      listContainerRef.current.scrollTop = 0;
+    }
+  }, [mountains]); // mountains が変化するたびに実行
+
   if (selectedMountain) {
     // 詳細表示 (このブロックは変更ありません)
     return (
@@ -103,43 +111,47 @@ export default function PanelContent({
 
   // リスト表示
   return (
-    // ✨ 5. スクロールを管理するコンテナ要素。refを設定し、スクロール可能にする
     <div ref={listContainerRef} className="h-full overflow-y-auto">
       {/* ヘッダー部分はスクロールしても追従するように sticky を指定 */}
       <div className="p-5 border-b border-slate-200 sticky top-0 bg-white z-10">
         <h2 className="text-xl font-bold text-slate-800">
-          {mountains.length} 件の山
+          {mountains.length > 0
+            ? `${mountains.length} 件の山`
+            : "山がある場所でズームしてください"}{" "}
         </h2>
       </div>
-      <ul className="divide-y divide-slate-100">
-        {mountains.map(mountain => (
-          <li key={mountain.id} className="p-0">
-            <button
-              type="button"
-              // ✨ 6. クリックイベントに、新しく作成したハンドラ関数を割り当て
-              onClick={() => handleSelectAndSaveScroll(mountain)}
-              onKeyDown={e => {
-                if (e.key === "Enter" || e.key === " ") {
-                  handleSelectAndSaveScroll(mountain);
-                }
-              }}
-              className="w-full text-left p-5 hover:bg-green-50 cursor-pointer transition-colors"
-            >
-              <h3 className="font-bold text-slate-700">{mountain.name}</h3>
-              {mountain.elevation && (
-                <p className="text-sm text-slate-500">
-                  標高: {mountain.elevation.toLocaleString()}m
-                </p>
-              )}
-              {mountain.prefectures && (
-                <p className="text-sm text-slate-500">
-                  都道府県: {mountain.prefectures.map(p => p.name).join(", ")}
-                </p>
-              )}
-            </button>
-          </li>
-        ))}
-      </ul>
+      {mountains.length > 0 ? ( // ✨ mountains が存在する場合のみリストを表示
+        <ul className="divide-y divide-slate-100">
+          {mountains.map(mountain => (
+            <li key={mountain.id} className="p-0">
+              <button
+                type="button"
+                onClick={() => handleSelectAndSaveScroll(mountain)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    handleSelectAndSaveScroll(mountain);
+                  }
+                }}
+                className="w-full text-left p-5 hover:bg-green-50 cursor-pointer transition-colors"
+              >
+                <h3 className="font-bold text-slate-700">{mountain.name}</h3>
+                {mountain.elevation && (
+                  <p className="text-sm text-slate-500">
+                    標高: {mountain.elevation.toLocaleString()}m
+                  </p>
+                )}
+                {mountain.prefectures && (
+                  <p className="text-sm text-slate-500">
+                    都道府県: {mountain.prefectures.map(p => p.name).join(", ")}
+                  </p>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="p-5 text-center text-slate-500"> </div>
+      )}
     </div>
   );
 }
