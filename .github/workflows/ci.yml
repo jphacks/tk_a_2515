@@ -1,0 +1,40 @@
+name: CI Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  code-quality-checks:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@main
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@master
+        with:
+          version: 10.18.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@main
+        with:
+          node-version: 22.16.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: ./frontend
+        
+      - name: Run Format & Lint Check with Biome
+        run: pnpm biome ci src/
+        working-directory: ./frontend
+
+      - name: Run Type Check
+        run: pnpm type-check
+        working-directory: ./frontend
