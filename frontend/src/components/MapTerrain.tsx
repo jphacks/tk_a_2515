@@ -1,8 +1,8 @@
 "use client";
 
+import "maplibre-gl/dist/maplibre-gl.css";
 import maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import "maplibre-gl/dist/maplibre-gl.css";
 import type { Mountain, Path } from "@/app/api/lib/models";
 
 export const ZOOM_LEVEL_THRESHOLD = 12; // ✨ ズームレベルの閾値を定義
@@ -200,6 +200,42 @@ export const MapTerrain = ({
         "text-halo-color": "rgba(255, 255, 255, 0.9)",
         "text-halo-width": 1,
       },
+    });
+
+    // ✨ ピンをクリックした際にツールチップを表示
+    m.on("click", "mountains-points", e => {
+      if (!e.features || !e.features[0]) return;
+
+      const feature = e.features[0];
+      if (
+        feature.geometry.type === "Point" ||
+        feature.geometry.type === "LineString"
+      ) {
+        const coordinates = feature.geometry.coordinates.slice();
+        const { name, elevation } = feature.properties;
+
+        // ツールチップの内容を設定
+        const popupContent = `
+          <div>
+            <strong>${name}</strong><br />
+            標高: ${elevation}m
+          </div>
+        `;
+
+        // ツールチップを作成して表示
+        new maplibregl.Popup()
+          .setLngLat(coordinates as [number, number])
+          .setHTML(popupContent)
+          .addTo(m);
+      }
+    });
+
+    // ✨ マウスカーソルを変更
+    m.on("mouseenter", "mountains-points", () => {
+      m.getCanvas().style.cursor = "pointer";
+    });
+    m.on("mouseleave", "mountains-points", () => {
+      m.getCanvas().style.cursor = "";
     });
   }, [mountains, createMountainGeoJSON]);
 
