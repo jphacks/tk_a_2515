@@ -10,10 +10,18 @@ type StyleMode = "hybrid" | "normal";
 interface Props {
   mountains: Mountain[];
   paths: Path[];
-  onBoundsChange: (bounds: BoundingBox) => void;
+  onBoundsChange?: (bounds: BoundingBox) => void;
+  onSelectMountain?: (mountain: Mountain) => void;
+  selectedMountain?: Mountain | null; // ✨ プロパティを追加
 }
 
-export const MapPageClient = ({ mountains, paths, onBoundsChange }: Props) => {
+export const MapPageClient = ({
+  mountains,
+  paths,
+  onBoundsChange,
+  onSelectMountain,
+  selectedMountain, // ✨ プロパティを受け取り
+}: Props) => {
   const [mode, setMode] = useState<StyleMode>("normal");
 
   return (
@@ -45,6 +53,8 @@ export const MapPageClient = ({ mountains, paths, onBoundsChange }: Props) => {
         mountains={mountains}
         paths={paths}
         onBoundsChange={onBoundsChange}
+        onSelectMountain={onSelectMountain}
+        selectedMountain={selectedMountain}
       />
     </div>
   );

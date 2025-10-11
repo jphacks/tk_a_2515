@@ -22,6 +22,7 @@ export default function PanelContent({
 
   // ✨ 3. 山を選択したときに、現在のスクロール位置を保存するハンドラ関数
   const handleSelectAndSaveScroll = (mountain: Mountain) => {
+    console.log("Mountain selected in PanelContent:", mountain.name); // ✨ デバッグログ追加
     if (listContainerRef.current) {
       // 現在のスクロール位置(scrollTop)をstateに保存
       setScrollPosition(listContainerRef.current.scrollTop);

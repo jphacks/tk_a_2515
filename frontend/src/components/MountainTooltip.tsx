@@ -69,9 +69,13 @@ export const MountainTooltip = ({ name, elevation }: MountainTooltipProps) => {
         </div>
 
         {/* ✨ 追加情報 */}
-        <div className="text-xs text-gray-400 text-center pt-2 border-t border-gray-100">
+        <button
+          type="button"
+          data-detail-button
+          className="w-full text-xs text-gray-400 text-center pt-2 border-t border-gray-100 hover:text-blue-600 hover:bg-blue-50 rounded-b-lg transition-colors cursor-pointer"
+        >
           クリックして詳細を表示
-        </div>
+        </button>
       </div>
     </div>
   );

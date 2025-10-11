@@ -22,6 +22,8 @@ interface Props {
     maxLat: number;
     zoomLevel: number;
   }) => void;
+  onSelectMountain?: (mountain: Mountain) => void;
+  selectedMountain?: Mountain | null; // ✨ 選択された山を受け取るプロパティを追加
 }
 
 export const MapTerrain = ({
@@ -29,6 +31,8 @@ export const MapTerrain = ({
   mountains,
   paths,
   onBoundsChange,
+  onSelectMountain,
+  selectedMountain, // ✨ プロパティを受け取り
 }: Props) => {
   if (!process.env.NEXT_PUBLIC_FULL_URL) {
     throw new Error(
@@ -355,7 +359,10 @@ export const MapTerrain = ({
       const feature = e.features[0];
       if (feature.geometry.type !== "Point") return;
       const coordinates = feature.geometry.coordinates.slice();
-      const { name, elevation } = feature.properties;
+      const { name, elevation, id } = feature.properties;
+
+      // ✨ 対応する山のデータを見つける
+      const selectedMountain = mountains.find(m => m.id === id);
 
       // カスタムツールチップをHTMLとして生成
       const tooltipHtml = renderToString(
@@ -366,7 +373,7 @@ export const MapTerrain = ({
       const popup = new maplibregl.Popup({
         closeButton: true,
         closeOnClick: true,
-        closeOnMove: false, // ✨ マップ移動で閉じないように設定
+        closeOnMove: false,
         offset: 25,
         className: "custom-mountain-popup",
         maxWidth: "300px",
@@ -374,6 +381,20 @@ export const MapTerrain = ({
         .setLngLat(coordinates as [number, number])
         .setHTML(tooltipHtml)
         .addTo(m);
+
+      // ✨ ツールチップ内の「クリックして詳細を表示」ボタンにイベントリスナーを追加
+      setTimeout(() => {
+        const detailButton = popup
+          .getElement()
+          ?.querySelector("[data-detail-button]");
+        if (detailButton && selectedMountain && onSelectMountain) {
+          detailButton.addEventListener("click", e => {
+            e.stopPropagation();
+            onSelectMountain(selectedMountain);
+            popup.remove();
+          });
+        }
+      }, 0);
 
       // ✨ ポップアップが確実に閉じるようにイベントリスナーを追加
       const closeButton = popup
@@ -413,7 +434,7 @@ export const MapTerrain = ({
         12,
       ]);
     });
-  }, [mountains, createMountainGeoJSON]);
+  }, [mountains, createMountainGeoJSON, onSelectMountain]); // ✨ onSelectMountain を依存配列に追加
 
   // 初期化用のuseEffect
   // biome-ignore lint/correctness/useExhaustiveDependencies: false positive
@@ -542,6 +563,90 @@ export const MapTerrain = ({
     if (!map.current?.isStyleLoaded()) return;
     addOrUpdateMountains();
   }, [addOrUpdateMountains]);
+
+  // ✨ 指定された山の位置にジャンプする関数
+  const jumpToMountain = useCallback((mountain: Mountain) => {
+    const m = map.current;
+    if (!m) return;
+
+    // ✨ 座標が有効な場合のみジャンプ
+    if (mountain.lon !== undefined && mountain.lat !== undefined) {
+      // ✨ 標高に基づいてカメラ設定を動的に調整
+      const elevation = mountain.elevation || 0;
+
+      // 標高に応じたズームレベルの調整
+      let zoom: number;
+      if (elevation >= 3000) {
+        zoom = 14; // 高山は少し引いて全体を見せる
+      } else if (elevation >= 2000) {
+        zoom = 15; // 中山は中程度のズーム
+      } else if (elevation >= 1000) {
+        zoom = 16; // 低山は近めで詳細を見せる
+      } else {
+        zoom = 17; // 丘陵は最も近くで詳細を見せる
+      }
+
+      // 標高に応じたピッチの調整（高い山ほど立体的に見せる）
+      let pitch: number;
+      if (elevation >= 3000) {
+        pitch = 70; // 高山は立体感を強調
+      } else if (elevation >= 2000) {
+        pitch = 65; // 中山は適度な立体感
+      } else if (elevation >= 1000) {
+        pitch = 60; // 低山は標準的な立体感
+      } else {
+        pitch = 45; // 丘陵は控えめな立体感
+      }
+
+      // 標高に応じたベアリングの調整（地形の特徴が見やすい角度）
+      let bearing: number;
+      if (elevation >= 3000) {
+        bearing = 45; // 高山は斜めから見て稜線を強調
+      } else if (elevation >= 2000) {
+        bearing = 30; // 中山は適度な角度
+      } else if (elevation >= 1000) {
+        bearing = 15; // 低山は軽い角度
+      } else {
+        bearing = 0; // 丘陵は正面から
+      }
+
+      // ✨ アニメーション時間も標高に応じて調整
+      let duration: number;
+      if (elevation >= 3000) {
+        duration = 2000; // 高山はゆっくりとアプローチ
+      } else if (elevation >= 2000) {
+        duration = 1800; // 中山は適度な速度
+      } else {
+        duration = 1500; // 低山・丘陵は標準速度
+      }
+
+      console.log(
+        `Mountain: ${mountain.name}, Elevation: ${elevation}m, Zoom: ${zoom}, Pitch: ${pitch}, Bearing: ${bearing}`,
+      );
+
+      m.easeTo({
+        center: [Number(mountain.lon), Number(mountain.lat)],
+        zoom,
+        pitch,
+        bearing,
+        duration,
+      });
+    }
+  }, []);
+
+  // ✨ selectedMountainが変更されたときに地図をジャンプさせる
+  useEffect(() => {
+    console.log("selectedMountain changed:", selectedMountain); // ✨ デバッグログ追加
+    if (selectedMountain) {
+      console.log(
+        "Jumping to mountain:",
+        selectedMountain.name,
+        selectedMountain.lon,
+        selectedMountain.lat,
+      ); // ✨ デバッグログ追加
+      jumpToMountain(selectedMountain);
+    }
+  }, [selectedMountain, jumpToMountain]);
 
   const toggle2D3D = useCallback(() => {
     const m = map.current;
