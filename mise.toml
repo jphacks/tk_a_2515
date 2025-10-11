@@ -13,7 +13,7 @@ depends = ["export-openapi"]
 
 [tasks.backend-uv]
 description = "Run backend with uv"
-run = "cd backend && uv sync"
+run = "cd backend && ~/.local/bin/uv sync"
 
 [tasks.create-db-schema]
 description = "Create initial database schema"
@@ -34,13 +34,13 @@ depends = ["frontend-setup"]
 
 [tasks.deploy-setup]
 run = [
-  "cd frontend && pnpm install",
+  "cd frontend && ~/.volta/bin/pnpm install",
 ]
 depends = ["backend-uv"]
 
 [tasks.deploy-start]
 run = [
-  "cd backend && docker compose up -d",
-  "cd frontend && pnpm build && pm2 restart pm2.config.cjs --update-env",
+  "cd backend && /usr/bin/docker compose up -d",
+  "cd frontend && ~/.volta/bin/pnpm build && ~/.volta/bin/pm2 restart pm2.config.cjs --update-env",
 ]
 depends = ["deploy-setup"]

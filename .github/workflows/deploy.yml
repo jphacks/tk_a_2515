@@ -50,3 +50,4 @@ jobs:
             git pull origin main
             ~/.local/bin/mise install
             ~/.local/bin/mise deploy-setup
+            ~/.local/bin/mise deploy-start
