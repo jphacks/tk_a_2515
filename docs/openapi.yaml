@@ -800,6 +800,16 @@ components:
           - type: string
           - type: 'null'
           title: Source
+        difficulty:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Difficulty
+        kuma:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Kuma
         id:
           type: integer
           title: Id

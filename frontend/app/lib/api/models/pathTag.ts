@@ -6,6 +6,8 @@
  */
 import type { PathTagHighway } from './pathTagHighway';
 import type { PathTagSource } from './pathTagSource';
+import type { PathTagDifficulty } from './pathTagDifficulty';
+import type { PathTagKuma } from './pathTagKuma';
 
 /**
  * PathTag API応答スキーマ
@@ -13,6 +15,8 @@ import type { PathTagSource } from './pathTagSource';
 export interface PathTag {
   highway?: PathTagHighway;
   source?: PathTagSource;
+  difficulty?: PathTagDifficulty;
+  kuma?: PathTagKuma;
   id: number;
   path_id: number;
   created_at: string;
