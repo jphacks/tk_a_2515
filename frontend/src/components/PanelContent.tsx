@@ -1,12 +1,5 @@
 import { ArrowLeft } from "lucide-react";
-
-// 共通の型定義
-type Mountain = {
-  id: number;
-  name: string;
-  elevation: number;
-  description: string;
-};
+import type { Mountain } from "@/app/api/lib/models";
 
 type Props = {
   mountains: Mountain[];
@@ -40,10 +33,10 @@ export default function PanelContent({
           {selectedMountain.name}
         </h2>
         <p className="text-md text-slate-500 mb-4 font-medium">
-          {selectedMountain.elevation.toLocaleString()}m
+          {selectedMountain.elevation?.toLocaleString()}m
         </p>
         <p className="text-slate-600 leading-relaxed">
-          {selectedMountain.description}
+          {selectedMountain.detail}
         </p>
       </div>
     );
@@ -53,7 +46,9 @@ export default function PanelContent({
   return (
     <div>
       <div className="p-5 border-b border-slate-200">
-        <h2 className="text-xl font-bold text-slate-800">日本の名峰</h2>
+        <h2 className="text-xl font-bold text-slate-800">
+          {mountains.length} 件の山
+        </h2>
       </div>
       <ul className="divide-y divide-slate-100">
         {mountains.map(mountain => (
@@ -70,7 +65,7 @@ export default function PanelContent({
             >
               <h3 className="font-bold text-slate-700">{mountain.name}</h3>
               <p className="text-sm text-slate-500">
-                {mountain.elevation.toLocaleString()}m
+                {mountain.elevation?.toLocaleString()}m
               </p>
             </button>
           </li>

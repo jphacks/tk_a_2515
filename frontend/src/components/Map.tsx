@@ -1,21 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import type { Mountain, Path } from "@/app/api/lib/models";
+import type { BoundingBox } from "@/app/page";
 import { MapTerrain } from "@/components/MapTerrain";
-
-// MapTerrainが受け取るパスの型定義
-type Path = {
-  lat: number;
-  lon: number;
-}[];
 
 type StyleMode = "hybrid" | "normal";
 
 interface Props {
-  initialPaths: Path[]; // サーバーから整形済みのパスデータを受け取る
+  mountains: Mountain[];
+  paths: Path[];
+  onBoundsChange: (bounds: BoundingBox) => void;
 }
 
-export const MapPageClient = ({ initialPaths }: Props) => {
+export const MapPageClient = ({ mountains, paths, onBoundsChange }: Props) => {
   const [mode, setMode] = useState<StyleMode>("normal");
 
   return (
@@ -42,7 +40,12 @@ export const MapPageClient = ({ initialPaths }: Props) => {
       </div>
 
       {/* MapTerrainにモードと整形済みパスデータを渡す */}
-      <MapTerrain styleMode={mode} paths={initialPaths} />
+      <MapTerrain
+        styleMode={mode}
+        mountains={mountains}
+        paths={paths}
+        onBoundsChange={onBoundsChange}
+      />
     </div>
   );
 };

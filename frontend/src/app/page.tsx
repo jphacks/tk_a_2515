@@ -5,52 +5,62 @@ import BottomSheet from "@/components/BottomSheet";
 import ContextPanel from "@/components/ContextPanel";
 import Header from "@/components/Header";
 import { MapPageClient } from "@/components/Map";
+import type { Mountain, Path } from "./api/lib/models";
+import { listMountainsMountainsGet } from "./api/lib/mountains/mountains";
+import { listPathsPathsGet } from "./api/lib/paths/paths";
 
-// サンプルデータ型
-type Mountain = {
-  id: number;
-  name: string;
-  elevation: number;
-  description: string;
+export type BoundingBox = {
+  minLon: number;
+  minLat: number;
+  maxLon: number;
+  maxLat: number;
+  zoomLevel: number;
 };
 
-// サンプルデータ
-const sampleMountains: Mountain[] = [
-  {
-    id: 1,
-    name: "富士山",
-    elevation: 3776,
-    description:
-      "日本一高い山であり、その美しい円錐形の姿は日本の象徴です。古くから信仰の対象とされ、多くの芸術作品に描かれてきました。",
-  },
-  {
-    id: 2,
-    name: "北岳",
-    elevation: 3193,
-    description:
-      "南アルプスに位置し、富士山に次ぐ日本で2番目に高い山です。高山植物の宝庫としても知られています。",
-  },
-  {
-    id: 3,
-    name: "穂高岳",
-    elevation: 3190,
-    description:
-      "北アルプスの盟主として知られ、奥穂高岳、涸沢岳、北穂高岳などの峰々からなります。険しい岩稜帯が特徴です。",
-  },
-  {
-    id: 4,
-    name: "槍ヶ岳",
-    elevation: 3180,
-    description:
-      "天を突く槍のような鋭い山頂が特徴的な北アルプスのシンボル的存在です。多くの登山者の憧れの的となっています。",
-  },
-];
-
 export default function HomePage() {
+  const [_, setBounds] = useState<BoundingBox | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [mountains, setMountains] = useState<Mountain[]>([]);
+  const [paths, setPaths] = useState<Path[]>([]);
   const [selectedMountain, setSelectedMountain] = useState<Mountain | null>(
     null,
   );
+
+  // ✨ MapTerrainからデータを受け取るためのコールバック関数
+  const handleBoundsChange = async (newBounds: BoundingBox) => {
+    setBounds(newBounds);
+
+    if (newBounds.zoomLevel >= 12) {
+      const newMountains = await listMountainsMountainsGet({
+        limit: 12345,
+        minlon: newBounds.minLon,
+        minlat: newBounds.minLat,
+        maxlon: newBounds.maxLon,
+        maxlat: newBounds.maxLat,
+      });
+      if (newMountains.status === 200) {
+        setMountains(newMountains.data.items);
+      } else {
+        console.error("Failed to fetch mountains:", newMountains);
+      }
+
+      // const newPaths = await listPathsPathsGet({
+      //   limit: 12345,
+      //   minlon: newBounds.minLon,
+      //   minlat: newBounds.minLat,
+      //   maxlon: newBounds.maxLon,
+      //   maxlat: newBounds.maxLat,
+      // });
+      // if (newPaths.status === 200) {
+      //   console.log("Fetched paths within bounds:", newPaths.data.total);
+      //   setPaths(newPaths.data.items);
+      // } else {
+      //   console.error("Failed to fetch paths:", newPaths);
+      // }
+    } else {
+      console.log("Zoom level too low, skipping data fetch.");
+    }
+  };
 
   const handleSelectMountain = (mountain: Mountain) => {
     setSelectedMountain(mountain);
@@ -74,15 +84,19 @@ export default function HomePage() {
       <Header />
       <main className="flex flex-1 overflow-hidden">
         <ContextPanel
-          mountains={sampleMountains}
+          mountains={mountains}
           selectedMountain={selectedMountain}
           onSelectMountain={handleSelectMountain}
           onClearSelection={handleClearSelection}
         />
-        <MapPageClient initialPaths={[]} />
+        <MapPageClient
+          mountains={mountains}
+          paths={paths}
+          onBoundsChange={handleBoundsChange}
+        />
       </main>
       <BottomSheet
-        mountains={sampleMountains}
+        mountains={mountains}
         selectedMountain={selectedMountain}
         onSelectMountain={handleSelectMountain}
         onClearSelection={handleClearSelection}

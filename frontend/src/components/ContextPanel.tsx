@@ -1,12 +1,6 @@
+import type { Mountain } from "@/app/api/lib/models";
 import PanelContent from "./PanelContent";
 
-// 共通の型定義
-type Mountain = {
-  id: number;
-  name: string;
-  elevation: number;
-  description: string;
-};
 type Props = {
   mountains: Mountain[];
   selectedMountain: Mountain | null;
