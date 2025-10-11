@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     root: path.resolve("./"),
   },
   outputFileTracingRoot: path.resolve("./"),
+  env: {
+    NEXT_PUBLIC_BASE_URL: "http://localhost:8000",
+  },
 };
 
 export default nextConfig;

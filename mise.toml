@@ -1,3 +1,26 @@
 [tools]
 node = "22.16.0"
 pnpm = "10.18.0"
+
+[tasks.export-openapi]
+description = "Export FastAPI OpenAPI schema to YAML"
+run = "cd backend/fastapi && uv run python scripts/export_openapi.py ../../docs/openapi.yaml"
+
+[tasks.generate-lib-api]
+description = "docs/openapi.yamlに基づいてlib/apiを作成"
+run = "npx orval --config ./frontend/orval.config.cjs"
+depends = ["export-openapi"]
+
+[tasks.backend-uv]
+description = "Run backend with uv"
+run = "cd backend && uv sync"
+
+[tasks.create-db-schema]
+description = "Create initial database schema"
+run = "cd backend && uv run python fastapi/scripts/create_tables.py"
+depends = ["backend-uv"]
+
+[tasks.import-db-data]
+description = "Import initial database data"
+run = "cd backend && uv run python fastapi/scripts/import_mountains.py && uv run python fastapi/scripts/import_paths.py"
+depends = ["create-db-schema"]
