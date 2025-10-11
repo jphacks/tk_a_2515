@@ -10,4 +10,8 @@ export type ListMountainsMountainsGetParams = {
   limit?: number;
   name?: string | null;
   prefecture_id?: number | null;
+  minlat?: number | null;
+  minlon?: number | null;
+  maxlat?: number | null;
+  maxlon?: number | null;
 };
