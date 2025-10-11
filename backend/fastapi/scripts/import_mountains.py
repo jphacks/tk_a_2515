@@ -139,7 +139,7 @@ def import_mountain_data(
             existing = get_mountain_by_ptid(db, mountain_import.ptid)
             if existing:
                 if skip_existing:
-                    if i % 100 == 0 or i == 1:  # 100件ごとまたは最初だけ表示
+                    if i % batch_size == 0 or i == 1:  # 1000件ごとまたは最初だけ表示
                         print(
                             f"  [{i}/{len(mountains_data)}] Skipped: {mountain_import.name} (ptid: {mountain_import.ptid}) - already exists"
                         )
@@ -157,7 +157,7 @@ def import_mountain_data(
             created = create_mountain(db, mountain_create)
 
             # 100件ごとまたは最初だけ表示
-            if i % 100 == 0 or stats["created"] == 0:
+            if i % batch_size == 0 or stats["created"] == 0:
                 print(
                     f"  [{i}/{len(mountains_data)}] Created: {created.name} (ID: {created.id}, ptid: {created.ptid})"
                 )
@@ -185,8 +185,8 @@ def import_mountain_data(
 
 
 def main():
-    json_path = Path(__file__).parent.parent.parent / "datas" / "yamareco.json" 
-    batch_size = 100
+    json_path = Path(__file__).parent.parent.parent / "datas" / "yamareco.json"
+    batch_size = 1000
 
     # DBセッションを作成
     db = SessionLocal()
