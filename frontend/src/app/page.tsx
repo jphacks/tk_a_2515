@@ -5,6 +5,7 @@ import BottomSheet from "@/components/BottomSheet";
 import ContextPanel from "@/components/ContextPanel";
 import Header from "@/components/Header";
 import { MapPageClient } from "@/components/Map";
+import { ZOOM_LEVEL_THRESHOLD } from "@/components/MapTerrain";
 import type { Mountain, Path } from "./api/lib/models";
 import { listMountainsMountainsGet } from "./api/lib/mountains/mountains";
 import { listPathsPathsGet } from "./api/lib/paths/paths";
@@ -30,7 +31,7 @@ export default function HomePage() {
   const handleBoundsChange = async (newBounds: BoundingBox) => {
     setBounds(newBounds);
 
-    if (newBounds.zoomLevel >= 12) {
+    if (newBounds.zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
       const newMountains = await listMountainsMountainsGet({
         limit: 12345,
         minlon: newBounds.minLon,
@@ -57,8 +58,6 @@ export default function HomePage() {
       // } else {
       //   console.error("Failed to fetch paths:", newPaths);
       // }
-    } else {
-      console.log("Zoom level too low, skipping data fetch.");
     }
   };
 

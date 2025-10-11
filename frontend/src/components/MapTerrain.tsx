@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Mountain, Path } from "@/app/api/lib/models";
 
+export const ZOOM_LEVEL_THRESHOLD = 12; // ✨ ズームレベルの閾値を定義
+
 type StyleMode = "hybrid" | "normal";
 
 interface Props {
@@ -85,8 +87,8 @@ export const MapTerrain = ({
     const m = map.current;
     if (!m) return;
 
-    // ✨ ズームレベルが 10 未満の場合はレイヤーを削除
-    if (m.getZoom() < 10) {
+    // ✨ 定数を使用してズームレベルを判定
+    if (m.getZoom() < ZOOM_LEVEL_THRESHOLD) {
       if (m.getLayer("paths-layer")) m.removeLayer("paths-layer");
       if (m.getSource("paths-source")) m.removeSource("paths-source");
       return;
@@ -150,8 +152,8 @@ export const MapTerrain = ({
     const m = map.current;
     if (!m || !m.isStyleLoaded()) return;
 
-    // ✨ ズームレベルが 10 未満の場合はレイヤーを削除
-    if (m.getZoom() < 10) {
+    // ✨ 定数を使用してズームレベルを判定
+    if (m.getZoom() < ZOOM_LEVEL_THRESHOLD) {
       if (m.getLayer("mountains-labels")) m.removeLayer("mountains-labels");
       if (m.getLayer("mountains-points")) m.removeLayer("mountains-points");
       if (m.getSource("mountains-source")) m.removeSource("mountains-source");
@@ -209,7 +211,7 @@ export const MapTerrain = ({
       container: mapContainer.current,
       style: styleUrls[styleMode],
       center: [138.7273, 35.3606],
-      zoom: 12,
+      zoom: 14,
       pitch: 60,
       bearing: 0,
       transformRequest: url => {
@@ -241,7 +243,6 @@ export const MapTerrain = ({
 
     // バウンディングボックスを処理する関数
     const handleMapMove = () => {
-      // ✨ 名前を変更
       if (!map.current) return;
       const bounds = map.current.getBounds();
       const newBounds = {
@@ -251,11 +252,10 @@ export const MapTerrain = ({
         maxLat: bounds.getNorth(),
       };
 
-      // ✨ ズームレベルを取得して onBoundsChange に渡す
       const zoomLevel = map.current.getZoom();
 
-      if (zoomLevel < 12) {
-        console.log("Zoom level is below 12, removing layers.");
+      // ✨ 定数を使用してズームレベルを判定
+      if (zoomLevel < ZOOM_LEVEL_THRESHOLD) {
         if (map.current.getLayer("mountains-labels"))
           map.current.removeLayer("mountains-labels");
         if (map.current.getLayer("mountains-points"))
@@ -273,14 +273,18 @@ export const MapTerrain = ({
       }
     };
 
-    // ✨ マップの移動やズームが完了した時に発火する 'moveend' イベントにリスナーを登録
-    map.current.on("moveend", handleMapMove);
-
+    // 初回ロード時に現在のバウンディングボックスを報告
     map.current.on("load", () => {
       addDemAndTerrain();
       addOrUpdatePaths();
       addOrUpdateMountains();
+
+      // ✨ 初回ロード時に handleMapMove を呼び出す
+      handleMapMove();
     });
+
+    // マップの移動やズームが完了した時に発火する 'moveend' イベントにリスナーを登録
+    map.current.on("moveend", handleMapMove);
 
     return () => {
       map.current?.off("moveend", handleMapMove);

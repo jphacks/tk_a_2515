@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     root: path.resolve("./"),
   },
   outputFileTracingRoot: path.resolve("./"),
+  images: {
+    domains: ["yamareco.org", "yamareco.info"],
+  },
 };
 
 export default nextConfig;
