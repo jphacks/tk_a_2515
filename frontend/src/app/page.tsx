@@ -41,44 +41,37 @@ export default function HomePage() {
     setBounds(newBounds);
 
     if (newBounds.zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
-      const requests = [
-        listMountainsMountainsGet({
+      try {
+        const mountainsResponse = await listMountainsMountainsGet({
           limit: 16384,
           minlon: newBounds.minLon,
           minlat: newBounds.minLat,
           maxlon: newBounds.maxLon,
           maxlat: newBounds.maxLat,
-        }),
-        listPathsPathsGet({
+        });
+        if (mountainsResponse.status === 200) {
+          const sortedMountains = mountainsResponse.data.items.sort(
+            (a, b) => (b.elevation || 0) - (a.elevation || 0),
+          );
+          setMountains(sortedMountains);
+        } else {
+          console.error("Failed to fetch mountains:", mountainsResponse);
+        }
+
+        const pathsResponse = await listPathsPathsGet({
           limit: 16384,
           minlon: newBounds.minLon,
           minlat: newBounds.minLat,
           maxlon: newBounds.maxLon,
           maxlat: newBounds.maxLat,
-        }),
-      ];
-
-      const [mountainsResult, pathsResult] = await Promise.allSettled(requests);
-
-      if (
-        mountainsResult.status === "fulfilled" &&
-        mountainsResult.value.status === 200
-      ) {
-        const sortedMountains = (
-          mountainsResult.value.data.items as Mountain[]
-        ).sort((a, b) => (b.elevation || 0) - (a.elevation || 0));
-        setMountains(sortedMountains);
-      } else if (mountainsResult.status === "rejected") {
-        console.error("Failed to fetch mountains:", mountainsResult.reason);
-      }
-
-      if (
-        pathsResult.status === "fulfilled" &&
-        pathsResult.value.status === 200
-      ) {
-        setPaths(pathsResult.value.data.items as Path[]);
-      } else if (pathsResult.status === "rejected") {
-        console.error("Failed to fetch paths:", pathsResult.reason);
+        });
+        if (pathsResponse.status === 200) {
+          setPaths(pathsResponse.data.items);
+        } else {
+          console.error("Failed to fetch paths:", pathsResponse);
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
       }
     } else {
       setMountains([]);

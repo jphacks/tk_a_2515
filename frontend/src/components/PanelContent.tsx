@@ -112,16 +112,17 @@ export default function PanelContent({
                 </td>
               </tr>
             )}
-            {selectedMountain.prefectures && (
-              <tr>
-                <th className="font-medium text-slate-700 pr-4 py-2">
-                  都道府県
-                </th>
-                <td className="py-2">
-                  {selectedMountain.prefectures.map(p => p.name).join(", ")}
-                </td>
-              </tr>
-            )}
+            {selectedMountain.prefectures &&
+              selectedMountain.prefectures.length > 0 && (
+                <tr>
+                  <th className="font-medium text-slate-700 pr-4 py-2">
+                    都道府県
+                  </th>
+                  <td className="py-2">
+                    {selectedMountain.prefectures.map(p => p.name).join(", ")}
+                  </td>
+                </tr>
+              )}
             {selectedMountain.types && (
               <tr>
                 <th className="font-medium text-slate-700 pr-4 py-2">タイプ</th>

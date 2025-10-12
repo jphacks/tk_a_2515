@@ -137,7 +137,7 @@ export const MapTerrain = ({
           "line-cap": "round",
         },
         paint: {
-          "line-color": "#15A34C",
+          "line-color": "#829DFF",
           "line-width": [
             "interpolate",
             ["linear"],
@@ -149,7 +149,7 @@ export const MapTerrain = ({
             20,
             8,
           ],
-          "line-opacity": 0.7,
+          "line-opacity": 0.8,
         },
       });
 

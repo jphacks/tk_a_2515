@@ -18,14 +18,20 @@ export async function GET(
   try {
     const redis = await getRedisClient();
     const cachedStyle = await redis.get(cacheKey);
+
     if (cachedStyle) {
-      return new NextResponse(cachedStyle, {
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=86400",
-          "X-Cache-Status": "HIT",
-        },
-      });
+      // ✨ キャッシュデータのフォーマットを検証
+      if (validateJsonFormat(cachedStyle)) {
+        return new NextResponse(cachedStyle, {
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "public, max-age=86400",
+            "X-Cache-Status": "HIT",
+          },
+        });
+      } else {
+        console.warn(`Validation failed for cached data with key ${cacheKey}`);
+      }
     }
   } catch (error) {
     console.error(`Redis GET error for style ${cacheKey}:`, error);
@@ -41,6 +47,12 @@ export async function GET(
   // ここでは必ずJSONとして処理する
   const styleString = await response.text();
 
+  // ✨ フォーマットの検証
+  if (!validateJsonFormat(styleString)) {
+    console.error(`Validation failed for fetched data from ${targetUrl}`);
+    return new NextResponse("Invalid content format", { status: 400 });
+  }
+
   try {
     const redis = await getRedisClient();
     await redis.set(cacheKey, styleString, { EX: 86400 });
@@ -55,4 +67,14 @@ export async function GET(
       "X-Cache-Status": "MISS",
     },
   });
+}
+
+// ✨ JSON フォーマットを検証する関数
+function validateJsonFormat(data: string): boolean {
+  try {
+    JSON.parse(data);
+    return true;
+  } catch {
+    return false;
+  }
 }
