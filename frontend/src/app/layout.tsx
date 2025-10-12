@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "PeakSight",
-  description: "Visualize mountain & path information",
+  description: "登山に特化した3D地図アプリ",
 };
 
 export default function RootLayout({
