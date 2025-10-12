@@ -26,6 +26,7 @@ export default function HomePage() {
   const [selectedMountain, setSelectedMountain] = useState<Mountain | null>(
     null,
   );
+  const [selectedPath, setSelectedPath] = useState<Path | null>(null); // 追加
 
   // ✨ MapTerrainからデータを受け取るためのコールバック関数
   const handleBoundsChange = async (newBounds: BoundingBox) => {
@@ -45,19 +46,19 @@ export default function HomePage() {
         console.error("Failed to fetch mountains:", newMountains);
       }
 
-      // const newPaths = await listPathsPathsGet({
-      //   limit: 12345,
-      //   minlon: newBounds.minLon,
-      //   minlat: newBounds.minLat,
-      //   maxlon: newBounds.maxLon,
-      //   maxlat: newBounds.maxLat,
-      // });
-      // if (newPaths.status === 200) {
-      //   console.log("Fetched paths within bounds:", newPaths.data.total);
-      //   setPaths(newPaths.data.items);
-      // } else {
-      //   console.error("Failed to fetch paths:", newPaths);
-      // }
+      const newPaths = await listPathsPathsGet({
+        limit: 1234567,
+        minlon: newBounds.minLon,
+        minlat: newBounds.minLat,
+        maxlon: newBounds.maxLon,
+        maxlat: newBounds.maxLat,
+      });
+      if (newPaths.status === 200) {
+        console.log("Fetched paths within bounds:", newPaths.data.total);
+        setPaths(newPaths.data.items);
+      } else {
+        console.error("Failed to fetch paths:", newPaths);
+      }
     } else {
       setMountains([]);
       setPaths([]);
@@ -66,11 +67,19 @@ export default function HomePage() {
 
   const handleSelectMountain = (mountain: Mountain) => {
     setSelectedMountain(mountain);
+    setSelectedPath(null); // パス選択をクリア
+    setIsSheetOpen(true);
+  };
+
+  const handleSelectPath = (path: Path) => {
+    setSelectedPath(path);
+    setSelectedMountain(null); // 山選択をクリア
     setIsSheetOpen(true);
   };
 
   const handleClearSelection = () => {
     setSelectedMountain(null);
+    setSelectedPath(null); // 追加
   };
 
   const handleToggleSheet = () => {
@@ -88,7 +97,9 @@ export default function HomePage() {
         <ContextPanel
           mountains={mountains}
           selectedMountain={selectedMountain}
+          selectedPath={selectedPath} // 追加
           onSelectMountain={handleSelectMountain}
+          onSelectPath={handleSelectPath} // 追加
           onClearSelection={handleClearSelection}
         />
         <MapPageClient
@@ -96,13 +107,17 @@ export default function HomePage() {
           paths={paths}
           onBoundsChange={handleBoundsChange}
           onSelectMountain={handleSelectMountain}
-          selectedMountain={selectedMountain} // ✨ 選択された山を渡す
+          selectedMountain={selectedMountain}
+          onSelectPath={handleSelectPath} // 追加
+          selectedPath={selectedPath} // 追加
         />
       </main>
       <BottomSheet
         mountains={mountains}
         selectedMountain={selectedMountain}
+        selectedPath={selectedPath} // 追加
         onSelectMountain={handleSelectMountain}
+        onSelectPath={handleSelectPath} // 追加
         onClearSelection={handleClearSelection}
         isOpen={isSheetOpen}
         onToggle={handleToggleSheet}
