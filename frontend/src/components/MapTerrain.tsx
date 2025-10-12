@@ -26,6 +26,7 @@ interface Props {
   selectedMountain?: Mountain | null; // ✨ 選択された山を受け取るプロパティを追加
   onSelectPath?: (path: Path) => void; // 追加
   selectedPath?: Path | null; // 追加
+  hoveredPoint?: { lat: number; lon: number } | null; // ホバー地点
 }
 
 export const MapTerrain = ({
@@ -36,6 +37,7 @@ export const MapTerrain = ({
   onSelectMountain,
   selectedMountain, // ✨ プロパティを受け取り
   onSelectPath,
+  hoveredPoint, // ホバー地点
 }: Props) => {
   if (!process.env.NEXT_PUBLIC_FULL_URL) {
     throw new Error(
@@ -55,6 +57,7 @@ export const MapTerrain = ({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const currentMode = useRef<StyleMode>(styleMode);
+  const hoveredPointMarker = useRef<maplibregl.Marker | null>(null);
 
   const addDemAndTerrain = useCallback(() => {
     const m = map.current;
@@ -608,6 +611,37 @@ export const MapTerrain = ({
       jumpToMountain(selectedMountain);
     }
   }, [selectedMountain, jumpToMountain]);
+
+  // ✨ hoveredPointが変更されたときにマーカーを表示/更新/削除
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+
+    // 既存のマーカーを削除
+    if (hoveredPointMarker.current) {
+      hoveredPointMarker.current.remove();
+      hoveredPointMarker.current = null;
+    }
+
+    // hoveredPointが存在する場合は新しいマーカーを追加
+    if (hoveredPoint) {
+      // カスタムマーカー要素を作成
+      const el = document.createElement("div");
+      el.className = "hovered-point-marker";
+      el.style.width = "16px";
+      el.style.height = "16px";
+      el.style.borderRadius = "50%";
+      el.style.backgroundColor = "#ff4444";
+      el.style.border = "3px solid white";
+      el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+      el.style.cursor = "pointer";
+
+      // マーカーを作成して地図に追加
+      hoveredPointMarker.current = new maplibregl.Marker({ element: el })
+        .setLngLat([hoveredPoint.lon, hoveredPoint.lat])
+        .addTo(m);
+    }
+  }, [hoveredPoint]);
 
   const toggle2D3D = useCallback(() => {
     const m = map.current;

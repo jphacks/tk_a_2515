@@ -104,7 +104,7 @@ def get_nearest_elevation(lat: float, lon: float, dem_data: dict) -> float:
         j = int(y_diff / delta_y)
         print(f"  Nearest DEM point at ({base_x}, {base_y}), offset ({i}, {j})")
         if 0 <= i < 256 and 0 <= j < 256:
-            return data[(i, j)]
+            return data[(j, i)]
         else:
             return 0
     else:
@@ -138,7 +138,7 @@ def get_elevation_data(path: Path) -> PathDetail:
     for geom in path.geometries:
         elevation_value = get_nearest_elevation(geom.lat, geom.lon, dem_data)
         distance += int(local_distance_m(base_lat, base_lon, geom.lat, geom.lon))
-        points.append(Point(x=distance, y=elevation_value))
+        points.append(Point(x=distance, y=elevation_value, lon=geom.lon, lat=geom.lat))
         base_lon = geom.lon
         base_lat = geom.lat
 

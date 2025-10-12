@@ -1,5 +1,6 @@
 "use client";
 
+import { join } from "path";
 import { useState } from "react";
 import BottomSheet from "@/components/BottomSheet";
 import ContextPanel from "@/components/ContextPanel";
@@ -7,8 +8,12 @@ import Header from "@/components/Header";
 import { MapPageClient } from "@/components/Map";
 import { ZOOM_LEVEL_THRESHOLD } from "@/components/MapTerrain";
 import type { Mountain, Path } from "./api/lib/models";
+import type { PathDetail } from "./api/lib/models/pathDetail";
 import { listMountainsMountainsGet } from "./api/lib/mountains/mountains";
-import { listPathsPathsGet } from "./api/lib/paths/paths";
+import {
+  getPathPathsPathIdGet,
+  listPathsPathsGet,
+} from "./api/lib/paths/paths";
 
 export type BoundingBox = {
   minLon: number;
@@ -26,7 +31,11 @@ export default function HomePage() {
   const [selectedMountain, setSelectedMountain] = useState<Mountain | null>(
     null,
   );
-  const [selectedPath, setSelectedPath] = useState<Path | null>(null); // 追加
+  const [selectedPath, setSelectedPath] = useState<PathDetail | null>(null); // 追加
+  const [hoveredPoint, setHoveredPoint] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null); // ホバー地点
 
   // ✨ MapTerrainからデータを受け取るためのコールバック関数
   const handleBoundsChange = async (newBounds: BoundingBox) => {
@@ -71,8 +80,16 @@ export default function HomePage() {
     setIsSheetOpen(true);
   };
 
-  const handleSelectPath = (path: Path) => {
-    setSelectedPath(path);
+  const handleSelectPath = async (path: Path) => {
+    try {
+      const response = await getPathPathsPathIdGet(path.osm_id);
+      if (response.status === 200) {
+        console.log("Fetched path details:", response.data);
+        setSelectedPath(response.data);
+      }
+    } catch (error) {
+      console.error("失敗", error);
+    }
     setSelectedMountain(null); // 山選択をクリア
     setIsSheetOpen(true);
   };
@@ -90,6 +107,12 @@ export default function HomePage() {
     setIsSheetOpen(false);
   };
 
+  const handleHoverPointChange = (
+    point: { lat: number; lon: number } | null,
+  ) => {
+    setHoveredPoint(point);
+  };
+
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Header />
@@ -101,6 +124,7 @@ export default function HomePage() {
           onSelectMountain={handleSelectMountain}
           onSelectPath={handleSelectPath} // 追加
           onClearSelection={handleClearSelection}
+          onHoverPointChange={handleHoverPointChange} // ホバー地点の変更
         />
         <MapPageClient
           mountains={mountains}
@@ -110,6 +134,7 @@ export default function HomePage() {
           selectedMountain={selectedMountain}
           onSelectPath={handleSelectPath} // 追加
           selectedPath={selectedPath} // 追加
+          hoveredPoint={hoveredPoint} // ホバー地点
         />
       </main>
       <BottomSheet
