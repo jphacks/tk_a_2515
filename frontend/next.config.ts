@@ -8,7 +8,16 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingRoot: path.resolve("./"),
   images: {
-    domains: ["yamareco.org", "yamareco.info"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "yamareco.org",
+      },
+      {
+        protocol: "https",
+        hostname: "yamareco.info",
+      },
+    ],
   },
 };
 

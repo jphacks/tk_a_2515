@@ -221,7 +221,7 @@ export const updateMountainMountainsMountainIdPatch = async (
  * @summary Delete Mountain
  */
 export type deleteMountainMountainsMountainIdDeleteResponse204 = {
-  data: void;
+  data: undefined;
   status: 204;
 };
 

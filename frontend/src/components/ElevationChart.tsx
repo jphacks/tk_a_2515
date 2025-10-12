@@ -48,8 +48,14 @@ export default function ElevationChart({ data, onHoverPointChange }: Props) {
   };
 
   // カスタムツールチップ
-  // biome-ignore lint/correctness/noNestedComponentDefinitions: <explanation>
-  const CustomTooltip = ({ active, payload }: any) => {
+  // biome-ignore lint/correctness/noNestedComponentDefinitions: for simplicity
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: { payload: Point }[];
+  }) => {
     if (active && payload && payload.length) {
       const point = payload[0].payload;
       const distance = point.x;
@@ -58,9 +64,9 @@ export default function ElevationChart({ data, onHoverPointChange }: Props) {
       const lat = point.lat;
 
       // コンソールに緯度経度を出力
-      console.log(
-        `Selected point - Latitude: ${lat}, Longitude: ${lon}, Elevation: ${elevation}m, Distance: ${(distance / 1000).toFixed(2)}km`,
-      );
+      // console.log(
+      //   `Selected point - Latitude: ${lat}, Longitude: ${lon}, Elevation: ${elevation}m, Distance: ${(distance / 1000).toFixed(2)}km`,
+      // );
 
       // 前回と異なる地点の場合のみ親コンポーネントに通知
       if (
@@ -109,7 +115,7 @@ export default function ElevationChart({ data, onHoverPointChange }: Props) {
           {(maxDistance / 1000).toFixed(2)} km
         </div>
       </div>
-      {/** biome-ignore lint/a11y/noStaticElementInteractions: <explanation> */}
+      {/** biome-ignore lint/a11y/noStaticElementInteractions: for simplicity */}
       <div
         className="bg-white rounded-lg border border-slate-200 p-4"
         onMouseLeave={handleMouseLeave}
@@ -120,7 +126,7 @@ export default function ElevationChart({ data, onHoverPointChange }: Props) {
             margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
           >
             <defs>
-              {/** biome-ignore lint/correctness/useUniqueElementIds: <explanation> */}
+              {/** biome-ignore lint/correctness/useUniqueElementIds: for simplicity */}
               <linearGradient
                 id="elevationGradient"
                 x1="0"

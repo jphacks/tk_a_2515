@@ -7,7 +7,7 @@ import { renderToString } from "react-dom/server";
 import type { Mountain, Path } from "@/app/api/lib/models";
 import { MountainTooltip } from "./MountainTooltip";
 
-export const ZOOM_LEVEL_THRESHOLD = 10;
+export const ZOOM_LEVEL_THRESHOLD = 11;
 
 type StyleMode = "hybrid" | "normal";
 
@@ -71,7 +71,7 @@ export const MapTerrain = ({
   // pathsプロパティをGeoJSON形式に変換する関数
   const createGeoJSON = useCallback(
     (pathsData: Path[]): GeoJSON.FeatureCollection => {
-      const features = pathsData.map((path, index) => {
+      const features = pathsData.map((path, _) => {
         // ✨ geometries が存在しない場合は空の配列を返す
         const geometries = path.geometries || [];
         return {
@@ -104,8 +104,8 @@ export const MapTerrain = ({
 
     // ✨ 定数を使用してズームレベルを判定
     if (m.getZoom() < ZOOM_LEVEL_THRESHOLD) {
-      // ✨ レイヤーを先に削除してからソースを削除
       if (m.getLayer("paths-layer")) m.removeLayer("paths-layer");
+      if (m.getLayer("paths-layer-hitbox")) m.removeLayer("paths-layer-hitbox"); // ヒットボックスレイヤーも削除
       if (m.getLayer("paths-layer-shadow")) m.removeLayer("paths-layer-shadow");
       if (m.getSource("paths-source")) m.removeSource("paths-source");
       return;
@@ -127,6 +127,7 @@ export const MapTerrain = ({
         data: geojsonData,
       });
 
+      // メインのパスレイヤー
       m.addLayer({
         id: "paths-layer",
         type: "line",
@@ -136,7 +137,7 @@ export const MapTerrain = ({
           "line-cap": "round",
         },
         paint: {
-          "line-color": "#90EE90", // ✨ 薄い緑色 (LightGreen)
+          "line-color": "#15A34C",
           "line-width": [
             "interpolate",
             ["linear"],
@@ -152,8 +153,33 @@ export const MapTerrain = ({
         },
       });
 
-      // ✨ Pathクリック時の処理を追加
-      m.on("click", "paths-layer", e => {
+      // 透明なヒットボックスレイヤー
+      m.addLayer({
+        id: "paths-layer-hitbox",
+        type: "line",
+        source: "paths-source",
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+        },
+        paint: {
+          "line-color": "rgba(0, 0, 0, 0)", // 完全に透明
+          "line-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            12,
+            20,
+            16,
+            30,
+            20,
+            40,
+          ],
+        },
+      });
+
+      // 透明レイヤーにクリックイベントを追加
+      m.on("click", "paths-layer-hitbox", e => {
         if (!e.features || !e.features[0]) return;
         const feature = e.features[0];
         if (onSelectPath) {
@@ -161,12 +187,12 @@ export const MapTerrain = ({
         }
       });
 
-      // ✨ Pathホバー時のスタイリング
-      m.on("mouseenter", "paths-layer", () => {
+      // ホバー時のスタイリング
+      m.on("mouseenter", "paths-layer-hitbox", () => {
         m.getCanvas().style.cursor = "pointer";
       });
 
-      m.on("mouseleave", "paths-layer", () => {
+      m.on("mouseleave", "paths-layer-hitbox", () => {
         m.getCanvas().style.cursor = "";
       });
     }
@@ -418,9 +444,9 @@ export const MapTerrain = ({
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: styleUrls[styleMode],
-      center: [138.7273, 35.3606],
-      zoom: 14,
-      pitch: 60,
+      center: [138.7273, 35.3606], // 富士山の座標
+      zoom: 10, // 初期ズームレベルを低めに設定
+      pitch: 0,
       bearing: 0,
       transformRequest: url => {
         const maptilerUrl = "https://api.maptiler.com/";
@@ -486,17 +512,23 @@ export const MapTerrain = ({
       }
     };
 
-    // 初回ロード時に現在のバウンディングボックスを報告
     map.current.on("load", () => {
       addDemAndTerrain();
       addOrUpdatePaths();
       addOrUpdateMountains();
 
-      // ✨ 初回ロード時に handleMapMove を呼び出す
+      // ✨ 初回ロード時に富士山にズームインするアニメーションを追加
+      map.current?.flyTo({
+        center: [138.7273, 35.3606], // 富士山の座標
+        zoom: 12, // ズームイン後のズームレベル
+        pitch: 60, // 3D効果を追加
+        bearing: 30, // 斜めの視点
+        duration: 3000, // アニメーションの時間（ミリ秒）
+      });
+
       handleMapMove();
     });
 
-    // マップの移動やズームが完了した時に発火する 'moveend' イベントにリスナーを登録
     map.current.on("moveend", handleMapMove);
 
     return () => {
@@ -552,48 +584,36 @@ export const MapTerrain = ({
       // 標高に応じたズームレベルの調整
       let zoom: number;
       if (elevation >= 3000) {
-        zoom = 14; // 高山は少し引いて全体を見せる
+        zoom = Math.min(m.getZoom(), 14); // 現在のズームレベルを考慮
       } else if (elevation >= 2000) {
-        zoom = 15; // 中山は中程度のズーム
+        zoom = Math.min(m.getZoom(), 15);
       } else if (elevation >= 1000) {
-        zoom = 16; // 低山は近めで詳細を見せる
+        zoom = Math.min(m.getZoom(), 16);
       } else {
-        zoom = 17; // 丘陵は最も近くで詳細を見せる
+        zoom = Math.min(m.getZoom(), 17);
       }
 
-      // 標高に応じたピッチの調整（高い山ほど立体的に見せる）
-      let pitch: number;
-      if (elevation >= 3000) {
-        pitch = 70; // 高山は立体感を強調
-      } else if (elevation >= 2000) {
-        pitch = 65; // 中山は適度な立体感
-      } else if (elevation >= 1000) {
-        pitch = 60; // 低山は標準的な立体感
-      } else {
-        pitch = 45; // 丘陵は控えめな立体感
-      }
+      // 標高に応じたピッチとベアリングの調整
+      const pitch =
+        elevation >= 3000
+          ? 70
+          : elevation >= 2000
+            ? 65
+            : elevation >= 1000
+              ? 60
+              : 45;
+      const bearing =
+        elevation >= 3000
+          ? 45
+          : elevation >= 2000
+            ? 30
+            : elevation >= 1000
+              ? 15
+              : 0;
 
-      // 標高に応じたベアリングの調整（地形の特徴が見やすい角度）
-      let bearing: number;
-      if (elevation >= 3000) {
-        bearing = 45; // 高山は斜めから見て稜線を強調
-      } else if (elevation >= 2000) {
-        bearing = 30; // 中山は適度な角度
-      } else if (elevation >= 1000) {
-        bearing = 15; // 低山は軽い角度
-      } else {
-        bearing = 0; // 丘陵は正面から
-      }
-
-      // ✨ アニメーション時間も標高に応じて調整
-      let duration: number;
-      if (elevation >= 3000) {
-        duration = 2000; // 高山はゆっくりとアプローチ
-      } else if (elevation >= 2000) {
-        duration = 1800; // 中山は適度な速度
-      } else {
-        duration = 1500; // 低山・丘陵は標準速度
-      }
+      // アニメーション時間を調整
+      const duration =
+        elevation >= 3000 ? 2000 : elevation >= 2000 ? 1800 : 1500;
 
       m.easeTo({
         center: [Number(mountain.lon), Number(mountain.lat)],
@@ -697,23 +717,44 @@ export const MapTerrain = ({
         <button
           type="button"
           onClick={() => map.current?.zoomIn()}
-          className="p-2 bg-white border border-gray-300 rounded shadow hover:bg-gray-100"
+          className="cursor-pointer flex items-center justify-center w-9 h-9 bg-white border border-gray-300 rounded shadow hover:bg-gray-100 transition-colors"
         >
-          +
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 640 640"
+            className="w-6 h-6"
+          >
+            <title>Zoom In</title>
+            <path d="M352 128C352 110.3 337.7 96 320 96C302.3 96 288 110.3 288 128L288 288L128 288C110.3 288 96 302.3 96 320C96 337.7 110.3 352 128 352L288 352L288 512C288 529.7 302.3 544 320 544C337.7 544 352 529.7 352 512L352 352L512 352C529.7 352 544 337.7 544 320C544 302.3 529.7 288 512 288L352 288L352 128z" />
+          </svg>
         </button>
         <button
           type="button"
           onClick={() => map.current?.zoomOut()}
-          className="p-2 bg-white border border-gray-300 rounded shadow hover:bg-gray-100"
+          className="cursor-pointer flex items-center justify-center w-9 h-9 bg-white border border-gray-300 rounded shadow hover:bg-gray-100 transition-colors"
         >
-          -
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 640 640"
+            className="w-6 h-6"
+          >
+            <title>Zoom Out</title>
+            <path d="M96 320C96 302.3 110.3 288 128 288L512 288C529.7 288 544 302.3 544 320C544 337.7 529.7 352 512 352L128 352C110.3 352 96 337.7 96 320z" />
+          </svg>
         </button>
         <button
           type="button"
           onClick={toggle2D3D}
-          className="p-2 bg-white border border-gray-300 rounded shadow hover:bg-gray-100"
+          className="cursor-pointer flex items-center justify-center w-9 h-9 bg-white border border-gray-300 rounded shadow hover:bg-gray-100 transition-colors"
         >
-          2D/3D
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 640 640"
+            className="w-6 h-6"
+          >
+            <title>Toggle 2D/3D View</title>
+            <path d="M288.3 61.5C308.1 50.1 332.5 50.1 352.3 61.5L528.2 163C548 174.4 560.2 195.6 560.2 218.4L560.2 421.4C560.2 444.3 548 465.4 528.2 476.8L352.3 578.5C332.5 589.9 308.1 589.9 288.3 578.5L112.5 477C92.7 465.6 80.5 444.4 80.5 421.6L80.5 218.6C80.5 195.7 92.7 174.6 112.5 163.2L288.3 61.5zM496.1 421.5L496.1 255.4L352.3 338.4L352.3 504.5L496.1 421.5z" />
+          </svg>
         </button>
       </div>
     </div>
