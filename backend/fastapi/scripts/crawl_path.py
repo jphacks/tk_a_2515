@@ -13,7 +13,6 @@ load_dotenv(dotenv_path=env_path)
 sys.path.append(str(Path(__file__).parent.parent))
 
 from crud.path import create_path, get_path_by_osm_id
-from database import SessionLocal
 from schemas.path import PathImport
 from sqlalchemy.orm import Session
 
@@ -99,6 +98,25 @@ def split_bbox(
             grids.append((grid_bottom, grid_left, grid_top, grid_right))
 
     return grids
+
+
+def rename_file_name(
+    name: str,
+    bbox: list[float],
+    grid_size: float = 0.5,
+):
+    grids = split_bbox(bbox=bbox, grid_size=grid_size)
+    total = len(grids)
+    for i, (bottom, left, top, right) in enumerate(grids, 1):
+        old_file = DATA_DIR / f"{name.replace(' ', '_')}_grid_{i}.json"
+        new_file = (
+            DATA_DIR / f"{name.replace(' ', '_')}_{bottom}_{left}_{top}_{right}.json"
+        )
+        if old_file.exists():
+            old_file.rename(new_file)
+            print(f"Renamed: {old_file} -> {new_file}")
+        else:
+            print(f"File not found, skipped: {old_file}")
 
 
 def crawl_region(
@@ -264,61 +282,64 @@ hokkaido = [145.9, 139.8, 41, 45.5]
 def main():
     """メイン関数"""
     print("🚀 Path Crawler & Importer - Overpass API")
+    grid_size = 0.45
+    rename_file_name("九州", kyushuu, grid_size=grid_size)
+    rename_file_name("本州", honshuu, grid_size=grid_size)
+    rename_file_name("北海道", hokkaido, grid_size=0.45)
 
-    start_time = time.time()
+    # start_time = time.time()
 
-    # DBセッションを作成
-    db = SessionLocal()
+    # # DBセッションを作成
+    # db = SessionLocal()
 
-    try:
-        # 各地域をクロール（grid_size=0.5で、面積は約0.25）
-        # 0.2程度にするには、grid_size=0.45くらいが良い（0.45*0.45=0.2025）
-        grid_size = 0.45
+    # try:
+    #     # 各地域をクロール（grid_size=0.5で、面積は約0.25）
+    #     # 0.2程度にするには、grid_size=0.45くらいが良い（0.45*0.45=0.2025）
 
-        all_crawl_stats = {"total": 0, "success": 0, "failed": 0}
-        all_import_stats = {"total": 0, "created": 0, "skipped": 0, "errors": 0}
+    #     all_crawl_stats = {"total": 0, "success": 0, "failed": 0}
+    #     all_import_stats = {"total": 0, "created": 0, "skipped": 0, "errors": 0}
 
-        # 九州
-        stats = crawl_region("九州", kyushuu, db, grid_size=grid_size, delay=0.1)
-        for key in all_crawl_stats:
-            all_crawl_stats[key] += stats["crawl"][key]
-        for key in all_import_stats:
-            all_import_stats[key] += stats["import"][key]
+    #     # 九州
+    #     stats = crawl_region("九州", kyushuu, db, grid_size=grid_size, delay=0.1)
+    #     for key in all_crawl_stats:
+    #         all_crawl_stats[key] += stats["crawl"][key]
+    #     for key in all_import_stats:
+    #         all_import_stats[key] += stats["import"][key]
 
-        # 本州
-        stats = crawl_region("本州", honshuu, db, grid_size=grid_size, delay=0.1)
-        for key in all_crawl_stats:
-            all_crawl_stats[key] += stats["crawl"][key]
-        for key in all_import_stats:
-            all_import_stats[key] += stats["import"][key]
+    #     # 本州
+    #     stats = crawl_region("本州", honshuu, db, grid_size=grid_size, delay=0.1)
+    #     for key in all_crawl_stats:
+    #         all_crawl_stats[key] += stats["crawl"][key]
+    #     for key in all_import_stats:
+    #         all_import_stats[key] += stats["import"][key]
 
-        # 北海道
-        stats = crawl_region("北海道", hokkaido, db, grid_size=grid_size, delay=0.1)
-        for key in all_crawl_stats:
-            all_crawl_stats[key] += stats["crawl"][key]
-        for key in all_import_stats:
-            all_import_stats[key] += stats["import"][key]
+    #     # 北海道
+    #     stats = crawl_region("北海道", hokkaido, db, grid_size=grid_size, delay=0.1)
+    #     for key in all_crawl_stats:
+    #         all_crawl_stats[key] += stats["crawl"][key]
+    #     for key in all_import_stats:
+    #         all_import_stats[key] += stats["import"][key]
 
-        elapsed_time = time.time() - start_time
+    #     elapsed_time = time.time() - start_time
 
-        # 最終サマリー
-        print("\n" + "=" * 60)
-        print("🎉 FINAL SUMMARY")
-        print("=" * 60)
-        print("  Crawl:")
-        print(f"    Total grids: {all_crawl_stats['total']}")
-        print(f"    ✅ Success: {all_crawl_stats['success']}")
-        print(f"    ❌ Failed: {all_crawl_stats['failed']}")
-        print("  Import:")
-        print(f"    Total paths: {all_import_stats['total']}")
-        print(f"    ✅ Created: {all_import_stats['created']}")
-        print(f"    ⏭️  Skipped: {all_import_stats['skipped']}")
-        print(f"    ❌ Errors: {all_import_stats['errors']}")
-        print(f"  ⏱️  Total time: {elapsed_time:.2f}s ({elapsed_time / 60:.2f}min)")
-        print("=" * 60)
+    #     # 最終サマリー
+    #     print("\n" + "=" * 60)
+    #     print("🎉 FINAL SUMMARY")
+    #     print("=" * 60)
+    #     print("  Crawl:")
+    #     print(f"    Total grids: {all_crawl_stats['total']}")
+    #     print(f"    ✅ Success: {all_crawl_stats['success']}")
+    #     print(f"    ❌ Failed: {all_crawl_stats['failed']}")
+    #     print("  Import:")
+    #     print(f"    Total paths: {all_import_stats['total']}")
+    #     print(f"    ✅ Created: {all_import_stats['created']}")
+    #     print(f"    ⏭️  Skipped: {all_import_stats['skipped']}")
+    #     print(f"    ❌ Errors: {all_import_stats['errors']}")
+    #     print(f"  ⏱️  Total time: {elapsed_time:.2f}s ({elapsed_time / 60:.2f}min)")
+    #     print("=" * 60)
 
-    finally:
-        db.close()
+    # finally:
+    #     db.close()
 
 
 if __name__ == "__main__":

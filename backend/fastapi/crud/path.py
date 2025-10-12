@@ -1,8 +1,10 @@
+import json
+from pathlib import Path as FilePath
 from typing import Optional
 
 from fastapi import HTTPException, status
 from models.path import Path, PathGeometry, PathTag
-from schemas.path import PathDetail, Point
+from schemas.path import PathDetail, PathImport
 from sqlalchemy.orm import Session
 
 
@@ -116,6 +118,34 @@ def get_path_by_osm_id(db: Session, osm_id: int) -> Optional[Path]:
     return db.query(Path).filter(Path.osm_id == osm_id).first()
 
 
+def _check_bounds_intersect(
+    file_bottom: float,
+    file_left: float,
+    file_top: float,
+    file_right: float,
+    minlat: float,
+    minlon: float,
+    maxlat: float,
+    maxlon: float,
+) -> bool:
+    """2つの境界が交差するかチェック"""
+    # 交差しない条件（どれか1つでも満たせば交差しない）
+    if file_right < minlon:  # ファイルの右端がリクエストの左端より左
+        return False
+    if file_left > maxlon:  # ファイルの左端がリクエストの右端より右
+        return False
+    if file_top < minlat:  # ファイルの上端がリクエストの下端より下
+        return False
+    if file_bottom > maxlat:  # ファイルの下端がリクエストの上端より上
+        return False
+    return True
+
+
+kyushuu = [132.18, 128.10, 30.9, 34.77]
+honshuu = [142.1, 130.8, 33.05, 45.55]
+hokkaido = [145.9, 139.8, 41, 45.5]
+
+
 def get_paths(
     db: Session,
     skip: int = 0,
@@ -126,10 +156,10 @@ def get_paths(
     maxlat: Optional[float] = None,
     maxlon: Optional[float] = None,
 ) -> list[Path]:
-    """Path一覧を取得（フィルタリング対応）
+    """Path一覧を取得（JSONファイルから直接読み込み）
 
     Args:
-        db: DBセッション
+        db: DBセッション（現在未使用）
         skip: スキップする件数
         limit: 取得する最大件数
         highway: highwayタグでフィルタ
@@ -141,23 +171,152 @@ def get_paths(
     Returns:
         Pathのリスト
     """
-    query = db.query(Path)
+    # datas/pathsディレクトリのパス
+    # Docker環境では /datas にマウントされている
+    data_dir = FilePath("/datas/paths")
+    print(f"Loading paths from {data_dir}")
 
-    # highwayタグでフィルタ
-    if highway:
-        query = query.join(Path.tags).filter(PathTag.highway == highway)
+    if not data_dir.exists():
+        print(f"Warning: Data directory not found: {data_dir}")
+        return []
 
-    # 境界でフィルタ（指定された範囲と重なるPathを検索）
-    if minlat is not None:
-        query = query.filter(Path.maxlat >= minlat)
-    if maxlat is not None:
-        query = query.filter(Path.minlat <= maxlat)
-    if minlon is not None:
-        query = query.filter(Path.maxlon >= minlon)
-    if maxlon is not None:
-        query = query.filter(Path.minlon <= maxlon)
+    # 境界が指定されていない場合は空リストを返す
+    if minlat is None or maxlat is None or minlon is None or maxlon is None:
+        print("Warning: Bounds not specified")
+        return []
 
-    return query.offset(skip).limit(limit).all()
+    # 交差するJSONファイルを検索
+    intersecting_files = []
+    for json_file in data_dir.glob("*.json"):
+        # ファイル名から境界情報を抽出
+        # 形式: {name}_{bottom}_{left}_{top}_{right}.json
+        parts = json_file.stem.split("_")
+        if len(parts) < 5:
+            continue  # ファイル名が期待する形式でない場合はスキップ
+
+        try:
+            # 最後の4つの要素が境界情報
+            file_bottom = float(parts[-4])
+            file_left = float(parts[-3])
+            file_top = float(parts[-2])
+            file_right = float(parts[-1])
+
+            # 境界が交差するかチェック
+            if _check_bounds_intersect(
+                file_bottom,
+                file_left,
+                file_top,
+                file_right,
+                minlat,
+                minlon,
+                maxlat,
+                maxlon,
+            ):
+                intersecting_files.append(json_file)
+        except (ValueError, IndexError):
+            # ファイル名から境界情報を抽出できない場合はスキップ
+            continue
+
+    print(f"Found {len(intersecting_files)} intersecting JSON files")
+
+    # JSONファイルからPathを読み込み
+    paths = []
+    for json_file in intersecting_files:
+        try:
+            with open(json_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            elements = data.get("elements", [])
+            # wayタイプのみフィルタ
+            elements = [e for e in elements if e.get("type") == "way"]
+
+            for element in elements:
+                try:
+                    # Pydanticでバリデーション
+                    path_import = PathImport(**element)
+
+                    # geometryの長さチェック（25以下は排除）
+                    if len(path_import.geometry) <= 25:
+                        continue
+
+                    # highwayフィルタ
+                    if highway and path_import.tags.get("highway") != highway:
+                        continue
+
+                    # 境界フィルタ（さらに厳密にチェック）
+                    if path_import.bounds:
+                        if not _check_bounds_intersect(
+                            path_import.bounds.minlat,
+                            path_import.bounds.minlon,
+                            path_import.bounds.maxlat,
+                            path_import.bounds.maxlon,
+                            minlat,
+                            minlon,
+                            maxlat,
+                            maxlon,
+                        ):
+                            continue
+
+                    # Path オブジェクトを作成（DBには保存しない）
+                    path_obj = Path(
+                        osm_id=path_import.id,
+                        type=path_import.type,
+                        minlat=path_import.bounds.minlat
+                        if path_import.bounds
+                        else None,
+                        minlon=path_import.bounds.minlon
+                        if path_import.bounds
+                        else None,
+                        maxlat=path_import.bounds.maxlat
+                        if path_import.bounds
+                        else None,
+                        maxlon=path_import.bounds.maxlon
+                        if path_import.bounds
+                        else None,
+                    )
+
+                    # geometriesを追加
+                    for i, geom in enumerate(path_import.geometry):
+                        geom_obj = PathGeometry(
+                            node_id=path_import.nodes[i]
+                            if i < len(path_import.nodes)
+                            else 0,
+                            lat=geom.lat,
+                            lon=geom.lon,
+                            sequence=i,
+                        )
+                        path_obj.geometries.append(geom_obj)
+
+                    # tagsを追加
+                    if path_import.tags:
+                        tag_obj = PathTag(
+                            highway=path_import.tags.get("highway"),
+                            source=path_import.tags.get("source"),
+                        )
+                        path_obj.tags.append(tag_obj)
+
+                    paths.append(path_obj)
+
+                    # limitに達したら終了
+                    if len(paths) >= skip + limit:
+                        break
+
+                except Exception as e:
+                    print(f"Error parsing path from {json_file.name}: {e}")
+                    continue
+
+            # limitに達したら終了
+            if len(paths) >= skip + limit:
+                break
+
+        except Exception as e:
+            print(f"Error reading file {json_file.name}: {e}")
+            continue
+
+    # skip と limit を適用
+    result = paths[skip : skip + limit]
+    print(f"Returning {len(result)} paths (skip={skip}, limit={limit})")
+    return result
 
 
 def count_paths(
