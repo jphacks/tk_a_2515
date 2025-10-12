@@ -25,7 +25,6 @@ export default function PanelContent({
 
   // ✨ 3. 山を選択したときに、現在のスクロール位置を保存するハンドラ関数
   const handleSelectAndSaveScroll = (mountain: Mountain) => {
-    console.log("Mountain selected in PanelContent:", mountain.name); // ✨ デバッグログ追加
     if (listContainerRef.current) {
       // 現在のスクロール位置(scrollTop)をstateに保存
       setScrollPosition(listContainerRef.current.scrollTop);
@@ -142,12 +141,6 @@ export default function PanelContent({
         <p className="text-sm text-slate-600">
           ポイント数: {selectedPath.geometries?.length || 0}
         </p>
-        <p className="text-sm text-slate-600">
-          作成日: {new Date(selectedPath.created_at).toLocaleString()}
-        </p>
-        <p className="text-sm text-slate-600">
-          更新日: {new Date(selectedPath.updated_at).toLocaleString()}
-        </p>
       </div>
     );
   }
@@ -160,7 +153,7 @@ export default function PanelContent({
         <h2 className="text-xl font-bold text-slate-800">
           {mountains.length > 0
             ? `${mountains.length} 件の山`
-            : "山がある場所でズームしてください"}{" "}
+            : "山がある場所でズームしてください"}
         </h2>
       </div>
       {mountains.length > 0 ? ( // ✨ mountains が存在する場合のみリストを表示
@@ -193,7 +186,7 @@ export default function PanelContent({
           ))}
         </ul>
       ) : (
-        <div className="p-5 text-center text-slate-500"> </div>
+        <div className="p-5 text-center text-slate-500"></div>
       )}
     </div>
   );

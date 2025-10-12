@@ -34,27 +34,29 @@ export default function HomePage() {
 
     if (newBounds.zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
       const newMountains = await listMountainsMountainsGet({
-        limit: 12345,
+        limit: 16384,
         minlon: newBounds.minLon,
         minlat: newBounds.minLat,
         maxlon: newBounds.maxLon,
         maxlat: newBounds.maxLat,
       });
       if (newMountains.status === 200) {
-        setMountains(newMountains.data.items);
+        const sortedMountains = newMountains.data.items.sort(
+          (a, b) => (b.elevation || 0) - (a.elevation || 0),
+        );
+        setMountains(sortedMountains);
       } else {
         console.error("Failed to fetch mountains:", newMountains);
       }
 
       const newPaths = await listPathsPathsGet({
-        limit: 1234567,
+        limit: 16384,
         minlon: newBounds.minLon,
         minlat: newBounds.minLat,
         maxlon: newBounds.maxLon,
         maxlat: newBounds.maxLat,
       });
       if (newPaths.status === 200) {
-        console.log("Fetched paths within bounds:", newPaths.data.total);
         setPaths(newPaths.data.items);
       } else {
         console.error("Failed to fetch paths:", newPaths);
