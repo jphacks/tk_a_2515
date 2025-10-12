@@ -1,11 +1,21 @@
 import json
+import math
 from pathlib import Path as FilePath
 from typing import Optional
 
 from fastapi import HTTPException, status
 from models.path import Path, PathGeometry, PathTag
-from schemas.path import PathDetail, PathImport
+from schemas.path import PathDetail, PathImport, Point
 from sqlalchemy.orm import Session
+from utils import (
+    calc_delta_x,
+    calc_delta_y,
+    fetch_all_dem_data_from_bbox,
+    lat_from_y,
+    lon_from_x,
+    x_from_lon,
+    y_from_lat,
+)
 
 
 # ============================================
@@ -80,6 +90,70 @@ def create_path(
     return db_path
 
 
+def get_nearest_elevation(lat: float, lon: float, dem_data: dict) -> float:
+    """指定した座標に最も近い標高データを取得"""
+    base_x = int(x_from_lon(lon, 14))
+    base_y = math.ceil(y_from_lat(lat, 14))
+    if (base_x, base_y) in dem_data:
+        data = dem_data[(base_x, base_y)]
+        x_diff = lon - lon_from_x(base_x, 14)
+        y_diff = lat_from_y(base_y, 14) - lat
+        delta_x = calc_delta_x(14)
+        delta_y = calc_delta_y(14, lat)
+        i = int(x_diff / delta_x)
+        j = int(y_diff / delta_y)
+        print(f"  Nearest DEM point at ({base_x}, {base_y}), offset ({i}, {j})")
+        if 0 <= i < 256 and 0 <= j < 256:
+            return data[(i, j)]
+        else:
+            return 0
+    else:
+        return 0
+
+
+def local_distance_m(lat1, lon1, lat2, lon2, R=6_371_000.0):
+    # 入力は度、出力はメートル
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    phi = math.radians((lat1 + lat2) / 2.0)
+    x = dlon * math.cos(phi) * R
+    y = dlat * R
+    return math.hypot(x, y)
+
+
+def get_elevation_data(path: Path) -> PathDetail:
+    min_lon, min_lat, max_lon, max_lat = (
+        path.minlon,
+        path.minlat,
+        path.maxlon,
+        path.maxlat,
+    )
+
+    dem_data = fetch_all_dem_data_from_bbox(min_lon, min_lat, max_lon, max_lat)
+    print(dem_data.keys())
+    base_lon = path.geometries[0].lon
+    base_lat = path.geometries[0].lat
+    distance = 0.0
+    points: list[Point] = []
+    for geom in path.geometries:
+        elevation_value = get_nearest_elevation(geom.lat, geom.lon, dem_data)
+        distance += int(local_distance_m(base_lat, base_lon, geom.lat, geom.lon))
+        points.append(Point(x=distance, y=elevation_value))
+        base_lon = geom.lon
+        base_lat = geom.lat
+
+        # Geomに標高と距離を設定
+
+    return PathDetail(
+        id=path.id,
+        path_id=path.id,
+        osm_id=path.osm_id,
+        type=path.type,
+        difficulty=path.tags[0].difficulty if path.tags else None,
+        path_graphic=points,
+    )
+
+
 # ============================================
 # Path CRUD - Read
 # ============================================
@@ -96,13 +170,13 @@ def get_path(db: Session, path_id: int) -> PathDetail:
     Raises:
         HTTPException: Pathが見つからない
     """
-    path = db.query(Path).filter(Path.id == path_id).first()
+    path = db.query(Path).filter(Path.osm_id == path_id).first()
     if not path:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Path with id {path_id} not found",
         )
-    return path
+    return get_elevation_data(path)
 
 
 def get_path_by_osm_id(db: Session, osm_id: int) -> Optional[Path]:
@@ -235,8 +309,8 @@ def get_paths(
                     # Pydanticでバリデーション
                     path_import = PathImport(**element)
 
-                    # geometryの長さチェック（25以下は排除）
-                    if len(path_import.geometry) <= 25:
+                    # geometryの長さチェック（15以下は排除）
+                    if len(path_import.geometry) <= 15:
                         continue
 
                     # highwayフィルタ

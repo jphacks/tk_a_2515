@@ -4,6 +4,7 @@
  * Collect Map API
  * OpenAPI spec version: 0.1.0
  */
+import type { PathGeometryId } from "./pathGeometryId";
 
 /**
  * PathGeometry API応答スキーマ
@@ -12,6 +13,6 @@ export interface PathGeometry {
   lat: number;
   lon: number;
   sequence: number;
-  id: number;
+  id?: PathGeometryId;
   node_id: number;
 }

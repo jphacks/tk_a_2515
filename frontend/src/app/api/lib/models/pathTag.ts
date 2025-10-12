@@ -5,9 +5,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
+import type { PathTagCreatedAt } from "./pathTagCreatedAt";
 import type { PathTagDifficulty } from "./pathTagDifficulty";
 import type { PathTagHighway } from "./pathTagHighway";
+import type { PathTagId } from "./pathTagId";
 import type { PathTagKuma } from "./pathTagKuma";
+import type { PathTagPathId } from "./pathTagPathId";
 import type { PathTagSource } from "./pathTagSource";
 
 /**
@@ -18,7 +21,7 @@ export interface PathTag {
   source?: PathTagSource;
   difficulty?: PathTagDifficulty;
   kuma?: PathTagKuma;
-  id: number;
-  path_id: number;
-  created_at: string;
+  id?: PathTagId;
+  path_id?: PathTagPathId;
+  created_at?: PathTagCreatedAt;
 }

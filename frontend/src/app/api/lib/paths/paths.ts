@@ -9,16 +9,16 @@ import { customFetch } from ".././custom-fetch";
 import type {
   HTTPValidationError,
   ListPathsPathsGetParams,
-  Path,
+  PathDetail,
   PathList,
 } from ".././models";
 
 /**
- * 指定されたIDのPathを取得
+ * 指定されたIDのPathの詳細情報（標高グラフ付き）を取得
  * @summary Get Path
  */
 export type getPathPathsPathIdGetResponse200 = {
-  data: Path;
+  data: PathDetail;
   status: 200;
 };
 

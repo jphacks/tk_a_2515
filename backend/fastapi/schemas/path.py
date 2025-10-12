@@ -141,8 +141,9 @@ class Point(BaseModel):
 class PathDetail(BaseModel):
     """Pathの詳細情報スキーマ"""
 
-    id: int
-    path_id: int
-    description: Optional[str] = None
+    id: Optional[int] = None
+    path_id: Optional[int] = None
+    osm_id: int
+    type: str
     difficulty: Optional[int] = None
     path_graphic: Optional[list[Point]] = None

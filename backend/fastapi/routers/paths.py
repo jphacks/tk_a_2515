@@ -13,9 +13,9 @@ router = APIRouter(
 )
 
 
-@router.get("/{path_id}", response_model=schemas.Path)
+@router.get("/{path_id}", response_model=schemas.PathDetail)
 def get_path(path_id: int, db: Session = Depends(get_db)):
-    """指定されたIDのPathを取得"""
+    """指定されたIDのPathの詳細情報（標高グラフ付き）を取得"""
     return crud.get_path(db, path_id)
 
 
