@@ -1,6 +1,9 @@
 # PeakSight - 登山に特化した3D地図アプリ
 
 [![PeakSight](https://raw.githubusercontent.com/jphacks/tk_a_2515/refs/heads/main/assets/thumbnail.png)](https://ktak.dev/terview)
+**[Demo Video](https://drive.google.com/file/d/1rqYMN_nXDkxJ--uy6Uiw-0kJ724K9rbl/view?usp=sharing)**
+
+こちらからお試しいただけます：[https://ktak.dev/terview](https://ktak.dev/terview)
 
 ## 製品概要
 ### 背景 (製品開発のきっかけ、課題等)
