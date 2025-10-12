@@ -68,7 +68,7 @@ export const MapTerrain = ({
   // pathsプロパティをGeoJSON形式に変換する関数
   const createGeoJSON = useCallback(
     (pathsData: Path[]): GeoJSON.FeatureCollection => {
-      const features = pathsData.map((path, index) => {
+      const features = pathsData.map((path, _) => {
         // ✨ geometries が存在しない場合は空の配列を返す
         const geometries = path.geometries || [];
         return {
@@ -683,7 +683,7 @@ export const MapTerrain = ({
         <button
           type="button"
           onClick={() => map.current?.zoomIn()}
-          className="flex items-center justify-center w-9 h-9 bg-white border border-gray-300 rounded shadow hover:bg-gray-100 transition-colors"
+          className="cursor-pointer flex items-center justify-center w-9 h-9 bg-white border border-gray-300 rounded shadow hover:bg-gray-100 transition-colors"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -697,7 +697,7 @@ export const MapTerrain = ({
         <button
           type="button"
           onClick={() => map.current?.zoomOut()}
-          className="flex items-center justify-center w-9 h-9 bg-white border border-gray-300 rounded shadow hover:bg-gray-100 transition-colors"
+          className="cursor-pointer flex items-center justify-center w-9 h-9 bg-white border border-gray-300 rounded shadow hover:bg-gray-100 transition-colors"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -711,7 +711,7 @@ export const MapTerrain = ({
         <button
           type="button"
           onClick={toggle2D3D}
-          className="flex items-center justify-center w-9 h-9 bg-white border border-gray-300 rounded shadow hover:bg-gray-100 transition-colors"
+          className="cursor-pointer flex items-center justify-center w-9 h-9 bg-white border border-gray-300 rounded shadow hover:bg-gray-100 transition-colors"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
