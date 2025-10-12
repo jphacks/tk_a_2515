@@ -41,33 +41,44 @@ export default function HomePage() {
     setBounds(newBounds);
 
     if (newBounds.zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
-      const newMountains = await listMountainsMountainsGet({
-        limit: 16384,
-        minlon: newBounds.minLon,
-        minlat: newBounds.minLat,
-        maxlon: newBounds.maxLon,
-        maxlat: newBounds.maxLat,
-      });
-      if (newMountains.status === 200) {
-        const sortedMountains = newMountains.data.items.sort(
-          (a, b) => (b.elevation || 0) - (a.elevation || 0),
-        );
+      const requests = [
+        listMountainsMountainsGet({
+          limit: 16384,
+          minlon: newBounds.minLon,
+          minlat: newBounds.minLat,
+          maxlon: newBounds.maxLon,
+          maxlat: newBounds.maxLat,
+        }),
+        listPathsPathsGet({
+          limit: 16384,
+          minlon: newBounds.minLon,
+          minlat: newBounds.minLat,
+          maxlon: newBounds.maxLon,
+          maxlat: newBounds.maxLat,
+        }),
+      ];
+
+      const [mountainsResult, pathsResult] = await Promise.allSettled(requests);
+
+      if (
+        mountainsResult.status === "fulfilled" &&
+        mountainsResult.value.status === 200
+      ) {
+        const sortedMountains = (
+          mountainsResult.value.data.items as Mountain[]
+        ).sort((a, b) => (b.elevation || 0) - (a.elevation || 0));
         setMountains(sortedMountains);
-      } else {
-        console.error("Failed to fetch mountains:", newMountains);
+      } else if (mountainsResult.status === "rejected") {
+        console.error("Failed to fetch mountains:", mountainsResult.reason);
       }
 
-      const newPaths = await listPathsPathsGet({
-        limit: 16384,
-        minlon: newBounds.minLon,
-        minlat: newBounds.minLat,
-        maxlon: newBounds.maxLon,
-        maxlat: newBounds.maxLat,
-      });
-      if (newPaths.status === 200) {
-        setPaths(newPaths.data.items);
-      } else {
-        console.error("Failed to fetch paths:", newPaths);
+      if (
+        pathsResult.status === "fulfilled" &&
+        pathsResult.value.status === 200
+      ) {
+        setPaths(pathsResult.value.data.items as Path[]);
+      } else if (pathsResult.status === "rejected") {
+        console.error("Failed to fetch paths:", pathsResult.reason);
       }
     } else {
       setMountains([]);
@@ -82,6 +93,8 @@ export default function HomePage() {
   };
 
   const handleSelectPath = async (path: Path) => {
+    setSelectedMountain(null); // 山選択をクリア
+    setIsSheetOpen(true);
     try {
       const response = await getPathPathsPathIdGet(path.osm_id);
       if (response.status === 200) {
@@ -90,8 +103,6 @@ export default function HomePage() {
     } catch (error) {
       console.error("失敗", error);
     }
-    setSelectedMountain(null); // 山選択をクリア
-    setIsSheetOpen(true);
   };
 
   const handleClearSelection = () => {

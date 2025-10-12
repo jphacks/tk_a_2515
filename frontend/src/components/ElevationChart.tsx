@@ -99,20 +99,28 @@ export default function ElevationChart({ data, onHoverPointChange }: Props) {
 
   // X軸のフォーマット（メートルをキロメートルに変換）
   const formatXAxis = (value: number) => {
-    return `${(value / 1000).toFixed(1)}km`;
+    return `${(value / 1000).toFixed(1)} km`;
   };
 
   // Y軸のフォーマット
   const formatYAxis = (value: number) => {
-    return `${value}m`;
+    return `${value} m`;
   };
 
   return (
     <div className="w-full">
-      <div className="mb-2 flex justify-between items-center">
-        <div className="text-sm text-slate-600 ml-auto">
+      <div className="mb-4 flex justify-between items-center">
+        <div className="text-sm text-slate-600">
           <span className="font-medium">総距離:</span>{" "}
-          {(maxDistance / 1000).toFixed(2)} km
+          <span className="text-slate-800 font-bold">
+            {(maxDistance / 1000).toFixed(2)} km
+          </span>
+        </div>
+        <div className="text-sm text-slate-600">
+          <span className="font-medium">標高差:</span>{" "}
+          <span className="text-green-700 font-bold">
+            {elevationRange.toFixed(0)} m
+          </span>
         </div>
       </div>
       {/** biome-ignore lint/a11y/noStaticElementInteractions: for simplicity */}
@@ -123,7 +131,7 @@ export default function ElevationChart({ data, onHoverPointChange }: Props) {
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart
             data={data}
-            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
           >
             <defs>
               {/** biome-ignore lint/correctness/useUniqueElementIds: for simplicity */}

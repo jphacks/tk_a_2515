@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "terview",
-  description: "Visualize mountain information",
+  title: "PeakSight",
+  description: "Visualize mountain & path information",
 };
 
 export default function RootLayout({
