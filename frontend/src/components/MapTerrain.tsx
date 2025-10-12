@@ -448,6 +448,10 @@ export const MapTerrain = ({
       zoom: 10, // 初期ズームレベルを低めに設定
       pitch: 0,
       bearing: 0,
+      maxBounds: [
+        [122.93457, 24.396308], // 南西端 (沖縄付近)
+        [153.986672, 45.551483], // 北東端 (北海道付近)
+      ], // ✨ 日本の範囲に限定
       transformRequest: url => {
         const maptilerUrl = "https://api.maptiler.com/";
         if (url.startsWith(maptilerUrl)) {
@@ -675,6 +679,13 @@ export const MapTerrain = ({
     }
   }, []);
 
+  const resetNorth = useCallback(() => {
+    const m = map.current;
+    if (!m) return;
+
+    m.easeTo({ bearing: 0 }); // 地図を北方向に向ける
+  }, []);
+
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
@@ -714,6 +725,20 @@ export const MapTerrain = ({
       `}</style>
       {/* ✨ ボタンコンテナ */}
       <div className="absolute top-2 right-2 z-10 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={resetNorth}
+          className="cursor-pointer flex items-center justify-center w-9 h-9 bg-white border border-gray-300 rounded shadow hover:bg-gray-100 transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 640 640"
+            className="w-6 h-6"
+          >
+            <title>Reset North</title>
+            <path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM370.7 389.1L226.4 444.6C207 452.1 187.9 433 195.4 413.6L250.9 269.3C254.2 260.8 260.8 254.2 269.3 250.9L413.6 195.4C433 187.9 452.1 207 444.6 226.4L389.1 370.7C385.9 379.2 379.2 385.8 370.7 389.1zM352 320C352 302.3 337.7 288 320 288C302.3 288 288 302.3 288 320C288 337.7 302.3 352 320 352C337.7 352 352 337.7 352 320z" />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={() => map.current?.zoomIn()}
@@ -756,6 +781,31 @@ export const MapTerrain = ({
             <path d="M288.3 61.5C308.1 50.1 332.5 50.1 352.3 61.5L528.2 163C548 174.4 560.2 195.6 560.2 218.4L560.2 421.4C560.2 444.3 548 465.4 528.2 476.8L352.3 578.5C332.5 589.9 308.1 589.9 288.3 578.5L112.5 477C92.7 465.6 80.5 444.4 80.5 421.6L80.5 218.6C80.5 195.7 92.7 174.6 112.5 163.2L288.3 61.5zM496.1 421.5L496.1 255.4L352.3 338.4L352.3 504.5L496.1 421.5z" />
           </svg>
         </button>
+      </div>
+      {/* ✨ 凡例コンテナ */}
+      <div className="absolute top-20 left-2 z-10 bg-white bg-opacity-90 rounded shadow p-3 text-sm">
+        <h3 className="font-bold mb-2">凡例</h3>
+        <div className="flex items-center gap-2 mb-1">
+          <div
+            className="w-4 h-4 rounded-full"
+            style={{
+              background:
+                "linear-gradient(90deg, #ff6b6b, #ff8e53, #ff6b9d, #845ec2, #4e8fdf)",
+              border: "2px solid #ffffff",
+            }}
+          ></div>
+          <span>山頂（標高に応じた色）</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div
+            className="w-4 h-1"
+            style={{
+              backgroundColor: "#15A34C",
+              opacity: 0.7,
+            }}
+          ></div>
+          <span>登山道</span>
+        </div>
       </div>
     </div>
   );
