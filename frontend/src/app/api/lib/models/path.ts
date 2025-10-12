@@ -5,12 +5,15 @@
  * OpenAPI spec version: 0.1.0
  */
 
+import type { PathCreatedAt } from "./pathCreatedAt";
 import type { PathGeometry } from "./pathGeometry";
+import type { PathId } from "./pathId";
 import type { PathMaxlat } from "./pathMaxlat";
 import type { PathMaxlon } from "./pathMaxlon";
 import type { PathMinlat } from "./pathMinlat";
 import type { PathMinlon } from "./pathMinlon";
 import type { PathTag } from "./pathTag";
+import type { PathUpdatedAt } from "./pathUpdatedAt";
 
 /**
  * Path API応答スキーマ（関連データ含む）
@@ -22,9 +25,9 @@ export interface Path {
   minlon?: PathMinlon;
   maxlat?: PathMaxlat;
   maxlon?: PathMaxlon;
-  id: number;
+  id?: PathId;
   geometries?: PathGeometry[];
   tags?: PathTag[];
-  created_at: string;
-  updated_at: string;
+  created_at?: PathCreatedAt;
+  updated_at?: PathUpdatedAt;
 }

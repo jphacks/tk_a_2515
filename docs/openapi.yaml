@@ -275,7 +275,7 @@ paths:
       tags:
       - paths
       summary: Get Path
-      description: 指定されたIDのPathを取得
+      description: 指定されたIDのPathの詳細情報（標高グラフ付き）を取得
       operationId: get_path_paths__path_id__get
       parameters:
       - name: path_id
@@ -290,7 +290,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Path'
+                $ref: '#/components/schemas/PathDetail'
         '422':
           description: Validation Error
           content:
@@ -741,7 +741,9 @@ components:
           - type: 'null'
           title: Maxlon
         id:
-          type: integer
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Id
         geometries:
           items:
@@ -754,22 +756,59 @@ components:
           type: array
           title: Tags
         created_at:
-          type: string
-          format: date-time
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
           title: Created At
         updated_at:
-          type: string
-          format: date-time
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
           title: Updated At
       type: object
       required:
       - osm_id
       - type
-      - id
-      - created_at
-      - updated_at
       title: Path
       description: Path API応答スキーマ（関連データ含む）
+    PathDetail:
+      properties:
+        id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Id
+        path_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Path Id
+        osm_id:
+          type: integer
+          title: Osm Id
+        type:
+          type: string
+          title: Type
+        difficulty:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Difficulty
+        path_graphic:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Point'
+            type: array
+          - type: 'null'
+          title: Path Graphic
+      type: object
+      required:
+      - osm_id
+      - type
+      title: PathDetail
+      description: Pathの詳細情報スキーマ
     PathGeometry:
       properties:
         lat:
@@ -782,7 +821,9 @@ components:
           type: integer
           title: Sequence
         id:
-          type: integer
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Id
         node_id:
           type: integer
@@ -792,7 +833,6 @@ components:
       - lat
       - lon
       - sequence
-      - id
       - node_id
       title: PathGeometry
       description: PathGeometry API応答スキーマ
@@ -843,22 +883,38 @@ components:
           - type: 'null'
           title: Kuma
         id:
-          type: integer
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Id
         path_id:
-          type: integer
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Path Id
         created_at:
-          type: string
-          format: date-time
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
           title: Created At
       type: object
-      required:
-      - id
-      - path_id
-      - created_at
       title: PathTag
       description: PathTag API応答スキーマ
+    Point:
+      properties:
+        x:
+          type: number
+          title: X
+        y:
+          type: number
+          title: Y
+      type: object
+      required:
+      - x
+      - y
+      title: Point
+      description: 座標点のスキーマ
     Prefecture:
       properties:
         pref_id:
