@@ -909,10 +909,18 @@ components:
         y:
           type: number
           title: Y
+        lon:
+          type: number
+          title: Lon
+        lat:
+          type: number
+          title: Lat
       type: object
       required:
       - x
       - y
+      - lon
+      - lat
       title: Point
       description: 座標点のスキーマ
     Prefecture:

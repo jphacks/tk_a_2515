@@ -11,4 +11,6 @@
 export interface Point {
   x: number;
   y: number;
+  lon: number;
+  lat: number;
 }

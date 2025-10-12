@@ -136,6 +136,8 @@ class Point(BaseModel):
 
     x: float
     y: float
+    lon: float
+    lat: float
 
 
 class PathDetail(BaseModel):
