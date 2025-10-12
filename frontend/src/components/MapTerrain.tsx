@@ -7,7 +7,7 @@ import { renderToString } from "react-dom/server";
 import type { Mountain, Path } from "@/app/api/lib/models";
 import { MountainTooltip } from "./MountainTooltip";
 
-export const ZOOM_LEVEL_THRESHOLD = 12; // ✨ ズームレベルの閾値を定義
+export const ZOOM_LEVEL_THRESHOLD = 10;
 
 type StyleMode = "hybrid" | "normal";
 
@@ -24,6 +24,8 @@ interface Props {
   }) => void;
   onSelectMountain?: (mountain: Mountain) => void;
   selectedMountain?: Mountain | null; // ✨ 選択された山を受け取るプロパティを追加
+  onSelectPath?: (path: Path) => void; // 追加
+  selectedPath?: Path | null; // 追加
 }
 
 export const MapTerrain = ({
@@ -33,6 +35,7 @@ export const MapTerrain = ({
   onBoundsChange,
   onSelectMountain,
   selectedMountain, // ✨ プロパティを受け取り
+  onSelectPath,
 }: Props) => {
   if (!process.env.NEXT_PUBLIC_FULL_URL) {
     throw new Error(
@@ -70,7 +73,9 @@ export const MapTerrain = ({
         const geometries = path.geometries || [];
         return {
           type: "Feature" as const,
-          properties: { id: `path-${index}`, type: path.type },
+          properties: {
+            ...path,
+          },
           geometry: {
             type: "LineString" as const,
             coordinates: geometries
@@ -89,6 +94,7 @@ export const MapTerrain = ({
   );
 
   // パスのソースとレイヤーを追加または更新する関数
+  // biome-ignore lint/correctness/useExhaustiveDependencies: for performance optimization
   const addOrUpdatePaths = useCallback(() => {
     const m = map.current;
     if (!m) return;
@@ -109,44 +115,15 @@ export const MapTerrain = ({
     if (source) {
       source.setData(geojsonData);
     } else {
-      // ✨ レイヤーを先に削除してからソースを削除
-      if (m.getLayer("paths-layer")) m.removeLayer("paths-layer");
+      // ✨ 影レイヤーを削除
       if (m.getLayer("paths-layer-shadow")) m.removeLayer("paths-layer-shadow");
-      if (m.getSource("paths-source")) m.removeSource("paths-source");
 
+      // ✨ 単色のパスレイヤーを追加
       m.addSource("paths-source", {
         type: "geojson",
         data: geojsonData,
       });
 
-      // ✨ 影レイヤー（パス）
-      m.addLayer({
-        id: "paths-layer-shadow",
-        type: "line",
-        source: "paths-source",
-        layout: {
-          "line-join": "round",
-          "line-cap": "round",
-        },
-        paint: {
-          "line-color": "rgba(0, 0, 0, 0.3)",
-          "line-width": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            12,
-            6,
-            16,
-            8,
-            20,
-            10,
-          ],
-          "line-translate": [2, 2],
-          "line-blur": 1,
-        },
-      });
-
-      // ✨ メインパスレイヤー（グラデーション効果）
       m.addLayer({
         id: "paths-layer",
         type: "line",
@@ -156,19 +133,7 @@ export const MapTerrain = ({
           "line-cap": "round",
         },
         paint: {
-          "line-color": [
-            "interpolate",
-            ["linear"],
-            ["line-progress"],
-            0,
-            "#ff6b6b",
-            0.3,
-            "#feca57",
-            0.6,
-            "#48cae4",
-            1,
-            "#845ec2",
-          ],
+          "line-color": "#90EE90", // ✨ 薄い緑色 (LightGreen)
           "line-width": [
             "interpolate",
             ["linear"],
@@ -180,20 +145,27 @@ export const MapTerrain = ({
             20,
             8,
           ],
-          "line-opacity": 0.85,
-          "line-gradient": [
-            "interpolate",
-            ["linear"],
-            ["line-progress"],
-            0,
-            "#ff6b6b",
-            0.5,
-            "#feca57",
-            1,
-            "#48cae4",
-          ],
+          "line-opacity": 0.7,
         },
-      } as maplibregl.LineLayerSpecification);
+      });
+
+      // ✨ Pathクリック時の処理を追加
+      m.on("click", "paths-layer", e => {
+        if (!e.features || !e.features[0]) return;
+        const feature = e.features[0];
+        if (onSelectPath) {
+          onSelectPath(feature.properties as Path);
+        }
+      });
+
+      // ✨ Pathホバー時のスタイリング
+      m.on("mouseenter", "paths-layer", () => {
+        m.getCanvas().style.cursor = "pointer";
+      });
+
+      m.on("mouseleave", "paths-layer", () => {
+        m.getCanvas().style.cursor = "";
+      });
     }
   }, [paths, createGeoJSON]);
 
@@ -620,10 +592,6 @@ export const MapTerrain = ({
         duration = 1500; // 低山・丘陵は標準速度
       }
 
-      console.log(
-        `Mountain: ${mountain.name}, Elevation: ${elevation}m, Zoom: ${zoom}, Pitch: ${pitch}, Bearing: ${bearing}`,
-      );
-
       m.easeTo({
         center: [Number(mountain.lon), Number(mountain.lat)],
         zoom,
@@ -636,14 +604,7 @@ export const MapTerrain = ({
 
   // ✨ selectedMountainが変更されたときに地図をジャンプさせる
   useEffect(() => {
-    console.log("selectedMountain changed:", selectedMountain); // ✨ デバッグログ追加
     if (selectedMountain) {
-      console.log(
-        "Jumping to mountain:",
-        selectedMountain.name,
-        selectedMountain.lon,
-        selectedMountain.lat,
-      ); // ✨ デバッグログ追加
       jumpToMountain(selectedMountain);
     }
   }, [selectedMountain, jumpToMountain]);

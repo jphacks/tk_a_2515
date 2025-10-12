@@ -13,6 +13,8 @@ interface Props {
   onBoundsChange?: (bounds: BoundingBox) => void;
   onSelectMountain?: (mountain: Mountain) => void;
   selectedMountain?: Mountain | null; // ✨ プロパティを追加
+  onSelectPath?: (path: Path) => void; // 追加
+  selectedPath?: Path | null; // 追加
 }
 
 export const MapPageClient = ({
@@ -21,6 +23,8 @@ export const MapPageClient = ({
   onBoundsChange,
   onSelectMountain,
   selectedMountain, // ✨ プロパティを受け取り
+  onSelectPath, // 追加
+  selectedPath, // 追加
 }: Props) => {
   const [mode, setMode] = useState<StyleMode>("normal");
 
@@ -55,6 +59,8 @@ export const MapPageClient = ({
         onBoundsChange={onBoundsChange}
         onSelectMountain={onSelectMountain}
         selectedMountain={selectedMountain}
+        onSelectPath={onSelectPath} // 追加
+        selectedPath={selectedPath} // 追加
       />
     </div>
   );

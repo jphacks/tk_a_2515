@@ -1,10 +1,12 @@
-import type { Mountain } from "@/app/api/lib/models";
+import type { Mountain, Path } from "@/app/api/lib/models";
 import PanelContent from "./PanelContent";
 
 type Props = {
   mountains: Mountain[];
   selectedMountain: Mountain | null;
+  selectedPath?: Path | null; // 追加
   onSelectMountain: (mountain: Mountain) => void;
+  onSelectPath?: (path: Path) => void; // 追加
   onClearSelection: () => void;
 };
 

@@ -1,18 +1,21 @@
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react"; // ✨ 1. 必要なフックをインポート
-import type { Mountain } from "@/app/api/lib/models";
+import type { Mountain, Path } from "@/app/api/lib/models"; // Path を追加
 
 type Props = {
   mountains: Mountain[];
   selectedMountain: Mountain | null;
+  selectedPath?: Path | null; // 追加
   onSelectMountain: (mountain: Mountain) => void;
+  onSelectPath?: (path: Path) => void; // 追加
   onClearSelection: () => void;
 };
 
 export default function PanelContent({
   mountains,
   selectedMountain,
+  selectedPath, // 追加
   onSelectMountain,
   onClearSelection,
 }: Props) {
@@ -106,6 +109,45 @@ export default function PanelContent({
             詳細ページを見る
           </a>
         )}
+      </div>
+    );
+  }
+
+  if (selectedPath) {
+    return (
+      <div className="p-5">
+        <button
+          type="button"
+          onClick={onClearSelection}
+          className="flex items-center gap-2 mb-4 text-sm text-green-700 font-semibold hover:text-green-800 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          一覧に戻る
+        </button>
+        <h2 className="text-3xl font-bold text-slate-800 mb-4">
+          経路: {selectedPath.type}
+        </h2>
+        <p className="text-sm text-slate-600">ID: {selectedPath.id}</p>
+        <p className="text-sm text-slate-600">OSM ID: {selectedPath.osm_id}</p>
+        {selectedPath.minlat && selectedPath.minlon && (
+          <p className="text-sm text-slate-600">
+            最小座標: 緯度 {selectedPath.minlat}, 経度 {selectedPath.minlon}
+          </p>
+        )}
+        {selectedPath.maxlat && selectedPath.maxlon && (
+          <p className="text-sm text-slate-600">
+            最大座標: 緯度 {selectedPath.maxlat}, 経度 {selectedPath.maxlon}
+          </p>
+        )}
+        <p className="text-sm text-slate-600">
+          ポイント数: {selectedPath.geometries?.length || 0}
+        </p>
+        <p className="text-sm text-slate-600">
+          作成日: {new Date(selectedPath.created_at).toLocaleString()}
+        </p>
+        <p className="text-sm text-slate-600">
+          更新日: {new Date(selectedPath.updated_at).toLocaleString()}
+        </p>
       </div>
     );
   }
