@@ -15,6 +15,7 @@ interface Props {
   selectedMountain?: Mountain | null; // ✨ プロパティを追加
   onSelectPath?: (path: Path) => void; // 追加
   selectedPath?: Path | null; // 追加
+  hoveredPoint?: { lat: number; lon: number } | null; // ホバー地点
 }
 
 export const MapPageClient = ({
@@ -22,9 +23,10 @@ export const MapPageClient = ({
   paths,
   onBoundsChange,
   onSelectMountain,
-  selectedMountain,
-  onSelectPath,
-  selectedPath,
+  selectedMountain, // ✨ プロパティを受け取り
+  onSelectPath, // 追加
+  selectedPath, // 追加
+  hoveredPoint, // ホバー地点
 }: Props) => {
   const [mode, setMode] = useState<StyleMode>("normal");
 
@@ -80,8 +82,9 @@ export const MapPageClient = ({
         onBoundsChange={onBoundsChange}
         onSelectMountain={onSelectMountain}
         selectedMountain={selectedMountain}
-        onSelectPath={onSelectPath}
-        selectedPath={selectedPath}
+        onSelectPath={onSelectPath} // 追加
+        selectedPath={selectedPath} // 追加
+        hoveredPoint={hoveredPoint} // ホバー地点
       />
     </div>
   );

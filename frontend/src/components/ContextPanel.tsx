@@ -8,6 +8,7 @@ type Props = {
   onSelectMountain: (mountain: Mountain) => void;
   onSelectPath?: (path: Path) => void; // 追加
   onClearSelection: () => void;
+  onHoverPointChange?: (point: { lat: number; lon: number } | null) => void;
 };
 
 export default function ContextPanel(props: Props) {

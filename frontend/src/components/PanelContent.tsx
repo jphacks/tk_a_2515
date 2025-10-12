@@ -1,15 +1,17 @@
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react"; // ✨ 1. 必要なフックをインポート
-import type { Mountain, Path } from "@/app/api/lib/models"; // Path を追加
+import type { Mountain, Path, PathDetail } from "@/app/api/lib/models"; // Path を追加
+import ElevationChart from "./ElevationChart";
 
 type Props = {
   mountains: Mountain[];
   selectedMountain: Mountain | null;
-  selectedPath?: Path | null; // 追加
+  selectedPath?: PathDetail | null; // 追加
   onSelectMountain: (mountain: Mountain) => void;
   onSelectPath?: (path: Path) => void; // 追加
   onClearSelection: () => void;
+  onHoverPointChange?: (point: { lat: number; lon: number } | null) => void;
 };
 
 export default function PanelContent({
@@ -18,6 +20,7 @@ export default function PanelContent({
   selectedPath, // 追加
   onSelectMountain,
   onClearSelection,
+  onHoverPointChange,
 }: Props) {
   // ✨ 2. スクロール位置を保持するためのstateと、リストコンテナへの参照(ref)を作成
   const listContainerRef = useRef<HTMLDivElement>(null);
@@ -114,7 +117,7 @@ export default function PanelContent({
 
   if (selectedPath) {
     return (
-      <div className="p-5">
+      <div className="p-5 h-full overflow-y-auto">
         <button
           type="button"
           onClick={onClearSelection}
@@ -126,21 +129,40 @@ export default function PanelContent({
         <h2 className="text-3xl font-bold text-slate-800 mb-4">
           経路: {selectedPath.type}
         </h2>
-        <p className="text-sm text-slate-600">ID: {selectedPath.id}</p>
-        <p className="text-sm text-slate-600">OSM ID: {selectedPath.osm_id}</p>
-        {selectedPath.minlat && selectedPath.minlon && (
-          <p className="text-sm text-slate-600">
-            最小座標: 緯度 {selectedPath.minlat}, 経度 {selectedPath.minlon}
-          </p>
+
+        {/* 標高グラフ */}
+        {selectedPath.path_graphic && selectedPath.path_graphic.length > 0 && (
+          <div className="mb-6">
+            <ElevationChart
+              data={selectedPath.path_graphic}
+              onHoverPointChange={onHoverPointChange}
+            />
+          </div>
         )}
-        {selectedPath.maxlat && selectedPath.maxlon && (
+
+        {/* 経路情報 */}
+        {/* <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+          <h3 className="text-lg font-semibold text-slate-800 mb-3">
+            経路情報
+          </h3>
           <p className="text-sm text-slate-600">
-            最大座標: 緯度 {selectedPath.maxlat}, 経度 {selectedPath.maxlon}
+            <span className="font-medium">ID:</span> {selectedPath.id}
           </p>
-        )}
-        <p className="text-sm text-slate-600">
-          ポイント数: {selectedPath.geometries?.length || 0}
-        </p>
+          <p className="text-sm text-slate-600">
+            <span className="font-medium">OSM ID:</span> {selectedPath.osm_id}
+          </p>
+          {selectedPath.difficulty !== null &&
+            selectedPath.difficulty !== undefined && (
+              <p className="text-sm text-slate-600">
+                <span className="font-medium">難易度:</span>{" "}
+                {selectedPath.difficulty}
+              </p>
+            )}
+          <p className="text-sm text-slate-600">
+            <span className="font-medium">データポイント数:</span>{" "}
+            {selectedPath.path_graphic?.length || 0}
+          </p>
+        </div> */}
       </div>
     );
   }
