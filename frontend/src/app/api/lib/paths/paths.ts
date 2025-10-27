@@ -35,8 +35,8 @@ export const getListPathsUrl = (params?: ListPathsParams) => {
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/http://localhost:8000/paths/?${stringifiedParams}`
-    : `/http://localhost:8000/paths/`;
+    ? `/paths/?${stringifiedParams}`
+    : `/paths/`;
 };
 
 export const listPaths = async (
@@ -64,7 +64,7 @@ export type retrievePathResponseSuccess = retrievePathResponse200 & {
 export type retrievePathResponse = retrievePathResponseSuccess;
 
 export const getRetrievePathUrl = (id: string) => {
-  return `/http://localhost:8000/paths/${id}/`;
+  return `/paths/${id}/`;
 };
 
 export const retrievePath = async (

@@ -30,7 +30,7 @@ export type listlistTypesResponseSuccess = listlistTypesResponse200 & {
 export type listlistTypesResponse = listlistTypesResponseSuccess;
 
 export const getListlistTypesUrl = () => {
-  return `/http://localhost:8000/mountains/types/`;
+  return `/mountains/types/`;
 };
 
 export const listlistTypes = async (
@@ -58,7 +58,7 @@ export type listlistPrefecturesResponseSuccess =
 export type listlistPrefecturesResponse = listlistPrefecturesResponseSuccess;
 
 export const getListlistPrefecturesUrl = () => {
-  return `/http://localhost:8000/mountains/prefectures/`;
+  return `/mountains/prefectures/`;
 };
 
 export const listlistPrefectures = async (
@@ -96,8 +96,8 @@ export const getListMountainsUrl = (params?: ListMountainsParams) => {
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/http://localhost:8000/mountains/?${stringifiedParams}`
-    : `/http://localhost:8000/mountains/`;
+    ? `/mountains/?${stringifiedParams}`
+    : `/mountains/`;
 };
 
 export const listMountains = async (
@@ -125,7 +125,7 @@ export type createMountainResponseSuccess = createMountainResponse201 & {
 export type createMountainResponse = createMountainResponseSuccess;
 
 export const getCreateMountainUrl = () => {
-  return `/http://localhost:8000/mountains/`;
+  return `/mountains/`;
 };
 
 export const createMountain = async (
@@ -155,7 +155,7 @@ export type retrieveMountainResponseSuccess = retrieveMountainResponse200 & {
 export type retrieveMountainResponse = retrieveMountainResponseSuccess;
 
 export const getRetrieveMountainUrl = (id: string) => {
-  return `/http://localhost:8000/mountains/${id}/`;
+  return `/mountains/${id}/`;
 };
 
 export const retrieveMountain = async (
@@ -183,7 +183,7 @@ export type updateMountainResponseSuccess = updateMountainResponse200 & {
 export type updateMountainResponse = updateMountainResponseSuccess;
 
 export const getUpdateMountainUrl = (id: string) => {
-  return `/http://localhost:8000/mountains/${id}/`;
+  return `/mountains/${id}/`;
 };
 
 export const updateMountain = async (
@@ -216,7 +216,7 @@ export type partialUpdateMountainResponse =
   partialUpdateMountainResponseSuccess;
 
 export const getPartialUpdateMountainUrl = (id: string) => {
-  return `/http://localhost:8000/mountains/${id}/`;
+  return `/mountains/${id}/`;
 };
 
 export const partialUpdateMountain = async (
@@ -250,7 +250,7 @@ export type destroyMountainResponseSuccess = destroyMountainResponse204 & {
 export type destroyMountainResponse = destroyMountainResponseSuccess;
 
 export const getDestroyMountainUrl = (id: string) => {
-  return `/http://localhost:8000/mountains/${id}/`;
+  return `/mountains/${id}/`;
 };
 
 export const destroyMountain = async (

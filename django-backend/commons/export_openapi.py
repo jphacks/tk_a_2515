@@ -32,6 +32,24 @@ def export_openapi_yaml(output_path: str = "openapi.yaml"):
     # OpenAPIスキーマを生成
     schema = generator.get_schema()
 
+    # パスから完全なURLを削除して相対パスに変換
+    if 'paths' in schema:
+        paths = schema['paths']
+        cleaned_paths = {}
+        for path, value in paths.items():
+            # http://localhost:8000を削除
+            cleaned_path = path.replace('http://localhost:8000', '')
+            cleaned_paths[cleaned_path] = value
+        schema['paths'] = cleaned_paths
+
+    # serversセクションを追加
+    schema['servers'] = [
+        {
+            'url': 'http://localhost:8000',
+            'description': 'Local development server'
+        }
+    ]
+
     # YAML形式で出力
     output_file = Path(output_path)
     output_file.parent.mkdir(parents=True, exist_ok=True)

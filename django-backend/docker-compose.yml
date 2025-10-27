@@ -25,7 +25,7 @@ services:
       - .env
     command: sh -c "uv run python manage.py migrate && uv run python manage.py runserver 0.0.0.0:${API_PORT:-8000}"
     ports:
-      - "${API_PORT:-8000}:${API_PORT:-8000}"
+      - "${API_PORT:-8200}:${API_PORT:-8200}"
     volumes:
       - .:/app:cached
       - ../backend/datas:/datas:cached

@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: Django backend for Collect Map API - Mountain and Path data management
 paths:
-  http://localhost:8000/mountains/types/:
+  /mountains/types/:
     get:
       operationId: listlist_types
       description: Type一覧を取得
@@ -19,7 +19,7 @@ paths:
           description: ''
       tags:
       - mountains
-  http://localhost:8000/mountains/prefectures/:
+  /mountains/prefectures/:
     get:
       operationId: listlist_prefectures
       description: Prefecture一覧を取得
@@ -34,7 +34,7 @@ paths:
           description: ''
       tags:
       - mountains
-  http://localhost:8000/mountains/:
+  /mountains/:
     get:
       operationId: listMountains
       description: Mountain一覧を取得（フィルタリング・ページネーション対応）
@@ -103,7 +103,7 @@ paths:
           description: ''
       tags:
       - mountains
-  http://localhost:8000/mountains/{id}/:
+  /mountains/{id}/:
     get:
       operationId: retrieveMountain
       description: Mountain API ViewSet
@@ -194,7 +194,7 @@ paths:
           description: ''
       tags:
       - mountains
-  http://localhost:8000/paths/:
+  /paths/:
     get:
       operationId: listPaths
       description: Path一覧を取得（bbox検索・フィルタリング・ページネーション対応）
@@ -241,7 +241,7 @@ paths:
           description: ''
       tags:
       - paths
-  http://localhost:8000/paths/{id}/:
+  /paths/{id}/:
     get:
       operationId: retrievePath
       description: 指定されたIDのPathの詳細情報を取得
@@ -636,3 +636,6 @@ components:
             - name
       required:
       - name
+servers:
+- url: http://localhost:8000
+  description: Local development server
