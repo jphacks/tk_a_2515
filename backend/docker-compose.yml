@@ -3,15 +3,15 @@ version: "3.9"
 services:
   db:
     image: postgres:16-alpine
-    container_name: terview-backend-db
+    container_name: peak-sight-backend-db
     environment:
       POSTGRES_DB: app
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
-      - terview-db-data:/var/lib/postgresql/data
+      - peak-sight-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -22,12 +22,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: terview-backend-api
+    container_name: peak-sight-backend-api
     env_file:
       - .env
     command: sh -c "uvicorn main:app --reload --host 0.0.0.0 --port $${API_PORT}"
     ports:
-      - "${API_PORT:-8000}:${API_PORT:-8000}"
+      - "127.0.0.1:${API_PORT:-8000}:${API_PORT:-8000}"
     volumes:
       - ./fastapi:/app:cached # ローカルのコードをマウント（ホットリロード用）
       - ./datas:/datas:cached # データディレクトリをマウント
@@ -39,4 +39,4 @@ services:
         condition: service_healthy
 
 volumes:
-  terview-db-data:
+  peak-sight-db-data:

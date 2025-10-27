@@ -1,5 +1,5 @@
 {
-  "name": "terview",
+  "name": "peak-sight",
   "version": "1.0.0",
   "scripts": {
     "prepare": "husky",

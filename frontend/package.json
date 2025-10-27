@@ -1,10 +1,10 @@
 {
-  "name": "terview",
+  "name": "peak-sight",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build --turbopack && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "next start",
     "format": "biome format",
     "type-check": "pnpm tsc --noEmit"
