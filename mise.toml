@@ -3,31 +3,52 @@ node = "22.16.0"
 pnpm = "10.18.0"
 
 [tasks.export-openapi]
-description = "Export FastAPI OpenAPI schema to YAML"
-run = "cd backend/fastapi && uv run python scripts/export_openapi.py ../../docs/openapi.yaml"
+description = "Export Django OpenAPI schema to YAML"
+run = """
+cd django-backend && docker compose exec -T api \
+bash -lc 'uv run python commons/export_openapi.py docs/openapi.yaml'
+"""
 
 [tasks.generate-lib-api]
 description = "docs/openapi.yamlに基づいてlib/apiを作成"
 run = "npx orval --config ./frontend/orval.config.cjs"
 depends = ["export-openapi"]
 
+[tasks.start-backend]
+run = "cd django-backend && docker compose up -d"
+description = "Start backend services using Docker Compose"
+
+[tasks.prepare-db]
+run = """
+cd django-backend && docker compose exec -T api \
+bash -lc 'uv run python manage.py migrate'
+"""
+
 [tasks.backend-uv]
 description = "Run backend with uv"
-run = "cd backend && ~/.local/bin/uv sync"
+run = "cd django-backend && ~/.local/bin/uv sync"
 
-[tasks.create-db-schema]
-description = "Create initial database schema"
-run = "cd backend && uv run python fastapi/scripts/create_tables.py"
-depends = ["backend-uv"]
-
-[tasks.import-db-data]
+[tasks.import-mountain-data]
 description = "Import initial database data"
-run = "cd backend && uv run python fastapi/scripts/import_mountains.py && uv run python fastapi/scripts/import_paths.py"
-depends = ["create-db-schema"]
+run = """cd django-backend && docker compose exec -T api \
+bash -lc 'uv run python commons/import_mountains.py'
+"""
+depends = ["prepare-db"]
 
-[tasks.rename-scripts]
-description = "Rename scripts to avoid name conflicts"
-run = "cd backend && uv run python fastapi/scripts/crawl_path.py"
+[tasks.import-path-data]
+description = "Import initial database data"
+run = """
+cd django-backend && docker compose exec -T api \
+bash -lc 'uv run python commons/import_paths.py'
+"""
+depends = ["prepare-db"]
+
+[tasks.update-path-data]
+description = "Update path data"
+run = """
+cd django-backend && docker compose exec -T api \
+bash -lc 'uv run python -u commons/update_paths.py'
+"""
 
 [tasks.frontend-setup]
 run = "cd frontend && pnpm install && docker compose up -d"

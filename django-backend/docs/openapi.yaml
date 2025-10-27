@@ -1,0 +1,638 @@
+openapi: 3.0.2
+info:
+  title: Collect Map API
+  version: 1.0.0
+  description: Django backend for Collect Map API - Mountain and Path data management
+paths:
+  http://localhost:8000/mountains/types/:
+    get:
+      operationId: listlist_types
+      description: Type一覧を取得
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - mountains
+  http://localhost:8000/mountains/prefectures/:
+    get:
+      operationId: listlist_prefectures
+      description: Prefecture一覧を取得
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - mountains
+  http://localhost:8000/mountains/:
+    get:
+      operationId: listMountains
+      description: Mountain一覧を取得（フィルタリング・ページネーション対応）
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - count
+                - results
+                properties:
+                  count:
+                    type: integer
+                    example: 123
+                  next:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?offset=400&limit=100
+                  previous:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?offset=200&limit=100
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Mountain'
+          description: ''
+      tags:
+      - mountains
+    post:
+      operationId: createMountain
+      description: 新規Mountainを作成
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema: &id001
+              $ref: '#/components/schemas/MountainCreate'
+          application/x-www-form-urlencoded:
+            schema: *id001
+          multipart/form-data:
+            schema: *id001
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MountainCreate'
+          description: ''
+      tags:
+      - mountains
+  http://localhost:8000/mountains/{id}/:
+    get:
+      operationId: retrieveMountain
+      description: Mountain API ViewSet
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: A unique integer value identifying this mountain.
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mountain'
+          description: ''
+      tags:
+      - mountains
+    put:
+      operationId: updateMountain
+      description: Mountain情報を更新
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: A unique integer value identifying this mountain.
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema: &id002
+              $ref: '#/components/schemas/MountainUpdate'
+          application/x-www-form-urlencoded:
+            schema: *id002
+          multipart/form-data:
+            schema: *id002
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MountainUpdate'
+          description: ''
+      tags:
+      - mountains
+    patch:
+      operationId: partialUpdateMountain
+      description: Mountain API ViewSet
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: A unique integer value identifying this mountain.
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema: &id003
+              $ref: '#/components/schemas/MountainUpdate'
+          application/x-www-form-urlencoded:
+            schema: *id003
+          multipart/form-data:
+            schema: *id003
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MountainUpdate'
+          description: ''
+      tags:
+      - mountains
+    delete:
+      operationId: destroyMountain
+      description: Mountainを削除
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: A unique integer value identifying this mountain.
+        schema:
+          type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+      - mountains
+  http://localhost:8000/paths/:
+    get:
+      operationId: listPaths
+      description: Path一覧を取得（bbox検索・フィルタリング・ページネーション対応）
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - count
+                - results
+                properties:
+                  count:
+                    type: integer
+                    example: 123
+                  next:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?offset=400&limit=100
+                  previous:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?offset=200&limit=100
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Path'
+          description: ''
+      tags:
+      - paths
+  http://localhost:8000/paths/{id}/:
+    get:
+      operationId: retrievePath
+      description: 指定されたIDのPathの詳細情報を取得
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: A unique integer value identifying this path.
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Path'
+          description: ''
+      tags:
+      - paths
+components:
+  schemas:
+    Mountain:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        ptid:
+          type: string
+          maxLength: 255
+        name:
+          type: string
+          maxLength: 255
+        yomi:
+          type: string
+          nullable: true
+          maxLength: 255
+        other_names:
+          type: string
+          nullable: true
+          maxLength: 255
+        yamatan:
+          type: string
+          nullable: true
+          maxLength: 255
+        name_en:
+          type: string
+          nullable: true
+          maxLength: 255
+        elevation:
+          type: number
+          nullable: true
+        lat:
+          type: number
+          nullable: true
+        lon:
+          type: number
+          nullable: true
+        detail:
+          type: string
+          nullable: true
+        area:
+          type: string
+          nullable: true
+          maxLength: 255
+        photo_url:
+          type: string
+          nullable: true
+          maxLength: 512
+        page_url:
+          type: string
+          nullable: true
+          maxLength: 512
+        types:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                readOnly: true
+              type_id:
+                type: string
+                maxLength: 255
+              name:
+                type: string
+                maxLength: 255
+              created_at:
+                type: string
+                format: date-time
+                readOnly: true
+            required:
+            - type_id
+            - name
+          readOnly: true
+        prefectures:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                readOnly: true
+              pref_id:
+                type: string
+                maxLength: 255
+              name:
+                type: string
+                maxLength: 255
+              created_at:
+                type: string
+                format: date-time
+                readOnly: true
+            required:
+            - pref_id
+            - name
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - ptid
+      - name
+    Path:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        osm_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        type:
+          type: string
+          maxLength: 255
+        minlat:
+          type: number
+          nullable: true
+        minlon:
+          type: number
+          nullable: true
+        maxlat:
+          type: number
+          nullable: true
+        maxlon:
+          type: number
+          nullable: true
+        geometries:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                readOnly: true
+              node_id:
+                type: integer
+                maximum: 9223372036854775807
+                minimum: -9223372036854775808
+                format: int64
+              lat:
+                type: number
+              lon:
+                type: number
+              sequence:
+                type: integer
+                maximum: 2147483647
+                minimum: -2147483648
+            required:
+            - node_id
+            - lat
+            - lon
+            - sequence
+          readOnly: true
+        tags:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                readOnly: true
+              highway:
+                type: string
+                nullable: true
+                maxLength: 255
+              source:
+                type: string
+                nullable: true
+                maxLength: 255
+              difficulty:
+                type: integer
+                maximum: 2147483647
+                minimum: -2147483648
+                nullable: true
+              kuma:
+                type: string
+                nullable: true
+                maxLength: 255
+              created_at:
+                type: string
+                format: date-time
+                readOnly: true
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - osm_id
+      - type
+    MountainCreate:
+      type: object
+      properties:
+        ptid:
+          type: string
+          maxLength: 255
+        name:
+          type: string
+          maxLength: 255
+        yomi:
+          type: string
+          nullable: true
+          maxLength: 255
+        other_names:
+          type: string
+          nullable: true
+          maxLength: 255
+        yamatan:
+          type: string
+          nullable: true
+          maxLength: 255
+        name_en:
+          type: string
+          nullable: true
+          maxLength: 255
+        elevation:
+          type: number
+          nullable: true
+        lat:
+          type: number
+          nullable: true
+        lon:
+          type: number
+          nullable: true
+        detail:
+          type: string
+          nullable: true
+        area:
+          type: string
+          nullable: true
+          maxLength: 255
+        photo_url:
+          type: string
+          nullable: true
+          maxLength: 512
+        page_url:
+          type: string
+          nullable: true
+          maxLength: 512
+        types:
+          type: array
+          items:
+            type: object
+            properties:
+              type_id:
+                type: string
+              name:
+                type: string
+              detail:
+                type: string
+                nullable: true
+            required:
+            - type_id
+            - name
+        prefs:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                readOnly: true
+              pref_id:
+                type: string
+                maxLength: 255
+              name:
+                type: string
+                maxLength: 255
+              created_at:
+                type: string
+                format: date-time
+                readOnly: true
+            required:
+            - pref_id
+            - name
+      required:
+      - ptid
+      - name
+    MountainUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        yomi:
+          type: string
+          nullable: true
+          maxLength: 255
+        other_names:
+          type: string
+          nullable: true
+          maxLength: 255
+        yamatan:
+          type: string
+          nullable: true
+          maxLength: 255
+        name_en:
+          type: string
+          nullable: true
+          maxLength: 255
+        elevation:
+          type: number
+          nullable: true
+        lat:
+          type: number
+          nullable: true
+        lon:
+          type: number
+          nullable: true
+        detail:
+          type: string
+          nullable: true
+        area:
+          type: string
+          nullable: true
+          maxLength: 255
+        photo_url:
+          type: string
+          nullable: true
+          maxLength: 512
+        page_url:
+          type: string
+          nullable: true
+          maxLength: 512
+        types:
+          type: array
+          items:
+            type: object
+            properties:
+              type_id:
+                type: string
+              name:
+                type: string
+              detail:
+                type: string
+                nullable: true
+            required:
+            - type_id
+            - name
+        prefs:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                readOnly: true
+              pref_id:
+                type: string
+                maxLength: 255
+              name:
+                type: string
+                maxLength: 255
+              created_at:
+                type: string
+                format: date-time
+                readOnly: true
+            required:
+            - pref_id
+            - name
+      required:
+      - name
