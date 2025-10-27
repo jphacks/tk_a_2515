@@ -1,44 +1,86 @@
-name: Deploy
+name: Deploy to VPS
 
 on:
   push:
     branches:
       - main
-
-env:
-  NEXT_PUBLIC_FULL_URL: ${{ secrets.NEXT_PUBLIC_FULL_URL }}
-  MAPTILER_KEY: ${{ secrets.MAPTILER_KEY }}
-  REDIS_URL: ${{ secrets.REDIS_URL }}
+  workflow_dispatch:
 
 jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@main
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@master
+      - name: Setup mise
+        run: |
+          curl https://mise.run | sh
+          echo "$HOME/.local/share/mise/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/share/mise/shims" >> $GITHUB_PATH
+          mise install
+          
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          pnpm install --frozen-lockfile
+
+      - name: Create frontend .env
+        run: |
+          cd frontend
+          cat > .env << EOF
+          NEXT_PUBLIC_FULL_URL=${{ secrets.NEXT_PUBLIC_FULL_URL }}
+          NEXT_PUBLIC_BACKEND_URL=${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
+          MAPTILER_KEY=${{ secrets.MAPTILER_KEY }}
+          REDIS_URL=${{ secrets.REDIS_URL }}
+          EOF
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          pnpm build
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          uv sync
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy_package/frontend
+          
+          # Frontend build artifacts
+          cp -r frontend/.next/standalone deploy_package/frontend/
+          cp frontend/package.json deploy_package/frontend/
+          cp frontend/pnpm-lock.yaml deploy_package/frontend/
+          cp frontend/pnpm-workspace.yaml deploy_package/frontend/
+          cp frontend/pm2.config.cjs deploy_package/frontend/
+          cp frontend/.env deploy_package/frontend/
+
+          # Backend files
+          mkdir -p deploy_package/backend
+          cp -r backend/fastapi deploy_package/backend/
+          cp backend/pyproject.toml deploy_package/backend/
+          cp backend/docker-compose.yml deploy_package/backend/
+          cp backend/Dockerfile deploy_package/backend/
+          
+          # Create tarball
+          cp mise.toml deploy_package/
+          tar -czf deploy.tar.gz -C deploy_package .
+
+      - name: Deploy to VPS via SCP
+        uses: appleboy/scp-action@master
         with:
-          version: 10.18.0
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          source: "deploy.tar.gz"
+          target: ${{ secrets.DEPLOY_TARGET }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@main
-        with:
-          node-version: 22.16.0
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build application
-        run: pnpm build
-
-      - name: Deploy via SSH
+      - name: Extract and restart services on VPS
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -46,8 +88,22 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           script: |
+            set -e
+            
+            # Extract deployment package
             cd ${{ secrets.DEPLOY_TARGET }}
-            git pull origin main
+            tar -xzf deploy.tar.gz
+            rm deploy.tar.gz
             ~/.local/bin/mise install
-            ~/.local/bin/mise deploy-setup
-            ~/.local/bin/mise deploy-start
+            
+            # Restart backend (Docker)
+            cd backend
+            ~/.local/bin/uv sync
+            /usr/bin/docker compose up -d --remove-orphans
+            
+            # Restart frontend (PM2)
+            cd ../frontend
+            ~/.volta/bin/pm2 restart pm2.config.cjs --update-env || ~/.volta/bin/pm2 start pm2.config.cjs
+            
+            # Cleanup
+            echo "Deployment completed successfully"

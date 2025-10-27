@@ -79,6 +79,8 @@ export default function HomePage() {
   };
 
   const handleSelectPath = async (path: Path) => {
+    setSelectedMountain(null); // 山選択をクリア
+    setIsSheetOpen(true);
     try {
       const response = await retrievePath(String(path.osm_id));
       if (response.status === 200) {
@@ -87,8 +89,6 @@ export default function HomePage() {
     } catch (error) {
       console.error("失敗", error);
     }
-    setSelectedMountain(null); // 山選択をクリア
-    setIsSheetOpen(true);
   };
 
   const handleClearSelection = () => {

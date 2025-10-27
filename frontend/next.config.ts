@@ -2,7 +2,9 @@ import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  basePath: "/terview",
+  basePath: "/peak-sight",
+  assetPrefix: "/peak-sight",
+  output: "standalone",
   turbopack: {
     root: path.resolve("./"),
   },

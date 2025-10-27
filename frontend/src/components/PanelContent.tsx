@@ -54,13 +54,13 @@ export default function PanelContent({
   }, [mountains]); // mountains が変化するたびに実行
 
   if (selectedMountain) {
-    // 詳細表示 (このブロックは変更ありません)
+    // 詳細表示
     return (
       <div className="p-5">
         <button
           type="button"
           onClick={onClearSelection}
-          className="flex items-center gap-2 mb-4 text-sm text-green-700 font-semibold hover:text-green-800 transition-colors"
+          className="cursor-pointer flex items-center gap-2 mb-4 text-sm text-green-700 font-semibold hover:text-green-800 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           山の一覧に戻る
@@ -71,44 +71,110 @@ export default function PanelContent({
               src={selectedMountain.photo_url}
               alt={selectedMountain.name}
               className="object-cover w-full h-full rounded-lg"
-              width={800} // Adjust width as needed
-              height={600} // Adjust height as needed
+              width={800}
+              height={600}
             />
           ) : (
-            <p className="text-slate-400">山の画像</p>
+            <p className="text-slate-400">画像がありません</p>
           )}
         </div>
-        <h2 className="text-3xl font-bold text-slate-800">
+        <h2 className="text-3xl font-bold text-slate-800 mb-4">
           {selectedMountain.name}
         </h2>
-        {selectedMountain.yomi && (
-          <p className="text-md text-slate-500 mb-2 font-medium">
-            読み: {selectedMountain.yomi}
-          </p>
-        )}
-        {selectedMountain.elevation && (
-          <p className="text-md text-slate-500 mb-4 font-medium">
-            標高: {selectedMountain.elevation.toLocaleString()}m
-          </p>
-        )}
-        {selectedMountain.prefectures && (
-          <p className="text-md text-slate-500 mb-4 font-medium">
-            都道府県: {selectedMountain.prefectures.map(p => p.name).join(", ")}
-          </p>
-        )}
-        {selectedMountain.detail && (
-          <p className="text-slate-600 leading-relaxed mb-4">
-            {selectedMountain.detail}
-          </p>
+        <table className="w-full text-sm text-left text-slate-500 mb-4">
+          <tbody>
+            {selectedMountain.yomi && (
+              <tr>
+                <th className="font-medium text-slate-700 pr-4 py-2">読み</th>
+                <td className="py-2">{selectedMountain.yomi}</td>
+              </tr>
+            )}
+            {selectedMountain.other_names && (
+              <tr>
+                <th className="font-medium text-slate-700 pr-4 py-2">別名</th>
+                <td className="py-2">{selectedMountain.other_names}</td>
+              </tr>
+            )}
+            {selectedMountain.elevation && (
+              <tr>
+                <th className="font-medium text-slate-700 pr-4 py-2">標高</th>
+                <td className="py-2">
+                  {selectedMountain.elevation.toLocaleString()} m
+                </td>
+              </tr>
+            )}
+            {selectedMountain.lat && selectedMountain.lon && (
+              <tr>
+                <th className="font-medium text-slate-700 pr-4 py-2">座標</th>
+                <td className="py-2">
+                  緯度: {selectedMountain.lat.toFixed(6)}, 経度:{" "}
+                  {selectedMountain.lon.toFixed(6)}
+                </td>
+              </tr>
+            )}
+            {selectedMountain.prefectures &&
+              selectedMountain.prefectures.length > 0 && (
+                <tr>
+                  <th className="font-medium text-slate-700 pr-4 py-2">
+                    都道府県
+                  </th>
+                  <td className="py-2">
+                    {selectedMountain.prefectures.map(p => p.name).join(", ")}
+                  </td>
+                </tr>
+              )}
+            {selectedMountain.types && (
+              <tr>
+                <th className="font-medium text-slate-700 pr-4 py-2">タイプ</th>
+                <td className="py-2">
+                  {selectedMountain.types.map(t => t.name).join(", ")}
+                </td>
+              </tr>
+            )}
+            {selectedMountain.detail && (
+              <tr>
+                <th className="font-medium text-slate-700 pr-4 py-2">詳細</th>
+                <td className="py-2">{selectedMountain.detail}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        {selectedMountain.lat && selectedMountain.lon && (
+          <a
+            href={`https://www.google.com/maps?q=${selectedMountain.lat},${selectedMountain.lon}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-green-700 font-semibold hover:text-green-800 transition-colors mb-4 flex items-center gap-1"
+          >
+            Google Map で表示
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-4 h-4"
+            >
+              <title>Google Map で表示</title>
+              <path d="M14 3H21V10H19V6.41L10.41 15L9 13.59L17.59 5H14V3ZM5 5H11V7H5V19H17V13H19V19C19 20.1 18.1 21 17 21H5C3.9 21 3 20.1 3 19V7C3 5.9 3.9 5 5 5Z" />
+            </svg>
+          </a>
         )}
         {selectedMountain.page_url && (
           <a
             href={selectedMountain.page_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-green-700 font-semibold hover:text-green-800 transition-colors"
+            className="text-green-700 font-semibold hover:text-green-800 transition-colors flex items-center gap-1"
           >
             詳細ページを見る
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-4 h-4"
+            >
+              <title>詳細ページを見る</title>
+              <path d="M14 3H21V10H19V6.41L10.41 15L9 13.59L17.59 5H14V3ZM5 5H11V7H5V19H17V13H19V19C19 20.1 18.1 21 17 21H5C3.9 21 3 20.1 3 19V7C3 5.9 3.9 5 5 5Z" />
+            </svg>
           </a>
         )}
       </div>
@@ -121,14 +187,12 @@ export default function PanelContent({
         <button
           type="button"
           onClick={onClearSelection}
-          className="flex items-center gap-2 mb-4 text-sm text-green-700 font-semibold hover:text-green-800 transition-colors"
+          className="cursor-pointer flex items-center gap-2 mb-4 text-sm text-green-700 font-semibold hover:text-green-800 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          一覧に戻る
+          山の一覧に戻る
         </button>
-        <h2 className="text-3xl font-bold text-slate-800 mb-4">
-          経路: {selectedPath.type}
-        </h2>
+        <h2 className="text-3xl font-bold text-slate-800 mb-4">経路情報</h2>
 
         {/* 標高グラフ */}
         {selectedPath.path_graphic && selectedPath.path_graphic.length > 0 && (
@@ -190,19 +254,35 @@ export default function PanelContent({
                     handleSelectAndSaveScroll(mountain);
                   }
                 }}
-                className="w-full text-left p-5 hover:bg-green-50 cursor-pointer transition-colors"
+                className="w-full text-left p-5 hover:bg-green-50 cursor-pointer transition-colors flex items-center gap-4"
               >
-                <h3 className="font-bold text-slate-700">{mountain.name}</h3>
-                {mountain.elevation && (
-                  <p className="text-sm text-slate-500">
-                    標高: {mountain.elevation.toLocaleString()}m
-                  </p>
+                {mountain.photo_url ? (
+                  <Image
+                    src={mountain.photo_url}
+                    alt={mountain.name}
+                    className="w-16 h-16 object-cover rounded-lg border border-slate-200"
+                    width={64}
+                    height={64}
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 text-sm">
+                    画像なし
+                  </div>
                 )}
-                {mountain.prefectures && (
-                  <p className="text-sm text-slate-500">
-                    都道府県: {mountain.prefectures.map(p => p.name).join(", ")}
-                  </p>
-                )}
+                <div>
+                  <h3 className="font-bold text-slate-700">{mountain.name}</h3>
+                  {mountain.elevation && !Number.isNaN(mountain.elevation) && (
+                    <p className="text-sm text-slate-500">
+                      標高: {mountain.elevation.toLocaleString()} m
+                    </p>
+                  )}
+                  {mountain.prefectures && mountain.prefectures.length > 0 && (
+                    <p className="text-sm text-slate-500">
+                      都道府県:{" "}
+                      {mountain.prefectures.map(p => p.name).join(", ")}
+                    </p>
+                  )}
+                </div>
               </button>
             </li>
           ))}

@@ -1,13 +1,13 @@
 services:
   redis:
     image: redis/redis-stack:latest
-    container_name: terview-redis
+    container_name: peak-sight-redis
     ports:
-      - "6379:6379"
-      - "8001:8001"
+      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:8001:8001"
     volumes:
-      - terview-redis-data:/data
+      - peak-sight-redis-data:/data
     restart: always
 
 volumes:
-  terview-redis-data:
+  peak-sight-redis-data:
