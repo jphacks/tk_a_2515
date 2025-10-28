@@ -33,7 +33,7 @@ run = "cd django-backend && ~/.local/bin/uv sync"
 [tasks.import-mountain-data]
 description = "Import initial database data"
 run = """cd django-backend && docker compose exec -T api \
-bash -lc 'uv run python commons/import_mountains.py'
+bash -lc 'uv run python -u commons/import_mountains.py'
 """
 depends = ["prepare-db"]
 
@@ -41,7 +41,7 @@ depends = ["prepare-db"]
 description = "Import initial database data"
 run = """
 cd django-backend && docker compose exec -T api \
-bash -lc 'uv run python commons/import_paths.py'
+bash -lc 'uv run python -u commons/import_paths.py'
 """
 depends = ["prepare-db"]
 
