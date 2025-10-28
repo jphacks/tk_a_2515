@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.gis',  # GeoDjango
     'rest_framework',
+    'drf_spectacular',  # OpenAPI schema generation
     'corsheaders',
     'mountains',
     'paths',
@@ -209,4 +210,13 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# drf-spectacular settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Collect Map API',
+    'DESCRIPTION': 'Django backend for Collect Map API - Mountain and Path data management',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }

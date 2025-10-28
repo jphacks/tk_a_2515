@@ -5,19 +5,15 @@
  * Django backend for Collect Map API - Mountain and Path data management
  * OpenAPI spec version: 1.0.0
  */
-
+import type { MountainTypeDetail } from "./mountainTypeDetail";
 import type { Prefecture } from "./prefecture";
-import type { Type } from "./type";
 
 /**
- * Mountain serializer
+ * Mountain更新時のSerializer（すべてオプショナル）
  */
-export interface Mountain {
-  readonly id: number;
+export interface PatchedMountainUpdate {
   /** @maxLength 255 */
-  ptid: string;
-  /** @maxLength 255 */
-  name: string;
+  name?: string;
   /**
    * @maxLength 255
    * @nullable
@@ -61,8 +57,6 @@ export interface Mountain {
    * @nullable
    */
   page_url?: string | null;
-  readonly types: readonly Type[];
-  readonly prefectures: readonly Prefecture[];
-  readonly created_at: string;
-  readonly updated_at: string;
+  types?: MountainTypeDetail[];
+  prefs?: Prefecture[];
 }

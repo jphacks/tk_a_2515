@@ -14,41 +14,30 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'collectmap.settings')
 import django
 django.setup()
 
-from rest_framework.schemas.openapi import SchemaGenerator
+from drf_spectacular.generators import SchemaGenerator
 
 
 def export_openapi_yaml(output_path: str = "openapi.yaml"):
     """Export OpenAPI schema to YAML file."""
 
-    # SchemaGeneratorを使用してOpenAPIスキーマを生成
+    # drf-spectacularのSchemaGeneratorを使用してOpenAPIスキーマを生成
     generator = SchemaGenerator(
         title='Collect Map API',
         description='Django backend for Collect Map API - Mountain and Path data management',
         version='1.0.0',
-        url='http://localhost:8000',
-        patterns=None,  # Noneでプロジェクト全体のURLパターンを使用
     )
 
     # OpenAPIスキーマを生成
     schema = generator.get_schema()
 
-    # パスから完全なURLを削除して相対パスに変換
-    if 'paths' in schema:
-        paths = schema['paths']
-        cleaned_paths = {}
-        for path, value in paths.items():
-            # http://localhost:8000を削除
-            cleaned_path = path.replace('http://localhost:8000', '')
-            cleaned_paths[cleaned_path] = value
-        schema['paths'] = cleaned_paths
-
     # serversセクションを追加
-    schema['servers'] = [
-        {
-            'url': 'http://localhost:8000',
-            'description': 'Local development server'
-        }
-    ]
+    if 'servers' not in schema:
+        schema['servers'] = [
+            {
+                'url': 'http://localhost:8000',
+                'description': 'Local development server'
+            }
+        ]
 
     # YAML形式で出力
     output_file = Path(output_path)

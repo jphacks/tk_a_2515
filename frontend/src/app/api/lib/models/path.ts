@@ -5,11 +5,14 @@
  * Django backend for Collect Map API - Mountain and Path data management
  * OpenAPI spec version: 1.0.0
  */
-import type { PathGeometriesItem } from "./pathGeometriesItem";
-import type { PathTagsItem } from "./pathTagsItem";
+import type { PathGeometry } from "./pathGeometry";
+import type { PathTag } from "./pathTag";
 
+/**
+ * Path serializer
+ */
 export interface Path {
-  readonly id?: number;
+  readonly id: number;
   /**
    * @minimum -9223372036854776000
    * @maximum 9223372036854776000
@@ -25,8 +28,8 @@ export interface Path {
   maxlat?: number | null;
   /** @nullable */
   maxlon?: number | null;
-  readonly geometries?: readonly PathGeometriesItem[];
-  readonly tags?: readonly PathTagsItem[];
-  readonly created_at?: string;
-  readonly updated_at?: string;
+  readonly geometries: readonly PathGeometry[];
+  readonly tags: readonly PathTag[];
+  readonly created_at: string;
+  readonly updated_at: string;
 }

@@ -8,83 +8,29 @@
 
 import { customFetch } from ".././custom-fetch";
 import type {
-  ListMountains200,
-  ListMountainsParams,
   Mountain,
   MountainCreate,
+  MountainsListParams,
   MountainUpdate,
+  PaginatedMountainList,
+  PatchedMountainUpdate,
 } from ".././models";
-
-/**
- * Type一覧を取得
- */
-export type listlistTypesResponse200 = {
-  data: unknown[];
-  status: 200;
-};
-
-export type listlistTypesResponseSuccess = listlistTypesResponse200 & {
-  headers: Headers;
-};
-
-export type listlistTypesResponse = listlistTypesResponseSuccess;
-
-export const getListlistTypesUrl = () => {
-  return `/mountains/types/`;
-};
-
-export const listlistTypes = async (
-  options?: RequestInit,
-): Promise<listlistTypesResponse> => {
-  return customFetch<listlistTypesResponse>(getListlistTypesUrl(), {
-    ...options,
-    method: "GET",
-  });
-};
-
-/**
- * Prefecture一覧を取得
- */
-export type listlistPrefecturesResponse200 = {
-  data: unknown[];
-  status: 200;
-};
-
-export type listlistPrefecturesResponseSuccess =
-  listlistPrefecturesResponse200 & {
-    headers: Headers;
-  };
-
-export type listlistPrefecturesResponse = listlistPrefecturesResponseSuccess;
-
-export const getListlistPrefecturesUrl = () => {
-  return `/mountains/prefectures/`;
-};
-
-export const listlistPrefectures = async (
-  options?: RequestInit,
-): Promise<listlistPrefecturesResponse> => {
-  return customFetch<listlistPrefecturesResponse>(getListlistPrefecturesUrl(), {
-    ...options,
-    method: "GET",
-  });
-};
 
 /**
  * Mountain一覧を取得（フィルタリング・ページネーション対応）
  */
-export type listMountainsResponse200 = {
-  data: ListMountains200;
+export type mountainsListResponse200 = {
+  data: PaginatedMountainList;
   status: 200;
 };
 
-export type listMountainsResponseSuccess = listMountainsResponse200 & {
+export type mountainsListResponseSuccess = mountainsListResponse200 & {
   headers: Headers;
 };
 
-export type listMountainsResponse = listMountainsResponseSuccess;
+export type mountainsListResponse = mountainsListResponseSuccess;
 
-export const getListMountainsUrl = (params?: ListMountainsParams) => {
+export const getMountainsListUrl = (params?: MountainsListParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -100,11 +46,11 @@ export const getListMountainsUrl = (params?: ListMountainsParams) => {
     : `/mountains/`;
 };
 
-export const listMountains = async (
-  params?: ListMountainsParams,
+export const mountainsList = async (
+  params?: MountainsListParams,
   options?: RequestInit,
-): Promise<listMountainsResponse> => {
-  return customFetch<listMountainsResponse>(getListMountainsUrl(params), {
+): Promise<mountainsListResponse> => {
+  return customFetch<mountainsListResponse>(getMountainsListUrl(params), {
     ...options,
     method: "GET",
   });
@@ -113,26 +59,26 @@ export const listMountains = async (
 /**
  * 新規Mountainを作成
  */
-export type createMountainResponse201 = {
+export type mountainsCreateResponse201 = {
   data: MountainCreate;
   status: 201;
 };
 
-export type createMountainResponseSuccess = createMountainResponse201 & {
+export type mountainsCreateResponseSuccess = mountainsCreateResponse201 & {
   headers: Headers;
 };
 
-export type createMountainResponse = createMountainResponseSuccess;
+export type mountainsCreateResponse = mountainsCreateResponseSuccess;
 
-export const getCreateMountainUrl = () => {
+export const getMountainsCreateUrl = () => {
   return `/mountains/`;
 };
 
-export const createMountain = async (
+export const mountainsCreate = async (
   mountainCreate: MountainCreate,
   options?: RequestInit,
-): Promise<createMountainResponse> => {
-  return customFetch<createMountainResponse>(getCreateMountainUrl(), {
+): Promise<mountainsCreateResponse> => {
+  return customFetch<mountainsCreateResponse>(getMountainsCreateUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -143,26 +89,26 @@ export const createMountain = async (
 /**
  * Mountain API ViewSet
  */
-export type retrieveMountainResponse200 = {
+export type mountainsRetrieveResponse200 = {
   data: Mountain;
   status: 200;
 };
 
-export type retrieveMountainResponseSuccess = retrieveMountainResponse200 & {
+export type mountainsRetrieveResponseSuccess = mountainsRetrieveResponse200 & {
   headers: Headers;
 };
 
-export type retrieveMountainResponse = retrieveMountainResponseSuccess;
+export type mountainsRetrieveResponse = mountainsRetrieveResponseSuccess;
 
-export const getRetrieveMountainUrl = (id: string) => {
+export const getMountainsRetrieveUrl = (id: number) => {
   return `/mountains/${id}/`;
 };
 
-export const retrieveMountain = async (
-  id: string,
+export const mountainsRetrieve = async (
+  id: number,
   options?: RequestInit,
-): Promise<retrieveMountainResponse> => {
-  return customFetch<retrieveMountainResponse>(getRetrieveMountainUrl(id), {
+): Promise<mountainsRetrieveResponse> => {
+  return customFetch<mountainsRetrieveResponse>(getMountainsRetrieveUrl(id), {
     ...options,
     method: "GET",
   });
@@ -171,27 +117,27 @@ export const retrieveMountain = async (
 /**
  * Mountain情報を更新
  */
-export type updateMountainResponse200 = {
+export type mountainsUpdateResponse200 = {
   data: MountainUpdate;
   status: 200;
 };
 
-export type updateMountainResponseSuccess = updateMountainResponse200 & {
+export type mountainsUpdateResponseSuccess = mountainsUpdateResponse200 & {
   headers: Headers;
 };
 
-export type updateMountainResponse = updateMountainResponseSuccess;
+export type mountainsUpdateResponse = mountainsUpdateResponseSuccess;
 
-export const getUpdateMountainUrl = (id: string) => {
+export const getMountainsUpdateUrl = (id: number) => {
   return `/mountains/${id}/`;
 };
 
-export const updateMountain = async (
-  id: string,
+export const mountainsUpdate = async (
+  id: number,
   mountainUpdate: MountainUpdate,
   options?: RequestInit,
-): Promise<updateMountainResponse> => {
-  return customFetch<updateMountainResponse>(getUpdateMountainUrl(id), {
+): Promise<mountainsUpdateResponse> => {
+  return customFetch<mountainsUpdateResponse>(getMountainsUpdateUrl(id), {
     ...options,
     method: "PUT",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -202,35 +148,35 @@ export const updateMountain = async (
 /**
  * Mountain API ViewSet
  */
-export type partialUpdateMountainResponse200 = {
+export type mountainsPartialUpdateResponse200 = {
   data: MountainUpdate;
   status: 200;
 };
 
-export type partialUpdateMountainResponseSuccess =
-  partialUpdateMountainResponse200 & {
+export type mountainsPartialUpdateResponseSuccess =
+  mountainsPartialUpdateResponse200 & {
     headers: Headers;
   };
 
-export type partialUpdateMountainResponse =
-  partialUpdateMountainResponseSuccess;
+export type mountainsPartialUpdateResponse =
+  mountainsPartialUpdateResponseSuccess;
 
-export const getPartialUpdateMountainUrl = (id: string) => {
+export const getMountainsPartialUpdateUrl = (id: number) => {
   return `/mountains/${id}/`;
 };
 
-export const partialUpdateMountain = async (
-  id: string,
-  mountainUpdate: MountainUpdate,
+export const mountainsPartialUpdate = async (
+  id: number,
+  patchedMountainUpdate: PatchedMountainUpdate,
   options?: RequestInit,
-): Promise<partialUpdateMountainResponse> => {
-  return customFetch<partialUpdateMountainResponse>(
-    getPartialUpdateMountainUrl(id),
+): Promise<mountainsPartialUpdateResponse> => {
+  return customFetch<mountainsPartialUpdateResponse>(
+    getMountainsPartialUpdateUrl(id),
     {
       ...options,
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(mountainUpdate),
+      body: JSON.stringify(patchedMountainUpdate),
     },
   );
 };
@@ -238,27 +184,91 @@ export const partialUpdateMountain = async (
 /**
  * Mountainを削除
  */
-export type destroyMountainResponse204 = {
+export type mountainsDestroyResponse204 = {
   data: void;
   status: 204;
 };
 
-export type destroyMountainResponseSuccess = destroyMountainResponse204 & {
+export type mountainsDestroyResponseSuccess = mountainsDestroyResponse204 & {
   headers: Headers;
 };
 
-export type destroyMountainResponse = destroyMountainResponseSuccess;
+export type mountainsDestroyResponse = mountainsDestroyResponseSuccess;
 
-export const getDestroyMountainUrl = (id: string) => {
+export const getMountainsDestroyUrl = (id: number) => {
   return `/mountains/${id}/`;
 };
 
-export const destroyMountain = async (
-  id: string,
+export const mountainsDestroy = async (
+  id: number,
   options?: RequestInit,
-): Promise<destroyMountainResponse> => {
-  return customFetch<destroyMountainResponse>(getDestroyMountainUrl(id), {
+): Promise<mountainsDestroyResponse> => {
+  return customFetch<mountainsDestroyResponse>(getMountainsDestroyUrl(id), {
     ...options,
     method: "DELETE",
   });
+};
+
+/**
+ * Prefecture一覧を取得
+ */
+export type mountainsPrefecturesRetrieveResponse200 = {
+  data: void;
+  status: 200;
+};
+
+export type mountainsPrefecturesRetrieveResponseSuccess =
+  mountainsPrefecturesRetrieveResponse200 & {
+    headers: Headers;
+  };
+
+export type mountainsPrefecturesRetrieveResponse =
+  mountainsPrefecturesRetrieveResponseSuccess;
+
+export const getMountainsPrefecturesRetrieveUrl = () => {
+  return `/mountains/prefectures/`;
+};
+
+export const mountainsPrefecturesRetrieve = async (
+  options?: RequestInit,
+): Promise<mountainsPrefecturesRetrieveResponse> => {
+  return customFetch<mountainsPrefecturesRetrieveResponse>(
+    getMountainsPrefecturesRetrieveUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+/**
+ * Type一覧を取得
+ */
+export type mountainsTypesRetrieveResponse200 = {
+  data: void;
+  status: 200;
+};
+
+export type mountainsTypesRetrieveResponseSuccess =
+  mountainsTypesRetrieveResponse200 & {
+    headers: Headers;
+  };
+
+export type mountainsTypesRetrieveResponse =
+  mountainsTypesRetrieveResponseSuccess;
+
+export const getMountainsTypesRetrieveUrl = () => {
+  return `/mountains/types/`;
+};
+
+export const mountainsTypesRetrieve = async (
+  options?: RequestInit,
+): Promise<mountainsTypesRetrieveResponse> => {
+  return customFetch<mountainsTypesRetrieveResponse>(
+    getMountainsTypesRetrieveUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };

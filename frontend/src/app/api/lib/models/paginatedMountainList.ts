@@ -5,13 +5,13 @@
  * Django backend for Collect Map API - Mountain and Path data management
  * OpenAPI spec version: 1.0.0
  */
+import type { Mountain } from "./mountain";
 
-/**
- * Mountain-Type関係の詳細情報（中間テーブルのdetailフィールド用）
- */
-export interface MountainTypeDetail {
-  type_id: string;
-  name: string;
+export interface PaginatedMountainList {
+  count: number;
   /** @nullable */
-  detail?: string | null;
+  next?: string | null;
+  /** @nullable */
+  previous?: string | null;
+  results: Mountain[];
 }

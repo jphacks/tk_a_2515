@@ -7,23 +7,23 @@
  */
 
 import { customFetch } from ".././custom-fetch";
-import type { ListPaths200, ListPathsParams, Path } from ".././models";
+import type { PaginatedPathList, Path, PathsListParams } from ".././models";
 
 /**
- * Path一覧を取得（bbox検索・フィルタリング・ページネーション対応）
+ * 指定されたIDのPathの詳細情報を取得
  */
-export type listPathsResponse200 = {
-  data: ListPaths200;
+export type pathsListResponse200 = {
+  data: PaginatedPathList;
   status: 200;
 };
 
-export type listPathsResponseSuccess = listPathsResponse200 & {
+export type pathsListResponseSuccess = pathsListResponse200 & {
   headers: Headers;
 };
 
-export type listPathsResponse = listPathsResponseSuccess;
+export type pathsListResponse = pathsListResponseSuccess;
 
-export const getListPathsUrl = (params?: ListPathsParams) => {
+export const getPathsListUrl = (params?: PathsListParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -39,11 +39,11 @@ export const getListPathsUrl = (params?: ListPathsParams) => {
     : `/paths/`;
 };
 
-export const listPaths = async (
-  params?: ListPathsParams,
+export const pathsList = async (
+  params?: PathsListParams,
   options?: RequestInit,
-): Promise<listPathsResponse> => {
-  return customFetch<listPathsResponse>(getListPathsUrl(params), {
+): Promise<pathsListResponse> => {
+  return customFetch<pathsListResponse>(getPathsListUrl(params), {
     ...options,
     method: "GET",
   });
@@ -52,26 +52,26 @@ export const listPaths = async (
 /**
  * 指定されたIDのPathの詳細情報を取得
  */
-export type retrievePathResponse200 = {
+export type pathsRetrieveResponse200 = {
   data: Path;
   status: 200;
 };
 
-export type retrievePathResponseSuccess = retrievePathResponse200 & {
+export type pathsRetrieveResponseSuccess = pathsRetrieveResponse200 & {
   headers: Headers;
 };
 
-export type retrievePathResponse = retrievePathResponseSuccess;
+export type pathsRetrieveResponse = pathsRetrieveResponseSuccess;
 
-export const getRetrievePathUrl = (id: string) => {
+export const getPathsRetrieveUrl = (id: number) => {
   return `/paths/${id}/`;
 };
 
-export const retrievePath = async (
-  id: string,
+export const pathsRetrieve = async (
+  id: number,
   options?: RequestInit,
-): Promise<retrievePathResponse> => {
-  return customFetch<retrievePathResponse>(getRetrievePathUrl(id), {
+): Promise<pathsRetrieveResponse> => {
+  return customFetch<pathsRetrieveResponse>(getPathsRetrieveUrl(id), {
     ...options,
     method: "GET",
   });

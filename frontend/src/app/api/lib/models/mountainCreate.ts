@@ -5,10 +5,12 @@
  * Django backend for Collect Map API - Mountain and Path data management
  * OpenAPI spec version: 1.0.0
  */
+import type { MountainTypeDetail } from "./mountainTypeDetail";
+import type { Prefecture } from "./prefecture";
 
-import type { MountainCreatePrefsItem } from "./mountainCreatePrefsItem";
-import type { MountainCreateTypesItem } from "./mountainCreateTypesItem";
-
+/**
+ * Mountain作成時のSerializer
+ */
 export interface MountainCreate {
   /** @maxLength 255 */
   ptid: string;
@@ -57,6 +59,6 @@ export interface MountainCreate {
    * @nullable
    */
   page_url?: string | null;
-  types?: MountainCreateTypesItem[];
-  prefs?: MountainCreatePrefsItem[];
+  types?: MountainTypeDetail[];
+  prefs?: Prefecture[];
 }

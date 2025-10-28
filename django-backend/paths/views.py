@@ -1,4 +1,5 @@
 from django.contrib.gis.geos import Polygon
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -22,10 +23,57 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
         except Path.DoesNotExist:
             raise NotFound(f"Path with osm_id {pk} not found")
 
+    @extend_schema(
+        responses={200: PathSerializer},
+        description="指定されたIDのPathの詳細情報を取得",
+        parameters=[
+            OpenApiParameter(
+                name="minlat",
+                type=float,
+                description="検索範囲の最小緯度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="maxlat",
+                type=float,
+                description="検索範囲の最大緯度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="minlon",
+                type=float,
+                description="検索範囲の最小経度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="maxlon",
+                type=float,
+                description="検索範囲の最大経度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="skip",
+                type=int,
+                description="スキップする件数（ページネーション用、デフォルト: 0）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="limit",
+                type=int,
+                description="取得する最大件数（ページネーション用、デフォルト: 100）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
     def list(self, request):
         """Path一覧を取得（bbox検索・フィルタリング・ページネーション対応）"""
         queryset = self.get_queryset().prefetch_related("geometries", "tags")
-        print("hello")
 
         # クエリパラメータから取得
         skip = int(request.query_params.get("skip", 0))
@@ -34,8 +82,6 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
         minlon = request.query_params.get("minlon")
         maxlat = request.query_params.get("maxlat")
         maxlon = request.query_params.get("maxlon")
-
-        print(minlat, minlon, maxlat, maxlon)
 
         # bbox検索（PostGIS）
         if minlat and minlon and maxlat and maxlon:
@@ -46,13 +92,9 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
 
             search_bbox = Polygon.from_bbox((minlon, minlat, maxlon, maxlat))
             search_bbox.srid = 4326
-            print("queryset length before bbox filter:", queryset.count())
             queryset = queryset.filter(bbox__intersects=search_bbox)
-            print("queryset length after bbox filter:", queryset.count())
 
-        # 総数を取得
         total = queryset.count()
-        print("total:", total)
 
         # ページネーション
         items = queryset[skip : skip + limit]

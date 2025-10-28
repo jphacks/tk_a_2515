@@ -8,8 +8,8 @@ import { MapPageClient } from "@/components/Map";
 import { ZOOM_LEVEL_THRESHOLD } from "@/components/MapTerrain";
 import type { Mountain, Path } from "./api/lib/models";
 import type { PathDetail } from "./api/lib/models/pathDetail";
-import { listMountains } from "./api/lib/mountains/mountains";
-import { listPaths, retrievePath } from "./api/lib/paths/paths";
+import { mountainsList } from "./api/lib/mountains/mountains";
+import { pathsList, pathsRetrieve } from "./api/lib/paths/paths";
 
 export type BoundingBox = {
   minLon: number;
@@ -38,7 +38,7 @@ export default function HomePage() {
     setBounds(newBounds);
 
     if (newBounds.zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
-      const newMountains = await listMountains({
+      const newMountains = await mountainsList({
         limit: 16384,
         minlon: newBounds.minLon,
         minlat: newBounds.minLat,
@@ -54,7 +54,7 @@ export default function HomePage() {
         console.error("Failed to fetch mountains:", newMountains);
       }
 
-      const newPaths = await listPaths({
+      const newPaths = await pathsList({
         limit: 16384,
         minlon: newBounds.minLon,
         minlat: newBounds.minLat,
@@ -82,7 +82,7 @@ export default function HomePage() {
     setSelectedMountain(null); // 山選択をクリア
     setIsSheetOpen(true);
     try {
-      const response = await retrievePath(String(path.osm_id));
+      const response = await pathsRetrieve(path.osm_id);
       if (response.status === 200) {
         setSelectedPath(response.data);
       }

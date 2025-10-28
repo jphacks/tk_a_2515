@@ -1,42 +1,88 @@
-from rest_framework import viewsets, status
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import status, viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Mountain, Type, Prefecture
+
+from .models import Mountain, Prefecture, Type
 from .serializers import (
-    MountainSerializer, MountainCreateSerializer, MountainUpdateSerializer,
-    TypeSerializer, PrefectureSerializer
+    MountainCreateSerializer,
+    MountainSerializer,
+    MountainUpdateSerializer,
+    PrefectureSerializer,
+    TypeSerializer,
 )
 
 
 class MountainViewSet(viewsets.ModelViewSet):
     """Mountain API ViewSet"""
+
     queryset = Mountain.objects.all()
     serializer_class = MountainSerializer
 
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.action == "create":
             return MountainCreateSerializer
-        elif self.action in ['update', 'partial_update']:
+        elif self.action in ["update", "partial_update"]:
             return MountainUpdateSerializer
         return MountainSerializer
 
+    @extend_schema(
+        responses={200: MountainSerializer},
+        description="Mountain一覧を取得（フィルタリング・ページネーション対応）",
+        parameters=[
+            OpenApiParameter(
+                name="minlat",
+                type=float,
+                description="検索範囲の最小緯度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="maxlat",
+                type=float,
+                description="検索範囲の最大緯度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="minlon",
+                type=float,
+                description="検索範囲の最小経度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="maxlon",
+                type=float,
+                description="検索範囲の最大経度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="skip",
+                type=int,
+                description="スキップする件数（ページネーション用、デフォルト: 0）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="limit",
+                type=int,
+                description="取得する最大件数（ページネーション用、デフォルト: 100）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
     def list(self, request):
         """Mountain一覧を取得（フィルタリング・ページネーション対応）"""
-        queryset = self.get_queryset().prefetch_related('types', 'prefectures')
+        queryset = self.get_queryset().prefetch_related("types", "prefectures")
 
         # フィルタリング
-        name = request.query_params.get('name')
-        prefecture_id = request.query_params.get('prefecture_id')
-        minlat = request.query_params.get('minlat')
-        minlon = request.query_params.get('minlon')
-        maxlat = request.query_params.get('maxlat')
-        maxlon = request.query_params.get('maxlon')
-
-        if name:
-            queryset = queryset.filter(name__icontains=name)
-
-        if prefecture_id:
-            queryset = queryset.filter(prefectures__id=prefecture_id)
+        minlat = request.query_params.get("minlat")
+        minlon = request.query_params.get("minlon")
+        maxlat = request.query_params.get("maxlat")
+        maxlon = request.query_params.get("maxlon")
 
         if minlat and minlon and maxlat and maxlon:
             minlat = float(minlat)
@@ -46,23 +92,21 @@ class MountainViewSet(viewsets.ModelViewSet):
 
             # PostGISの空間検索を使用（高速）
             from django.contrib.gis.geos import Polygon
+
             bbox = Polygon.from_bbox((minlon, minlat, maxlon, maxlat))
             queryset = queryset.filter(location__within=bbox)
 
         # ページネーション
-        skip = int(request.query_params.get('skip', 0))
-        limit = int(request.query_params.get('limit', 100))
+        skip = int(request.query_params.get("skip", 0))
+        limit = int(request.query_params.get("limit", 100))
 
         total = queryset.count()
-        items = queryset[skip:skip + limit]
+        items = queryset[skip : skip + limit]
 
         serializer = MountainSerializer(items, many=True)
-        return Response({
-            'total': total,
-            'skip': skip,
-            'limit': limit,
-            'items': serializer.data
-        })
+        return Response(
+            {"total": total, "skip": skip, "limit": limit, "items": serializer.data}
+        )
 
     def create(self, request):
         """新規Mountainを作成"""
@@ -70,8 +114,7 @@ class MountainViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         mountain = serializer.save()
         return Response(
-            MountainSerializer(mountain).data,
-            status=status.HTTP_201_CREATED
+            MountainSerializer(mountain).data, status=status.HTTP_201_CREATED
         )
 
     def update(self, request, pk=None):
@@ -89,23 +132,23 @@ class MountainViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def list_types(request):
     """Type一覧を取得"""
-    skip = int(request.query_params.get('skip', 0))
-    limit = int(request.query_params.get('limit', 100))
+    skip = int(request.query_params.get("skip", 0))
+    limit = int(request.query_params.get("limit", 100))
 
-    types = Type.objects.all()[skip:skip + limit]
+    types = Type.objects.all()[skip : skip + limit]
     serializer = TypeSerializer(types, many=True)
     return Response(serializer.data)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def list_prefectures(request):
     """Prefecture一覧を取得"""
-    skip = int(request.query_params.get('skip', 0))
-    limit = int(request.query_params.get('limit', 100))
+    skip = int(request.query_params.get("skip", 0))
+    limit = int(request.query_params.get("limit", 100))
 
-    prefectures = Prefecture.objects.all()[skip:skip + limit]
+    prefectures = Prefecture.objects.all()[skip : skip + limit]
     serializer = PrefectureSerializer(prefectures, many=True)
     return Response(serializer.data)
