@@ -27,11 +27,11 @@ export default function HomePage() {
   const [selectedMountain, setSelectedMountain] = useState<Mountain | null>(
     null,
   );
-  const [selectedPath, setSelectedPath] = useState<PathDetail | null>(null); // 追加
+  const [selectedPath, setSelectedPath] = useState<PathDetail | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<{
     lat: number;
     lon: number;
-  } | null>(null); // ホバー地点
+  } | null>(null);
 
   // ✨ MapTerrainからデータを受け取るためのコールバック関数
   const handleBoundsChange = async (newBounds: BoundingBox) => {
@@ -46,8 +46,8 @@ export default function HomePage() {
         maxlat: newBounds.maxLat,
       });
       if (newMountains.status === 200) {
-        const sortedMountains = newMountains.data.items.sort(
-          (a, b) => (b.elevation || 0) - (a.elevation || 0),
+        const sortedMountains = newMountains.data.results.sort(
+          (a: Mountain, b: Mountain) => (b.elevation || 0) - (a.elevation || 0),
         );
         setMountains(sortedMountains);
       } else {
@@ -62,7 +62,7 @@ export default function HomePage() {
         maxlat: newBounds.maxLat,
       });
       if (newPaths.status === 200) {
-        setPaths(newPaths.data.items);
+        setPaths(newPaths.data.results);
       } else {
         console.error("Failed to fetch paths:", newPaths);
       }

@@ -164,5 +164,10 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
 
         serializer = PathSerializer(items, many=True)
         return Response(
-            {"total": total, "skip": skip, "limit": limit, "items": serializer.data}
+            {
+                "count": total,
+                "next": None,
+                "previous": None,
+                "results": serializer.data,
+            }
         )

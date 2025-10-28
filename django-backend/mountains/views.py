@@ -105,7 +105,12 @@ class MountainViewSet(viewsets.ModelViewSet):
 
         serializer = MountainSerializer(items, many=True)
         return Response(
-            {"total": total, "skip": skip, "limit": limit, "items": serializer.data}
+            {
+                "count": total,
+                "next": None,
+                "previous": None,
+                "results": serializer.data,
+            }
         )
 
     def create(self, request):
