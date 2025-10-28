@@ -21,7 +21,17 @@ jobs:
           echo "$HOME/.local/share/mise/bin" >> $GITHUB_PATH
           echo "$HOME/.local/share/mise/shims" >> $GITHUB_PATH
           mise install
-          
+
+      - name: Create frontend .env
+        run: |
+          cd frontend
+          cat > .env << EOF
+          NEXT_PUBLIC_FULL_URL=${{ secrets.NEXT_PUBLIC_FULL_URL }}
+          NEXT_PUBLIC_BACKEND_URL=${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
+          MAPTILER_KEY=${{ secrets.MAPTILER_KEY }}
+          REDIS_URL=${{ secrets.REDIS_URL }}
+          EOF
+
       - name: Install frontend dependencies
         run: |
           cd frontend
@@ -31,12 +41,6 @@ jobs:
         run: |
           cd frontend
           pnpm build
-
-      - name: Verify backend
-        run: |
-          mise backend-uv
-          mise start-backend
-          mise prepare-db
 
       - name: Create deployment package
         run: |
@@ -92,9 +96,8 @@ jobs:
             ~/.local/bin/mise install
             
             # Restart backend (Docker)
-            mise backend-uv || true
-            mise start-backend
-            mise prepare-db
+            ~/.local/bin/mise backend-uv || true
+            ~/.local/bin/mise start-backend
             
             # Restart frontend (PM2)
             cd ./frontend

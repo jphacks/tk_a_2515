@@ -1,4 +1,6 @@
-FROM python:3.12-slim
+# ベースイメージを指定（マルチプラットフォーム対応）
+ARG BASE_IMAGE=python:3.12-slim
+FROM ${BASE_IMAGE}
 
 # 作業ディレクトリを設定
 WORKDIR /app
@@ -23,6 +25,8 @@ RUN GDAL_LIB=$(find /usr/lib -name "libgdal.so*" | head -1) && \
 
 ENV GDAL_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgdal.so
 ENV GEOS_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgeos_c.so
+ENV GDAL_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu/libgdal.so
+ENV GEOS_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu/libgeos_c.so
 
 # uvをインストール
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv

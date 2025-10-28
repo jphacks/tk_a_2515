@@ -8,7 +8,7 @@ uv = "0.7.10"
 description = "Export Django OpenAPI schema to YAML"
 run = """
 cd backend && docker compose exec -T api \
-bash -lc 'uv run python commons/export_openapi.py docs/openapi.yaml'
+bash -lc 'uv run python -u commons/export_openapi.py docs/openapi.yaml'
 """
 
 [tasks.generate-lib-api]
@@ -23,12 +23,12 @@ description = "Start backend services using Docker Compose"
 [tasks.prepare-db]
 run = """
 cd backend && docker compose exec -T api \
-bash -lc 'uv run python manage.py migrate'
+bash -lc 'uv run python -u manage.py migrate'
 """
 
 [tasks.backend-uv]
 description = "Run backend with uv"
-run = "cd backend && ~/.local/bin/uv sync"
+run = "cd backend && uv sync"
 
 [tasks.import-mountain-data]
 description = "Import initial database data"

@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgis/postgis:16-3.4-alpine
+    image: imresamu/postgis:17-3.5-bookworm
     container_name: peak-sight-django-db
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-app}
