@@ -1,3 +1,4 @@
-/node_modules
-.DS_Store
-/datas/
+**/node_modules
+**/datas/
+
+**/.DS_Store

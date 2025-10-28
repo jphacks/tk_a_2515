@@ -7,7 +7,7 @@ uv = "0.7.10"
 [tasks.export-openapi]
 description = "Export Django OpenAPI schema to YAML"
 run = """
-cd django-backend && docker compose exec -T api \
+cd backend && docker compose exec -T api \
 bash -lc 'uv run python commons/export_openapi.py docs/openapi.yaml'
 """
 
@@ -17,22 +17,22 @@ run = "npx orval --config ./frontend/orval.config.cjs"
 depends = ["export-openapi"]
 
 [tasks.start-backend]
-run = "cd django-backend && docker compose up -d"
+run = "cd backend && docker compose up -d"
 description = "Start backend services using Docker Compose"
 
 [tasks.prepare-db]
 run = """
-cd django-backend && docker compose exec -T api \
+cd backend && docker compose exec -T api \
 bash -lc 'uv run python manage.py migrate'
 """
 
 [tasks.backend-uv]
 description = "Run backend with uv"
-run = "cd django-backend && ~/.local/bin/uv sync"
+run = "cd backend && ~/.local/bin/uv sync"
 
 [tasks.import-mountain-data]
 description = "Import initial database data"
-run = """cd django-backend && docker compose exec -T api \
+run = """cd backend && docker compose exec -T api \
 bash -lc 'uv run python -u commons/import_mountains.py'
 """
 depends = ["prepare-db"]
@@ -40,7 +40,7 @@ depends = ["prepare-db"]
 [tasks.import-path-data]
 description = "Import initial database data"
 run = """
-cd django-backend && docker compose exec -T api \
+cd backend && docker compose exec -T api \
 bash -lc 'uv run python -u commons/import_paths.py'
 """
 depends = ["prepare-db"]
@@ -48,7 +48,7 @@ depends = ["prepare-db"]
 [tasks.update-path-data]
 description = "Update path data"
 run = """
-cd django-backend && docker compose exec -T api \
+cd backend && docker compose exec -T api \
 bash -lc 'uv run python -u commons/update_paths.py'
 """
 
@@ -58,16 +58,3 @@ run = "cd frontend && pnpm install && docker compose up -d"
 [tasks.frontend-dev]
 run = "cd frontend && pnpm dev"
 depends = ["frontend-setup"]
-
-[tasks.deploy-setup]
-run = [
-  "cd frontend && ~/.volta/bin/pnpm install",
-]
-depends = ["backend-uv"]
-
-[tasks.deploy-start]
-run = [
-  "cd backend && /usr/bin/docker compose up -d",
-  "cd frontend && ~/.volta/bin/pnpm build && ~/.volta/bin/pm2 restart pm2.config.cjs --update-env",
-]
-depends = ["deploy-setup"]

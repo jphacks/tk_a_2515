@@ -86,7 +86,7 @@ POSTGRES_PASSWORD=app
 ## プロジェクト構成
 
 ```
-django-backend/
+backend/
 ├── collectmap/          # Djangoプロジェクト設定
 │   ├── settings.py     # 設定ファイル
 │   ├── urls.py         # URLルーティング
