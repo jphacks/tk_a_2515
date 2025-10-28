@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Mountain, Path } from "@/app/api/lib/models";
+import type { Mountain, Path, PathDetail } from "@/app/api/lib/models";
 import type { BoundingBox } from "@/app/page";
 import { MapTerrain } from "@/components/MapTerrain";
 
@@ -12,10 +12,10 @@ interface Props {
   paths: Path[];
   onBoundsChange?: (bounds: BoundingBox) => void;
   onSelectMountain?: (mountain: Mountain) => void;
-  selectedMountain?: Mountain | null; // ✨ プロパティを追加
-  onSelectPath?: (path: Path) => void; // 追加
-  selectedPath?: Path | null; // 追加
-  hoveredPoint?: { lat: number; lon: number } | null; // ホバー地点
+  selectedMountain?: Mountain | null;
+  onSelectPath?: (path: Path) => void;
+  selectedPath?: PathDetail | null;
+  hoveredPoint?: { lat: number; lon: number } | null;
 }
 
 export const MapPageClient = ({

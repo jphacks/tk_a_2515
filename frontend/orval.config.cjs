@@ -1,6 +1,6 @@
 module.exports = {
   "oil-openapi-file": {
-    input: "../docs/openapi.yaml",
+    input: "../backend/docs/openapi.yaml",
     output: {
       mode: "tags-split",
       target: "src/app/api/lib/client.ts",

@@ -17,15 +17,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@main
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@master
-        with:
-          version: 10.18.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@main
-        with:
-          node-version: 22.16.0
+      - name: Setup mise
+        run: |
+          curl https://mise.run | sh
+          echo "$HOME/.local/share/mise/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/share/mise/shims" >> $GITHUB_PATH
+          mise install
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

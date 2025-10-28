@@ -4,7 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { renderToString } from "react-dom/server";
-import type { Mountain, Path } from "@/app/api/lib/models";
+import type { Mountain, Path, PathDetail } from "@/app/api/lib/models";
 import { MountainTooltip } from "./MountainTooltip";
 
 export const ZOOM_LEVEL_THRESHOLD = 11;
@@ -23,10 +23,10 @@ interface Props {
     zoomLevel: number;
   }) => void;
   onSelectMountain?: (mountain: Mountain) => void;
-  selectedMountain?: Mountain | null; // ✨ 選択された山を受け取るプロパティを追加
-  onSelectPath?: (path: Path) => void; // 追加
-  selectedPath?: Path | null; // 追加
-  hoveredPoint?: { lat: number; lon: number } | null; // ホバー地点
+  selectedMountain?: Mountain | null;
+  onSelectPath?: (path: Path) => void;
+  selectedPath?: PathDetail | null;
+  hoveredPoint?: { lat: number; lon: number } | null;
 }
 
 export const MapTerrain = ({
@@ -74,6 +74,10 @@ export const MapTerrain = ({
       const features = pathsData.map((path, _) => {
         // ✨ geometries が存在しない場合は空の配列を返す
         const geometries = path.geometries || [];
+        // readonlyの配列をコピーしてからソート
+        const sortedGeometries = [...geometries].sort(
+          (a, b) => a.sequence - b.sequence,
+        );
         return {
           type: "Feature" as const,
           properties: {
@@ -81,9 +85,10 @@ export const MapTerrain = ({
           },
           geometry: {
             type: "LineString" as const,
-            coordinates: geometries
-              .sort((a, b) => a.sequence - b.sequence) // ✨ sequence でソート
-              .map(geometry => [geometry.lon, geometry.lat]), // [lon, lat] の順序に変換
+            coordinates: sortedGeometries.map(geometry => [
+              geometry.lon,
+              geometry.lat,
+            ]), // [lon, lat] の順序に変換
           },
         };
       });

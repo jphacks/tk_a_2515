@@ -8,11 +8,8 @@ import { MapPageClient } from "@/components/Map";
 import { ZOOM_LEVEL_THRESHOLD } from "@/components/MapTerrain";
 import type { Mountain, Path } from "./api/lib/models";
 import type { PathDetail } from "./api/lib/models/pathDetail";
-import { listMountainsMountainsGet } from "./api/lib/mountains/mountains";
-import {
-  getPathPathsPathIdGet,
-  listPathsPathsGet,
-} from "./api/lib/paths/paths";
+import { mountainsList } from "./api/lib/mountains/mountains";
+import { pathsList, pathsRetrieve } from "./api/lib/paths/paths";
 
 export type BoundingBox = {
   minLon: number;
@@ -30,48 +27,44 @@ export default function HomePage() {
   const [selectedMountain, setSelectedMountain] = useState<Mountain | null>(
     null,
   );
-  const [selectedPath, setSelectedPath] = useState<PathDetail | null>(null); // 追加
+  const [selectedPath, setSelectedPath] = useState<PathDetail | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<{
     lat: number;
     lon: number;
-  } | null>(null); // ホバー地点
+  } | null>(null);
 
   // ✨ MapTerrainからデータを受け取るためのコールバック関数
   const handleBoundsChange = async (newBounds: BoundingBox) => {
     setBounds(newBounds);
 
     if (newBounds.zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
-      try {
-        const mountainsResponse = await listMountainsMountainsGet({
-          limit: 16384,
-          minlon: newBounds.minLon,
-          minlat: newBounds.minLat,
-          maxlon: newBounds.maxLon,
-          maxlat: newBounds.maxLat,
-        });
-        if (mountainsResponse.status === 200) {
-          const sortedMountains = mountainsResponse.data.items.sort(
-            (a, b) => (b.elevation || 0) - (a.elevation || 0),
-          );
-          setMountains(sortedMountains);
-        } else {
-          console.error("Failed to fetch mountains:", mountainsResponse);
-        }
+      const newMountains = await mountainsList({
+        limit: 16384,
+        minlon: newBounds.minLon,
+        minlat: newBounds.minLat,
+        maxlon: newBounds.maxLon,
+        maxlat: newBounds.maxLat,
+      });
+      if (newMountains.status === 200) {
+        const sortedMountains = newMountains.data.results.sort(
+          (a: Mountain, b: Mountain) => (b.elevation || 0) - (a.elevation || 0),
+        );
+        setMountains(sortedMountains);
+      } else {
+        console.error("Failed to fetch mountains:", newMountains);
+      }
 
-        const pathsResponse = await listPathsPathsGet({
-          limit: 16384,
-          minlon: newBounds.minLon,
-          minlat: newBounds.minLat,
-          maxlon: newBounds.maxLon,
-          maxlat: newBounds.maxLat,
-        });
-        if (pathsResponse.status === 200) {
-          setPaths(pathsResponse.data.items);
-        } else {
-          console.error("Failed to fetch paths:", pathsResponse);
-        }
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
+      const newPaths = await pathsList({
+        limit: 16384,
+        minlon: newBounds.minLon,
+        minlat: newBounds.minLat,
+        maxlon: newBounds.maxLon,
+        maxlat: newBounds.maxLat,
+      });
+      if (newPaths.status === 200) {
+        setPaths(newPaths.data.results);
+      } else {
+        console.error("Failed to fetch paths:", newPaths);
       }
     } else {
       setMountains([]);
@@ -89,7 +82,7 @@ export default function HomePage() {
     setSelectedMountain(null); // 山選択をクリア
     setIsSheetOpen(true);
     try {
-      const response = await getPathPathsPathIdGet(path.osm_id);
+      const response = await pathsRetrieve(path.osm_id);
       if (response.status === 200) {
         setSelectedPath(response.data);
       }

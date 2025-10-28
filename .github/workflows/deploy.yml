@@ -27,25 +27,16 @@ jobs:
           cd frontend
           pnpm install --frozen-lockfile
 
-      - name: Create frontend .env
-        run: |
-          cd frontend
-          cat > .env << EOF
-          NEXT_PUBLIC_FULL_URL=${{ secrets.NEXT_PUBLIC_FULL_URL }}
-          NEXT_PUBLIC_BACKEND_URL=${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
-          MAPTILER_KEY=${{ secrets.MAPTILER_KEY }}
-          REDIS_URL=${{ secrets.REDIS_URL }}
-          EOF
-
       - name: Build frontend
         run: |
           cd frontend
           pnpm build
 
-      - name: Install backend dependencies
+      - name: Verify backend
         run: |
-          cd backend
-          uv sync
+          mise backend-uv
+          mise start-backend
+          mise prepare-db
 
       - name: Create deployment package
         run: |
@@ -57,14 +48,18 @@ jobs:
           cp frontend/pnpm-lock.yaml deploy_package/frontend/
           cp frontend/pnpm-workspace.yaml deploy_package/frontend/
           cp frontend/pm2.config.cjs deploy_package/frontend/
-          cp frontend/.env deploy_package/frontend/
 
           # Backend files
           mkdir -p deploy_package/backend
-          cp -r backend/fastapi deploy_package/backend/
-          cp backend/pyproject.toml deploy_package/backend/
+          cp -r backend/collectmap deploy_package/backend/
+          cp -r backend/commons deploy_package/backend/
+          cp -r backend/mountains deploy_package/backend/
+          cp -r backend/paths deploy_package/backend/
           cp backend/docker-compose.yml deploy_package/backend/
           cp backend/Dockerfile deploy_package/backend/
+          cp backend/manage.py deploy_package/backend/
+          cp backend/pyproject.toml deploy_package/backend/
+          cp backend/uv.lock deploy_package/backend/
           
           # Create tarball
           cp mise.toml deploy_package/
@@ -97,12 +92,12 @@ jobs:
             ~/.local/bin/mise install
             
             # Restart backend (Docker)
-            cd backend
-            ~/.local/bin/uv sync
-            /usr/bin/docker compose up -d --remove-orphans
+            mise backend-uv || true
+            mise start-backend
+            mise prepare-db
             
             # Restart frontend (PM2)
-            cd ../frontend
+            cd ./frontend
             ~/.volta/bin/pm2 restart pm2.config.cjs --update-env || ~/.volta/bin/pm2 start pm2.config.cjs
             
             # Cleanup
