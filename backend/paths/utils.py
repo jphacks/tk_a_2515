@@ -2,17 +2,44 @@
 
 import math
 from pathlib import Path
+import time
 
 import requests
-
+import pickle
+import os
+import redis
+from dotenv import load_dotenv
 
 DOMAIN_URL = "https://cyberjapandata.gsi.go.jp/xyz/dem/"
 DEFAULT_ZOOM = 14
 
+load_dotenv()
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+redis_client = redis.StrictRedis.from_url(REDIS_URL, decode_responses=True)
+
+
+def load_cache_from_redis(key: str) -> dict:
+    """Redis からキャッシュを読み込む"""
+    data = redis_client.get(key)
+    if data:
+        return pickle.loads(data.encode("latin1"))
+    return {}
+
+
+def save_cache_to_redis(key: str, cache: dict):
+    """Redis にキャッシュを保存する"""
+    try:
+        redis_client.set(key, pickle.dumps(cache).decode("latin1"))
+    except Exception as e:
+        print(f"Failed to save cache to Redis: {e}")
+
+
+_dem_cache = {}
+
 
 def fetch_dem_data(z: int, x: int, y: int) -> dict | None:
     """
-    指定されたz/x/y座標のDEMデータを取得
+    指定されたz/x/y座標のDEMデータを取得（Redis キャッシュ対応）
 
     Args:
         z: ズームレベル
@@ -23,10 +50,18 @@ def fetch_dem_data(z: int, x: int, y: int) -> dict | None:
         dict: (i, j) -> elevation のマッピング
         None: エラー時
     """
+    cache_key = f"dem:{z}-{x}-{y}"
+
+    # Redis キャッシュから読み込み
+    cached_data = load_cache_from_redis(cache_key)
+    if cached_data:
+        return cached_data
+
     url = f"{DOMAIN_URL}{z}/{x}/{y}.txt"
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
+        time.sleep(0.5)  # To simulate API rate limiting
 
         # カンマ区切りデータをパース
         lines = response.text.strip().split("\n")
@@ -38,6 +73,9 @@ def fetch_dem_data(z: int, x: int, y: int) -> dict | None:
         for i, row in enumerate(data):
             for j, value in enumerate(row):
                 res[(i, j)] = value
+
+        # Redis にキャッシュを保存
+        save_cache_to_redis(cache_key, res)
 
         return res
     except requests.exceptions.RequestException as e:
