@@ -181,10 +181,16 @@ def phase_1_extract_endpoints(paths_dir):
                             "alt": end_alt,
                         }
                     )
+
+                # --- REMOVE THIS LINE TO PROCESS ALL FILES ---
+                if len(all_endpoints) > 1024:
+                    break
         except Exception as e:
             log.error(f"Failed to process file {f_path}: {e}")
+
+        # --- REMOVE THIS LINE TO PROCESS ALL FILES ---
         if len(all_endpoints) > 1024:
-            break  # --- REMOVE THIS LINE TO PROCESS ALL FILES ---
+            break
 
     log.info(
         f"✅ Phase 1: Extracted {len(all_endpoints)} endpoints from {len(all_ways)} ways."
@@ -319,6 +325,12 @@ def phase_4_simplify_graph(G, endpoint_to_cluster_map):
 
             # Get the two neighbors
             neighbors = list(G.neighbors(node))
+            if len(neighbors) != 2:
+                log.warning(
+                    f"Skipping node {node}: Expected 2 neighbors, found {len(neighbors)}."
+                )
+                continue
+
             n1, n2 = neighbors
 
             # Don't merge a simple loop (n1 == n2)
@@ -398,13 +410,20 @@ def save_graph_to_json(G, output_dir, chunk_size):
     # Initialize a unique ID counter
     unique_id_counter = 1
 
-    for u, v, data in G.edges(data=True):
+    for u, v, data in tqdm(G.edges(data=True), desc="Processing edges", unit="edge"):
         # Extract geometry and calculate bounds
         geometry = data["geometry"]
         minlat = min(point["lat"] for point in geometry)
         maxlat = max(point["lat"] for point in geometry)
         minlon = min(point["lon"] for point in geometry)
         maxlon = max(point["lon"] for point in geometry)
+
+        # Fetch DEM data for the bounding box
+        dem_data = fetch_all_dem_data_from_bbox(minlon, minlat, maxlon, maxlat)
+
+        # Add elevation to each geometry point
+        for point in geometry:
+            point["alt"] = get_elevation(point["lat"], point["lon"], dem_data)
 
         # Assign a unique integer ID to the path
         unique_id = unique_id_counter
@@ -425,7 +444,9 @@ def save_graph_to_json(G, output_dir, chunk_size):
 
     # Split elements into chunks and save each chunk to a separate file
     os.makedirs(output_dir, exist_ok=True)
-    for i in range(0, len(elements), chunk_size):
+    for i in tqdm(
+        range(0, len(elements), chunk_size), desc="Saving chunks", unit="chunk"
+    ):
         chunk = elements[i : i + chunk_size]
         output_file = os.path.join(
             output_dir, f"merged_trail_network_{i // chunk_size + 1}.json"
@@ -459,13 +480,6 @@ if __name__ == "__main__":
         log.info("\n--- 🌲 Final Merged Trail Network 🌲 ---")
         log.info(f"Total Junctions (Nodes): {G_simplified.number_of_nodes()}")
         log.info(f"Total Segments (Edges): {G_simplified.number_of_edges()}")
-
-        for u, v, data in G_simplified.edges(data=True):
-            log.info(f"\n🗺️  Segment connecting junction '{u}' and '{v}'")
-            log.info(f"    Way ID(s): {data['way_id']}")
-            log.info(f"    Point count: {len(data['geometry'])}")
-            log.info(f"    Start: {data['geometry'][0]}")
-            log.info(f"    End: {data['geometry'][-1]}")
 
         # --- Save Final Results ---
         if not os.path.exists(OUTPUT_PATHS_DIR):
