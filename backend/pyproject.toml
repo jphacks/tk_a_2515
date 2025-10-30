@@ -18,6 +18,5 @@ dependencies = [
     "drf-spectacular>=0.28.0",
     "scikit-learn>=1.7.2",
     "networkx>=3.5",
-    "redis>=7.0.1",
     "tqdm>=4.67.1",
 ]

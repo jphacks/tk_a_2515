@@ -9,10 +9,14 @@ Example:
     python commons/import_paths.py
 """
 
+import argparse
 import json
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+
+from tqdm import tqdm
 
 # Djangoのセットアップ
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -48,7 +52,6 @@ def import_path_data(
         raise FileNotFoundError(f"File not found: {json_path}")
 
     # JSONデータを読み込み
-    print(f"Reading JSON data from {json_path}...")
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -56,7 +59,6 @@ def import_path_data(
     if isinstance(data, dict) and "elements" in data:
         # OpenStreetMap Overpass API形式: {"elements": [...]}
         paths_data = data["elements"]
-        print(f"  Found 'elements' array with {len(paths_data)} path(s)")
     elif isinstance(data, list):
         # 配列
         paths_data = data
@@ -66,8 +68,8 @@ def import_path_data(
         )
 
     # wayタイプのみフィルタ
-    paths_data = [p for p in paths_data if p.get("type") == "way"]
-    print(f"  Total ways: {len(paths_data)}")
+    # paths_data = [p for p in paths_data if p.get("type") == "way"]
+    # print(f"  Total ways: {len(paths_data)}")
 
     # 統計情報
     stats = {
@@ -78,31 +80,18 @@ def import_path_data(
     }
 
     # 各パスデータをインポート
-    print("\nImporting paths...")
-    print(f"Batch size: {batch_size} (commits every {batch_size} items)")
+    # print("\nImporting paths...")
+    # print(f"Batch size: {batch_size} (commits every {batch_size} items)")
 
     for i, path_data in enumerate(paths_data, 1):
         try:
             osm_id = path_data.get("id")
-            path_type = path_data.get("type")
+            path_type = path_data.get("type") or "way"
             geometry = path_data.get("geometry", [])
-
-            # geometryの長さチェック
-            if len(geometry) < 20:
-                if i % batch_size == 0 or i == 1:
-                    print(
-                        f"  [{i}/{len(paths_data)}] Skipped: OSM ID {osm_id} - less than 20 geometry points"
-                    )
-                stats["skipped"] += 1
-                continue
 
             # 既存チェック
             if PathModel.objects.filter(osm_id=osm_id).exists():
                 if skip_existing:
-                    if i % batch_size == 0 or i == 1:
-                        print(
-                            f"  [{i}/{len(paths_data)}] Skipped: OSM ID {osm_id} - already exists"
-                        )
                     stats["skipped"] += 1
                     continue
 
@@ -140,41 +129,46 @@ def import_path_data(
                         kuma=tags.get("kuma"),
                     )
 
-                # 100件ごとまたは最初だけ表示
-                if i % batch_size == 0 or stats["created"] == 0:
-                    highway = tags.get("highway", "unknown")
-                    print(
-                        f"  [{i}/{len(paths_data)}] Created: OSM ID {path.osm_id} (ID: {path.id}, highway: {highway})"
-                    )
-
                 stats["created"] += 1
-
         except Exception as e:
-            # エラーは毎回表示
-            print(
-                f"  [{i}/{len(paths_data)}] Error: OSM ID {path_data.get('id', 'Unknown')} - {str(e)}"
-            )
             stats["errors"] += 1
+            print(f"  Error: OSM ID {path_data.get('id', 'Unknown')} - {str(e)}")
 
         # バッチコミット表示
-        if i % batch_size == 0:
-            print(
-                f"  → Batch commit at {i} items (Created: {stats['created']}, Skipped: {stats['skipped']}, Errors: {stats['errors']})"
-            )
+        # if i % batch_size == 0:
+        #     print(
+        #         f"  → Batch commit at {i} items (Created: {stats['created']}, Skipped: {stats['skipped']}, Errors: {stats['errors']})"
+        #     )
 
-    print(f"\n  Final progress: [{len(paths_data)}/{len(paths_data)}] Completed!")
     return stats
 
 
 def main():
     """メイン関数"""
-    data_folder = Path(__file__).parent.parent / "datas" / "paths"
+    parser = argparse.ArgumentParser(description="登山道データJSONインポートスクリプト")
+    parser.add_argument(
+        "--subdir",
+        type=str,
+        default="paths",
+        help="データフォルダ内のサブディレクトリ名 (デフォルト: paths)",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="並列処理のワーカースレッド数 (デフォルト: 4)",
+    )
+    args = parser.parse_args()
+
+    data_folder = Path(__file__).parent.parent / "datas" / args.subdir
 
     if not data_folder.exists():
         print(f"❌ Error: Data folder not found: {data_folder}")
         sys.exit(1)
 
     files = list(data_folder.glob("*.json"))
+
+    files = [f for f in files if "九州" in f.name]
 
     if not files:
         print(f"❌ Error: No JSON files found in {data_folder}")
@@ -195,30 +189,45 @@ def main():
             "errors": 0,
         }
 
-        for idx, json_path in enumerate(files, 1):
-            print(f"\n[{idx}/{len(files)}] Importing from {json_path.name}...")
-            result = import_path_data(
-                str(json_path), skip_existing=True, batch_size=batch_size
-            )
+        with tqdm(
+            total=len(files), desc="Processing JSON files", unit="file"
+        ) as overall_pbar:
+            with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                future_to_file = {
+                    executor.submit(
+                        import_path_data, str(json_path), True, batch_size
+                    ): json_path
+                    for json_path in files
+                }
 
-            print("\n" + "-" * 60)
-            print("📊 File Import Summary")
-            print("-" * 60)
-            print(f"  File: {json_path.name}")
-            print(f"  Total: {result['total']}")
-            print(f"  ✅ Created: {result['created']}")
-            print(f"  ⏭️  Skipped: {result['skipped']}")
-            print(f"  ❌ Errors: {result['errors']}")
-            print("-" * 60)
+                for future in as_completed(future_to_file):
+                    json_path = future_to_file[future]
+                    try:
+                        result = future.result()
+                        print("\n" + "-" * 60)
+                        print("📊 File Import Summary")
+                        print("-" * 60)
+                        print(f"  File: {json_path.name}")
+                        print(f"  Total: {result['total']}")
+                        print(f"  ✅ Created: {result['created']}")
+                        print(f"  ⏭️  Skipped: {result['skipped']}")
+                        print(f"  ❌ Errors: {result['errors']}")
+                        print("-" * 60)
 
-            # 累計を更新
-            total_stats["total"] += result["total"]
-            total_stats["created"] += result["created"]
-            total_stats["skipped"] += result["skipped"]
-            total_stats["errors"] += result["errors"]
+                        # 累計を更新
+                        total_stats["total"] += result["total"]
+                        total_stats["created"] += result["created"]
+                        total_stats["skipped"] += result["skipped"]
+                        total_stats["errors"] += result["errors"]
 
-            if result["errors"] > 0:
-                print(f"\n⚠️  Warning: {result['errors']} errors occurred during import")
+                        if result["errors"] > 0:
+                            print(
+                                f"\n⚠️  Warning: {result['errors']} errors occurred during import"
+                            )
+                    except Exception as e:
+                        print(f"\n❌ Error processing file {json_path.name}: {e}")
+                    finally:
+                        overall_pbar.update(1)
 
         # 最終サマリー
         print("\n" + "=" * 60)

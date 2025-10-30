@@ -1,6 +1,7 @@
-.venv/
-/unused
-datas/
+**/.venv/
+**/unused/
+**/datas/
+**/*cache/
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,macos,django
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,macos,django

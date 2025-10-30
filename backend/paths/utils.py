@@ -1,61 +1,40 @@
 """Path関連のユーティリティ関数"""
 
 import math
-from pathlib import Path
+import pickle
 import time
+from pathlib import Path
 
 import requests
-import pickle
-import os
-import redis
-from dotenv import load_dotenv
 
 DOMAIN_URL = "https://cyberjapandata.gsi.go.jp/xyz/dem/"
 DEFAULT_ZOOM = 14
 
-load_dotenv()
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-redis_client = redis.StrictRedis.from_url(REDIS_URL, decode_responses=True)
 
-
-def load_cache_from_redis(key: str) -> dict:
-    """Redis からキャッシュを読み込む"""
-    data = redis_client.get(key)
-    if data:
-        return pickle.loads(data.encode("latin1"))
-    return {}
-
-
-def save_cache_to_redis(key: str, cache: dict):
-    """Redis にキャッシュを保存する"""
-    try:
-        redis_client.set(key, pickle.dumps(cache).decode("latin1"))
-    except Exception as e:
-        print(f"Failed to save cache to Redis: {e}")
-
-
-_dem_cache = {}
-
-
-def fetch_dem_data(z: int, x: int, y: int) -> dict | None:
+def fetch_dem_data(z: int, x: int, y: int, cache_dir: str = "/app/datas/dem_cache") -> dict | None:
     """
-    指定されたz/x/y座標のDEMデータを取得（Redis キャッシュ対応）
+    指定されたz/x/y座標のDEMデータを取得（ローカルキャッシュ対応）
 
     Args:
         z: ズームレベル
         x: X座標
         y: Y座標
+        cache_dir: ローカルキャッシュディレクトリ（デフォルト: "dem_cache"）
 
     Returns:
         dict: (i, j) -> elevation のマッピング
         None: エラー時
     """
-    cache_key = f"dem:{z}-{x}-{y}"
+    cache_key = f"dem_{z}_{x}_{y}.pkl"
+    cache_path = Path(cache_dir) / cache_key
 
-    # Redis キャッシュから読み込み
-    cached_data = load_cache_from_redis(cache_key)
-    if cached_data:
-        return cached_data
+    # ローカルキャッシュから読み込み
+    if cache_path.exists():
+        try:
+            with open(cache_path, "rb") as f:
+                return pickle.loads(f.read())
+        except Exception as e:
+            print(f"Failed to load local cache {cache_path}: {e}")
 
     url = f"{DOMAIN_URL}{z}/{x}/{y}.txt"
     try:
@@ -74,15 +53,17 @@ def fetch_dem_data(z: int, x: int, y: int) -> dict | None:
             for j, value in enumerate(row):
                 res[(i, j)] = value
 
-        # Redis にキャッシュを保存
-        save_cache_to_redis(cache_key, res)
+        # ローカルキャッシュに保存
+        try:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(cache_path, "wb") as f:
+                f.write(pickle.dumps(res))
+        except Exception as e:
+            print(f"Failed to save local cache {cache_path}: {e}")
 
         return res
-    except requests.exceptions.RequestException as e:
-        error_file = Path("error") / f"error_{z}_{x}_{y}.txt"
-        error_file.parent.mkdir(exist_ok=True)
-        with open(error_file, "w") as f:
-            f.write(f"Error fetching {url}: {e}\n")
+    except requests.exceptions.RequestException:
+        # print(f"Failed to fetch DEM data from {url}: {e}")
         return None
 
 
@@ -158,7 +139,11 @@ def lat_from_y(y: int, z: int) -> float:
 
 
 def fetch_all_dem_data_from_bbox(
-    min_lon: float, min_lat: float, max_lon: float, max_lat: float, z: int = DEFAULT_ZOOM
+    min_lon: float,
+    min_lat: float,
+    max_lon: float,
+    max_lat: float,
+    z: int = DEFAULT_ZOOM,
 ) -> dict:
     """
     指定された経度緯度の範囲のDEMデータを取得
@@ -188,7 +173,9 @@ def fetch_all_dem_data_from_bbox(
     return dem_data
 
 
-def get_nearest_elevation(lat: float, lon: float, dem_data: dict, z: int = DEFAULT_ZOOM) -> float:
+def get_nearest_elevation(
+    lat: float, lon: float, dem_data: dict, z: int = DEFAULT_ZOOM
+) -> float:
     """
     指定した座標に最も近い標高データを取得
 
@@ -219,7 +206,9 @@ def get_nearest_elevation(lat: float, lon: float, dem_data: dict, z: int = DEFAU
     return 0
 
 
-def local_distance_m(lat1: float, lon1: float, lat2: float, lon2: float, R: float = 6_371_000.0) -> float:
+def local_distance_m(
+    lat1: float, lon1: float, lat2: float, lon2: float, R: float = 6_371_000.0
+) -> float:
     """
     2点間の距離を計算（メートル）
 

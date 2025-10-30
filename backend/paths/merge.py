@@ -3,13 +3,16 @@ import json
 import logging
 import math
 import os
+import pickle
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
 from sklearn.neighbors import BallTree
 from tqdm import tqdm  # Add tqdm for progress visualization
-from utils import fetch_all_dem_data_from_bbox, get_nearest_elevation
+from utils import fetch_all_dem_data_from_bbox
 
 # --- Constants ---
 
@@ -54,11 +57,45 @@ def haversine(lat1, lon1, lat2, lon2):
     return distance
 
 
-def get_elevation(lat, lon, dem_data):
+def get_elevation(lat, lon, dem_data, cache_dir="/app/datas/elevation_cache"):
     """
-    Get elevation for a given lat/lon.
+    Get elevation for a given lat/lon, with file-based caching.
+
+    Args:
+        lat: 緯度
+        lon: 経度
+        dem_data: DEMデータ
+        cache_dir: キャッシュを保存するディレクトリ
+
+    Returns:
+        float: 標高データ
     """
-    return get_nearest_elevation(lat, lon, dem_data)
+    # キャッシュディレクトリを作成
+    cache_path = Path(cache_dir)
+    cache_path.mkdir(parents=True, exist_ok=True)
+
+    # キャッシュキーを生成（lat, lon を丸めて一意化）
+    cache_key = f"{lat:.6f}_{lon:.6f}.pkl"
+    cache_file = cache_path / cache_key
+
+    # キャッシュが存在する場合は読み込む
+    if cache_file.exists():
+        try:
+            with open(cache_file, "rb") as f:
+                return pickle.load(f)
+        except Exception as e:
+            log.warning(f"Failed to load cache for {lat}, {lon}: {e}")
+
+    # キャッシュがない場合は計算して保存
+    raise NotImplementedError("Cache not found")
+    # elevation = get_nearest_elevation(lat, lon, dem_data)
+    # try:
+    #     with open(cache_file, "wb") as f:
+    #         pickle.dump(elevation, f)
+    # except Exception as e:
+    #     log.warning(f"Failed to save cache for {lat}, {lon}: {e}")
+
+    # return elevation
 
 
 class UnionFind:
@@ -106,91 +143,107 @@ class UnionFind:
 # --- Main Strategy Implementation ---
 
 
-def phase_1_extract_endpoints(paths_dir):
+def process_json_file(f_path):
+    """
+    Process a single JSON file and extract way and endpoint data.
+    """
+    try:
+        with open(f_path, "r") as f:
+            data = json.load(f)
+
+        local_ways = {}
+        local_endpoints = []
+
+        for element in tqdm(
+            data.get("elements", []), desc=f"Processing {f_path.split(os.sep)[-1]}"
+        ):
+            if element.get("type") == "way" and "geometry" in element:
+                way_id = element["id"]
+                if way_id in local_ways:
+                    continue  # Skip duplicate ways
+
+                geometry = element["geometry"]
+                if not geometry or len(geometry) < 2:
+                    log.warning(f"Skipping way {way_id}: Invalid geometry")
+                    continue
+
+                local_ways[way_id] = element
+
+                # Get start and end nodes
+                start_node = geometry[0]
+                end_node = geometry[-1]
+
+                # Get (mocked) elevation
+                min_lat = min(start_node["lat"], end_node["lat"])
+                max_lat = max(start_node["lat"], end_node["lat"])
+                min_lon = min(start_node["lon"], end_node["lon"])
+                max_lon = max(start_node["lon"], end_node["lon"])
+                dem_data = fetch_all_dem_data_from_bbox(
+                    min_lon, min_lat, max_lon, max_lat
+                )
+                start_alt = get_elevation(
+                    start_node["lat"], start_node["lon"], dem_data
+                )
+                end_alt = get_elevation(end_node["lat"], end_node["lon"], dem_data)
+
+                # Create unique IDs for endpoints
+                endpoint_id_start = f"{way_id}_start"
+                endpoint_id_end = f"{way_id}_end"
+
+                local_endpoints.append(
+                    {
+                        "id": endpoint_id_start,
+                        "way_id": way_id,
+                        "is_start": True,
+                        "lat": start_node["lat"],
+                        "lon": start_node["lon"],
+                        "alt": start_alt,
+                    }
+                )
+                local_endpoints.append(
+                    {
+                        "id": endpoint_id_end,
+                        "way_id": way_id,
+                        "is_start": False,
+                        "lat": end_node["lat"],
+                        "lon": end_node["lon"],
+                        "alt": end_alt,
+                    }
+                )
+        return local_ways, local_endpoints
+    except Exception as e:
+        log.error(f"Failed to process file {f_path}: {e}")
+        return {}, []
+
+
+def phase_1_extract_endpoints(paths_dir, num_threads=4):
     """
     Phase 1: Load all JSONs, extract all 'way' objects,
-    and get their start/end endpoints.
+    and get their start/end endpoints. Process files in parallel.
     """
     log.info("🚀 Phase 1: Extracting endpoints...")
-    all_ways = {}  # Store full way data by id
-    all_endpoints = []  # List of endpoint dicts
+    all_ways = {}
+    all_endpoints = []
     json_files = glob.glob(os.path.join(paths_dir, "*.json"))
+
+    # filter to 九州 region only (filename contains "九州")
+    json_files = [f for f in json_files if "九州" in os.path.basename(f)]
 
     if not json_files:
         log.warning(f"🤔 No JSON files found in directory: {paths_dir}")
         return {}, []
 
-    for f_path in tqdm(json_files, desc="Processing JSON files", unit="file"):
-        try:
-            with open(f_path, "r") as f:
-                data = json.load(f)
-
-            for element in tqdm(
-                data.get("elements", []), desc="Processing elements", unit="element"
-            ):
-                if element.get("type") == "way" and "geometry" in element:
-                    way_id = element["id"]
-                    if way_id in all_ways:
-                        continue  # Skip duplicate ways
-
-                    geometry = element["geometry"]
-                    if not geometry or len(geometry) < 2:
-                        log.warning(f"Skipping way {way_id}: Invalid geometry")
-                        continue
-
-                    all_ways[way_id] = element
-
-                    # Get start and end nodes
-                    start_node = geometry[0]
-                    end_node = geometry[-1]
-
-                    # Get (mocked) elevation
-                    min_lat = min(start_node["lat"], end_node["lat"])
-                    max_lat = max(start_node["lat"], end_node["lat"])
-                    min_lon = min(start_node["lon"], end_node["lon"])
-                    max_lon = max(start_node["lon"], end_node["lon"])
-                    dem_data = fetch_all_dem_data_from_bbox(
-                        min_lon, min_lat, max_lon, max_lat
-                    )
-                    start_alt = get_elevation(
-                        start_node["lat"], start_node["lon"], dem_data
-                    )
-                    end_alt = get_elevation(end_node["lat"], end_node["lon"], dem_data)
-
-                    # Create unique IDs for endpoints
-                    endpoint_id_start = f"{way_id}_start"
-                    endpoint_id_end = f"{way_id}_end"
-
-                    all_endpoints.append(
-                        {
-                            "id": endpoint_id_start,
-                            "way_id": way_id,
-                            "is_start": True,
-                            "lat": start_node["lat"],
-                            "lon": start_node["lon"],
-                            "alt": start_alt,
-                        }
-                    )
-                    all_endpoints.append(
-                        {
-                            "id": endpoint_id_end,
-                            "way_id": way_id,
-                            "is_start": False,
-                            "lat": end_node["lat"],
-                            "lon": end_node["lon"],
-                            "alt": end_alt,
-                        }
-                    )
-
-                # --- REMOVE THIS LINE TO PROCESS ALL FILES ---
-                if len(all_endpoints) > 1024:
-                    break
-        except Exception as e:
-            log.error(f"Failed to process file {f_path}: {e}")
-
-        # --- REMOVE THIS LINE TO PROCESS ALL FILES ---
-        if len(all_endpoints) > 1024:
-            break
+    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        future_to_file = {executor.submit(process_json_file, f): f for f in json_files}
+        for future in tqdm(
+            as_completed(future_to_file),
+            desc="Processing JSON files",
+            total=len(json_files),
+            unit="file",
+        ):
+            local_ways, local_endpoints = future.result()
+            all_ways.update(local_ways)
+            all_endpoints.extend(local_endpoints)
 
     log.info(
         f"✅ Phase 1: Extracted {len(all_endpoints)} endpoints from {len(all_ways)} ways."
@@ -460,9 +513,21 @@ def save_graph_to_json(G, output_dir, chunk_size):
 
 if __name__ == "__main__":
     # --- Run the 4-Phase Strategy ---
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Merge trail network paths.")
+    parser.add_argument(
+        "--threads",
+        type=int,
+        default=4,
+        help="Number of threads to use for parallel processing in Phase 1.",
+    )
+    args = parser.parse_args()
 
     # Phase 1
-    all_ways, all_endpoints = phase_1_extract_endpoints(ORIGINAL_PATHS_DIR)
+    all_ways, all_endpoints = phase_1_extract_endpoints(
+        ORIGINAL_PATHS_DIR, num_threads=args.threads
+    )
 
     if all_ways:
         # Phase 2
