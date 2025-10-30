@@ -9,7 +9,11 @@ import { ZOOM_LEVEL_THRESHOLD } from "@/components/MapTerrain";
 import type { Mountain, Path } from "./api/lib/models";
 import type { PathDetail } from "./api/lib/models/pathDetail";
 import { mountainsList } from "./api/lib/mountains/mountains";
-import { pathsList, pathsRetrieve } from "./api/lib/paths/paths";
+import {
+  pathsBulkDeleteCreate,
+  pathsList,
+  pathsRetrieve,
+} from "./api/lib/paths/paths";
 
 export type BoundingBox = {
   minLon: number;
@@ -20,7 +24,7 @@ export type BoundingBox = {
 };
 
 export default function HomePage() {
-  const [_, setBounds] = useState<BoundingBox | null>(null);
+  const [bounds, setBounds] = useState<BoundingBox | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [mountains, setMountains] = useState<Mountain[]>([]);
   const [paths, setPaths] = useState<Path[]>([]);
@@ -110,6 +114,45 @@ export default function HomePage() {
     setHoveredPoint(point);
   };
 
+  const handleDeletePaths = async (bbox: {
+    minLat: number;
+    minLon: number;
+    maxLat: number;
+    maxLon: number;
+  }) => {
+    try {
+      // 自動生成されたAPIは第一引数にボディを要求するが、バックエンドは不要
+      // biome-ignore lint/suspicious/noExplicitAny: Empty object required by auto-generated API signature
+      const response = await pathsBulkDeleteCreate({} as any, {
+        minlat: bbox.minLat,
+        minlon: bbox.minLon,
+        maxlat: bbox.maxLat,
+        maxlon: bbox.maxLon,
+      });
+
+      if (response.status === 200) {
+        console.log(`${response.data.deleted_count}件のパスを削除しました`);
+
+        // 現在のビュー範囲でパスを再取得
+        if (bounds && bounds.zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
+          const newPaths = await pathsList({
+            limit: 16384,
+            minlon: bounds.minLon,
+            minlat: bounds.minLat,
+            maxlon: bounds.maxLon,
+            maxlat: bounds.maxLat,
+          });
+          if (newPaths.status === 200) {
+            setPaths(newPaths.data.results);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("削除エラー:", error);
+      throw error;
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Header />
@@ -129,9 +172,10 @@ export default function HomePage() {
           onBoundsChange={handleBoundsChange}
           onSelectMountain={handleSelectMountain}
           selectedMountain={selectedMountain}
-          onSelectPath={handleSelectPath} // 追加
-          selectedPath={selectedPath} // 追加
-          hoveredPoint={hoveredPoint} // ホバー地点
+          onSelectPath={handleSelectPath}
+          selectedPath={selectedPath}
+          hoveredPoint={hoveredPoint}
+          onDeletePaths={handleDeletePaths}
         />
       </main>
       <BottomSheet

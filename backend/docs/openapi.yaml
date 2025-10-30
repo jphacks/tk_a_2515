@@ -289,7 +289,7 @@ paths:
   /paths/{id}/:
     get:
       operationId: paths_retrieve
-      description: 指定されたIDのPathの詳細情報を取得
+      description: 指定されたIDのPathの詳細情報を取得（標高グラフデータ付き）
       parameters:
       - in: path
         name: id
@@ -309,6 +309,76 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Path'
+          description: ''
+  /paths/bulk-delete/:
+    post:
+      operationId: paths_bulk_delete_create
+      description: 指定された境界ボックス内の複数のPathを一括削除
+      parameters:
+      - in: query
+        name: maxlat
+        schema:
+          type: number
+          format: double
+        description: 検索範囲の最大緯度（bboxフィルタ用）
+        required: true
+      - in: query
+        name: maxlon
+        schema:
+          type: number
+          format: double
+        description: 検索範囲の最大経度（bboxフィルタ用）
+        required: true
+      - in: query
+        name: minlat
+        schema:
+          type: number
+          format: double
+        description: 検索範囲の最小緯度（bboxフィルタ用）
+        required: true
+      - in: query
+        name: minlon
+        schema:
+          type: number
+          format: double
+        description: 検索範囲の最小経度（bboxフィルタ用）
+        required: true
+      tags:
+      - paths
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Path'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Path'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Path'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted_count:
+                    type: integer
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
           description: ''
 components:
   schemas:

@@ -7,7 +7,47 @@
  */
 
 import { customFetch } from ".././custom-fetch";
-import type { PaginatedPathList, Path, PathsListParams } from ".././models";
+import type {
+  PaginatedPathList,
+  Path,
+  PathsBulkDeleteCreate200,
+  PathsBulkDeleteCreate400,
+  PathsBulkDeleteCreateParams,
+  PathsListParams,
+} from ".././models";
+
+// https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
+type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
+  T,
+>() => T extends Y ? 1 : 2
+  ? A
+  : B;
+
+type WritableKeys<T> = {
+  [P in keyof T]-?: IfEquals<
+    { [Q in P]: T[P] },
+    { -readonly [Q in P]: T[P] },
+    P
+  >;
+}[keyof T];
+
+// biome-ignore lint/suspicious/noExplicitAny: Generated code from orval, type utilities require any
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I,
+) => void
+  ? I
+  : never;
+// biome-ignore lint/suspicious/noExplicitAny: Generated code from orval, type utilities require any
+type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
+
+type Writable<T> = Pick<T, WritableKeys<T>>;
+type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
+  ? {
+      [P in keyof Writable<T>]: T[P] extends object
+        ? NonReadonly<NonNullable<T[P]>>
+        : T[P];
+    }
+  : DistributeReadOnlyOverUnions<T>;
 
 /**
  * 指定されたIDのPathの詳細情報を取得
@@ -50,7 +90,7 @@ export const pathsList = async (
 };
 
 /**
- * 指定されたIDのPathの詳細情報を取得
+ * 指定されたIDのPathの詳細情報を取得（標高グラフデータ付き）
  */
 export type pathsRetrieveResponse200 = {
   data: Path;
@@ -75,4 +115,64 @@ export const pathsRetrieve = async (
     ...options,
     method: "GET",
   });
+};
+
+/**
+ * 指定された境界ボックス内の複数のPathを一括削除
+ */
+export type pathsBulkDeleteCreateResponse200 = {
+  data: PathsBulkDeleteCreate200;
+  status: 200;
+};
+
+export type pathsBulkDeleteCreateResponse400 = {
+  data: PathsBulkDeleteCreate400;
+  status: 400;
+};
+
+export type pathsBulkDeleteCreateResponseSuccess =
+  pathsBulkDeleteCreateResponse200 & {
+    headers: Headers;
+  };
+export type pathsBulkDeleteCreateResponseError =
+  pathsBulkDeleteCreateResponse400 & {
+    headers: Headers;
+  };
+
+export type pathsBulkDeleteCreateResponse =
+  | pathsBulkDeleteCreateResponseSuccess
+  | pathsBulkDeleteCreateResponseError;
+
+export const getPathsBulkDeleteCreateUrl = (
+  params: PathsBulkDeleteCreateParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/paths/bulk-delete/?${stringifiedParams}`
+    : `/paths/bulk-delete/`;
+};
+
+export const pathsBulkDeleteCreate = async (
+  path: NonReadonly<Path>,
+  params: PathsBulkDeleteCreateParams,
+  options?: RequestInit,
+): Promise<pathsBulkDeleteCreateResponse> => {
+  return customFetch<pathsBulkDeleteCreateResponse>(
+    getPathsBulkDeleteCreateUrl(params),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(path),
+    },
+  );
 };

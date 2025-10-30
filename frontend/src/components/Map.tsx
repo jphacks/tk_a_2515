@@ -16,6 +16,12 @@ interface Props {
   onSelectPath?: (path: Path) => void;
   selectedPath?: PathDetail | null;
   hoveredPoint?: { lat: number; lon: number } | null;
+  onDeletePaths?: (bbox: {
+    minLat: number;
+    minLon: number;
+    maxLat: number;
+    maxLon: number;
+  }) => Promise<void>;
 }
 
 export const MapPageClient = ({
@@ -23,10 +29,11 @@ export const MapPageClient = ({
   paths,
   onBoundsChange,
   onSelectMountain,
-  selectedMountain, // ✨ プロパティを受け取り
-  onSelectPath, // 追加
-  selectedPath, // 追加
-  hoveredPoint, // ホバー地点
+  selectedMountain,
+  onSelectPath,
+  selectedPath,
+  hoveredPoint,
+  onDeletePaths,
 }: Props) => {
   const [mode, setMode] = useState<StyleMode>("normal");
 
@@ -82,9 +89,10 @@ export const MapPageClient = ({
         onBoundsChange={onBoundsChange}
         onSelectMountain={onSelectMountain}
         selectedMountain={selectedMountain}
-        onSelectPath={onSelectPath} // 追加
-        selectedPath={selectedPath} // 追加
-        hoveredPoint={hoveredPoint} // ホバー地点
+        onSelectPath={onSelectPath}
+        selectedPath={selectedPath}
+        hoveredPoint={hoveredPoint}
+        onDeletePaths={onDeletePaths}
       />
     </div>
   );
