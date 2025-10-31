@@ -122,8 +122,7 @@ export default function HomePage() {
   }) => {
     try {
       // 自動生成されたAPIは第一引数にボディを要求するが、バックエンドは不要
-      // biome-ignore lint/suspicious/noExplicitAny: Empty object required by auto-generated API signature
-      const response = await pathsBulkDeleteCreate({} as any, {
+      const response = await pathsBulkDeleteCreate({
         minlat: bbox.minLat,
         minlon: bbox.minLon,
         maxlat: bbox.maxLat,

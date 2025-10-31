@@ -179,6 +179,7 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
 
     @extend_schema(
         description="指定された境界ボックス内の複数のPathを一括削除",
+        request=None,  # リクエストボディは不要
         parameters=[
             OpenApiParameter(
                 name="minlat",
