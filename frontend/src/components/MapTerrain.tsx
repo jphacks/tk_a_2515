@@ -2,7 +2,7 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 import maplibregl from "maplibre-gl";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderToString } from "react-dom/server";
 import type { Mountain, Path, PathDetail } from "@/app/api/lib/models";
 import { MountainTooltip } from "./MountainTooltip";
@@ -27,6 +27,12 @@ interface Props {
   onSelectPath?: (path: Path) => void;
   selectedPath?: PathDetail | null;
   hoveredPoint?: { lat: number; lon: number } | null;
+  onDeletePaths?: (bbox: {
+    minLat: number;
+    minLon: number;
+    maxLat: number;
+    maxLon: number;
+  }) => Promise<void>;
 }
 
 export const MapTerrain = ({
@@ -35,9 +41,10 @@ export const MapTerrain = ({
   paths,
   onBoundsChange,
   onSelectMountain,
-  selectedMountain, // ✨ プロパティを受け取り
+  selectedMountain,
   onSelectPath,
-  hoveredPoint, // ホバー地点
+  hoveredPoint,
+  onDeletePaths,
 }: Props) => {
   if (!process.env.NEXT_PUBLIC_FULL_URL) {
     throw new Error(
@@ -58,6 +65,17 @@ export const MapTerrain = ({
   const map = useRef<maplibregl.Map | null>(null);
   const currentMode = useRef<StyleMode>(styleMode);
   const hoveredPointMarker = useRef<maplibregl.Marker | null>(null);
+
+  // 矩形選択モードの状態
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(
+    null,
+  );
+  const [currentPoint, setCurrentPoint] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   const addDemAndTerrain = useCallback(() => {
     const m = map.current;
@@ -691,9 +709,163 @@ export const MapTerrain = ({
     m.easeTo({ bearing: 0 }); // 地図を北方向に向ける
   }, []);
 
+  // 矩形選択モードのトグル
+  const toggleSelectMode = useCallback(() => {
+    setIsSelectMode(prev => !prev);
+    setIsDrawing(false);
+    setStartPoint(null);
+    setCurrentPoint(null);
+  }, []);
+
+  // 矩形選択モード時にマップのドラッグを無効化
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+
+    if (isSelectMode) {
+      // 矩形選択モード: マップのドラッグを無効化
+      m.dragPan.disable();
+      m.dragRotate.disable();
+      m.touchZoomRotate.disableRotation();
+    } else {
+      // 通常モード: マップのドラッグを有効化
+      m.dragPan.enable();
+      m.dragRotate.enable();
+      m.touchZoomRotate.enableRotation();
+    }
+  }, [isSelectMode]);
+
+  // マウスダウン: 矩形選択開始
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!isSelectMode || !mapContainer.current) return;
+
+      // マップの操作を防ぐためにイベントの伝播を止める
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rect = mapContainer.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      setIsDrawing(true);
+      setStartPoint({ x, y });
+      setCurrentPoint({ x, y });
+    },
+    [isSelectMode],
+  );
+
+  // マウスムーブ: 矩形を描画
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!isDrawing || !mapContainer.current) return;
+
+      // マップの操作を防ぐためにイベントの伝播を止める
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rect = mapContainer.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      setCurrentPoint({ x, y });
+    },
+    [isDrawing],
+  );
+
+  // マウスアップ: 矩形選択完了
+  const handleMouseUp = useCallback(async () => {
+    if (!isDrawing || !startPoint || !currentPoint || !map.current) {
+      setIsDrawing(false);
+      return;
+    }
+
+    const m = map.current;
+
+    // ピクセル座標を地理座標に変換
+    const startLngLat = m.unproject([startPoint.x, startPoint.y]);
+    const endLngLat = m.unproject([currentPoint.x, currentPoint.y]);
+
+    const minLon = Math.min(startLngLat.lng, endLngLat.lng);
+    const maxLon = Math.max(startLngLat.lng, endLngLat.lng);
+    const minLat = Math.min(startLngLat.lat, endLngLat.lat);
+    const maxLat = Math.max(startLngLat.lat, endLngLat.lat);
+
+    // 状態をリセット
+    setIsDrawing(false);
+    setStartPoint(null);
+    setCurrentPoint(null);
+
+    // 削除確認
+    if (onDeletePaths) {
+      const confirmed = window.confirm(
+        `選択した範囲内のパスを削除しますか？\n範囲: (${minLat.toFixed(4)}, ${minLon.toFixed(4)}) - (${maxLat.toFixed(4)}, ${maxLon.toFixed(4)})`,
+      );
+
+      if (confirmed) {
+        try {
+          await onDeletePaths({ minLat, minLon, maxLat, maxLon });
+          alert("パスの削除が完了しました");
+        } catch (error) {
+          console.error("削除エラー:", error);
+          alert("パスの削除に失敗しました");
+        }
+      }
+    }
+  }, [isDrawing, startPoint, currentPoint, onDeletePaths]);
+
   return (
     <div className="relative w-full h-full">
+      {/* 矩形選択用のオーバーレイ */}
+      {isSelectMode && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: This is an overlay for rectangle selection, keyboard interaction is handled by the toggle button
+        <div
+          className="absolute inset-0 z-10"
+          style={{ cursor: "crosshair" }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={() => {
+            if (isDrawing) {
+              setIsDrawing(false);
+              setStartPoint(null);
+              setCurrentPoint(null);
+            }
+          }}
+        />
+      )}
+
       <div ref={mapContainer} className="w-full h-full" />
+
+      {/* 矩形選択の視覚化 */}
+      {isDrawing && startPoint && currentPoint && (
+        <div
+          className="absolute pointer-events-none z-20"
+          style={{
+            left: Math.min(startPoint.x, currentPoint.x),
+            top: Math.min(startPoint.y, currentPoint.y),
+            width: Math.abs(currentPoint.x - startPoint.x),
+            height: Math.abs(currentPoint.y - startPoint.y),
+            border: "3px solid #ef4444",
+            backgroundColor: "rgba(239, 68, 68, 0.25)",
+            boxShadow:
+              "0 0 0 2px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 0, 0, 0.3)",
+            animation: "pulse 1.5s ease-in-out infinite",
+          }}
+        >
+          {/* 選択範囲の四隅にコーナーマーカー */}
+          <div className="absolute top-0 left-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full -translate-x-1/2 translate-y-1/2" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full translate-x-1/2 translate-y-1/2" />
+
+          {/* 選択範囲のサイズ表示 */}
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg whitespace-nowrap">
+            {Math.abs(currentPoint.x - startPoint.x).toFixed(0)}px ×{" "}
+            {Math.abs(currentPoint.y - startPoint.y).toFixed(0)}px
+          </div>
+        </div>
+      )}
       {/* ✨ 改善されたカスタムPopupのスタイル */}
       <style jsx global>{`
         .custom-mountain-popup .maplibregl-popup-content {
@@ -727,9 +899,49 @@ export const MapTerrain = ({
         .custom-mountain-popup .maplibregl-popup-close-button:active {
           transform: scale(0.95) !important;
         }
+
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.85;
+          }
+        }
       `}</style>
       {/* ✨ ボタンコンテナ */}
       <div className="absolute top-2 right-2 z-10 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={toggleSelectMode}
+          className={`cursor-pointer flex items-center justify-center w-9 h-9 border rounded shadow transition-colors ${
+            isSelectMode
+              ? "bg-red-500 text-white border-red-600 hover:bg-red-600"
+              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+          }`}
+          title={isSelectMode ? "矩形選択モードを終了" : "矩形選択モードを開始"}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-5 h-5"
+            aria-label={
+              isSelectMode ? "矩形選択モードを終了" : "矩形選択モードを開始"
+            }
+          >
+            <title>
+              {isSelectMode ? "矩形選択モードを終了" : "矩形選択モードを開始"}
+            </title>
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={resetNorth}

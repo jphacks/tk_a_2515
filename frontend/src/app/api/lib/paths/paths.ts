@@ -7,7 +7,14 @@
  */
 
 import { customFetch } from ".././custom-fetch";
-import type { PaginatedPathList, Path, PathsListParams } from ".././models";
+import type {
+  PaginatedPathList,
+  Path,
+  PathsBulkDeleteCreate200,
+  PathsBulkDeleteCreate400,
+  PathsBulkDeleteCreateParams,
+  PathsListParams,
+} from ".././models";
 
 /**
  * 指定されたIDのPathの詳細情報を取得
@@ -50,7 +57,7 @@ export const pathsList = async (
 };
 
 /**
- * 指定されたIDのPathの詳細情報を取得
+ * 指定されたIDのPathの詳細情報を取得（標高グラフデータ付き）
  */
 export type pathsRetrieveResponse200 = {
   data: Path;
@@ -75,4 +82,61 @@ export const pathsRetrieve = async (
     ...options,
     method: "GET",
   });
+};
+
+/**
+ * 指定された境界ボックス内の複数のPathを一括削除
+ */
+export type pathsBulkDeleteCreateResponse200 = {
+  data: PathsBulkDeleteCreate200;
+  status: 200;
+};
+
+export type pathsBulkDeleteCreateResponse400 = {
+  data: PathsBulkDeleteCreate400;
+  status: 400;
+};
+
+export type pathsBulkDeleteCreateResponseSuccess =
+  pathsBulkDeleteCreateResponse200 & {
+    headers: Headers;
+  };
+export type pathsBulkDeleteCreateResponseError =
+  pathsBulkDeleteCreateResponse400 & {
+    headers: Headers;
+  };
+
+export type pathsBulkDeleteCreateResponse =
+  | pathsBulkDeleteCreateResponseSuccess
+  | pathsBulkDeleteCreateResponseError;
+
+export const getPathsBulkDeleteCreateUrl = (
+  params: PathsBulkDeleteCreateParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/paths/bulk-delete/?${stringifiedParams}`
+    : `/paths/bulk-delete/`;
+};
+
+export const pathsBulkDeleteCreate = async (
+  params: PathsBulkDeleteCreateParams,
+  options?: RequestInit,
+): Promise<pathsBulkDeleteCreateResponse> => {
+  return customFetch<pathsBulkDeleteCreateResponse>(
+    getPathsBulkDeleteCreateUrl(params),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
 };
