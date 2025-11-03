@@ -83,62 +83,59 @@ def import_path_data(
     # print("\nImporting paths...")
     # print(f"Batch size: {batch_size} (commits every {batch_size} items)")
 
-    for i, path_data in enumerate(paths_data, 1):
-        try:
-            osm_id = path_data.get("id")
-            path_type = path_data.get("type") or "way"
-            geometry = path_data.get("geometry", [])
+    with tqdm(
+        paths_data, desc=f"Processing paths in {Path(json_path).name}", unit="path"
+    ) as pbar:
+        for i, path_data in enumerate(pbar, 1):
+            try:
+                osm_id = path_data.get("id")
+                path_type = path_data.get("type") or "way"
+                geometry = path_data.get("geometry", [])
 
-            # 既存チェック
-            if PathModel.objects.filter(osm_id=osm_id).exists():
-                if skip_existing:
-                    stats["skipped"] += 1
-                    continue
+                # 既存チェック
+                if PathModel.objects.filter(osm_id=osm_id).exists():
+                    if skip_existing:
+                        stats["skipped"] += 1
+                        continue
 
-            with transaction.atomic():
-                # Pathオブジェクトを作成
-                bounds = path_data.get("bounds", {})
-                path = PathModel.objects.create(
-                    osm_id=osm_id,
-                    type=path_type,
-                    minlat=bounds.get("minlat"),
-                    minlon=bounds.get("minlon"),
-                    maxlat=bounds.get("maxlat"),
-                    maxlon=bounds.get("maxlon"),
-                )
-
-                # Geometriesを追加
-                nodes = path_data.get("nodes", [])
-                for idx, geom in enumerate(geometry):
-                    PathGeometry.objects.create(
-                        path=path,
-                        node_id=nodes[idx] if idx < len(nodes) else 0,
-                        lat=geom.get("lat"),
-                        lon=geom.get("lon"),
-                        sequence=idx,
+                with transaction.atomic():
+                    # Pathオブジェクトを作成
+                    bounds = path_data.get("bounds", {})
+                    path = PathModel.objects.create(
+                        osm_id=osm_id,
+                        type=path_type,
+                        minlat=bounds.get("minlat"),
+                        minlon=bounds.get("minlon"),
+                        maxlat=bounds.get("maxlat"),
+                        maxlon=bounds.get("maxlon"),
                     )
 
-                # Tagsを追加
-                tags = path_data.get("tags", {})
-                if tags:
-                    PathTag.objects.create(
-                        path=path,
-                        highway=tags.get("highway"),
-                        source=tags.get("source"),
-                        difficulty=tags.get("difficulty"),
-                        kuma=tags.get("kuma"),
-                    )
+                    # Geometriesを追加
+                    nodes = path_data.get("nodes", [])
+                    for idx, geom in enumerate(geometry):
+                        PathGeometry.objects.create(
+                            path=path,
+                            node_id=nodes[idx] if idx < len(nodes) else 0,
+                            lat=geom.get("lat"),
+                            lon=geom.get("lon"),
+                            sequence=idx,
+                        )
 
-                stats["created"] += 1
-        except Exception as e:
-            stats["errors"] += 1
-            print(f"  Error: OSM ID {path_data.get('id', 'Unknown')} - {str(e)}")
+                    # Tagsを追加
+                    tags = path_data.get("tags", {})
+                    if tags:
+                        PathTag.objects.create(
+                            path=path,
+                            highway=tags.get("highway"),
+                            source=tags.get("source"),
+                            difficulty=tags.get("difficulty"),
+                            kuma=tags.get("kuma"),
+                        )
 
-        # バッチコミット表示
-        # if i % batch_size == 0:
-        #     print(
-        #         f"  → Batch commit at {i} items (Created: {stats['created']}, Skipped: {stats['skipped']}, Errors: {stats['errors']})"
-        #     )
+                    stats["created"] += 1
+            except Exception as e:
+                stats["errors"] += 1
+                pbar.write(f"  Error: OSM ID {path_data.get('id', 'Unknown')} - {str(e)}")
 
     return stats
 
@@ -147,28 +144,20 @@ def main():
     """メイン関数"""
     parser = argparse.ArgumentParser(description="登山道データJSONインポートスクリプト")
     parser.add_argument(
-        "--subdir",
-        type=str,
-        default="paths",
-        help="データフォルダ内のサブディレクトリ名 (デフォルト: paths)",
-    )
-    parser.add_argument(
         "--workers",
         type=int,
-        default=4,
-        help="並列処理のワーカースレッド数 (デフォルト: 4)",
+        default=1,
+        help="並列処理のワーカースレッド数 (デフォルト: 1)",
     )
     args = parser.parse_args()
 
-    data_folder = Path(__file__).parent.parent / "datas" / args.subdir
+    data_folder = Path(__file__).parent.parent / "datas" / "paths_merged"
 
     if not data_folder.exists():
         print(f"❌ Error: Data folder not found: {data_folder}")
         sys.exit(1)
 
     files = list(data_folder.glob("*.json"))
-
-    files = [f for f in files if "九州" in f.name]
 
     if not files:
         print(f"❌ Error: No JSON files found in {data_folder}")
@@ -204,15 +193,15 @@ def main():
                     json_path = future_to_file[future]
                     try:
                         result = future.result()
-                        print("\n" + "-" * 60)
-                        print("📊 File Import Summary")
-                        print("-" * 60)
-                        print(f"  File: {json_path.name}")
-                        print(f"  Total: {result['total']}")
-                        print(f"  ✅ Created: {result['created']}")
-                        print(f"  ⏭️  Skipped: {result['skipped']}")
-                        print(f"  ❌ Errors: {result['errors']}")
-                        print("-" * 60)
+                        # print("\n" + "-" * 60)
+                        # print("📊 File Import Summary")
+                        # print("-" * 60)
+                        # print(f"  File: {json_path.name}")
+                        # print(f"  Total: {result['total']}")
+                        # print(f"  ✅ Created: {result['created']}")
+                        # print(f"  ⏭️  Skipped: {result['skipped']}")
+                        # print(f"  ❌ Errors: {result['errors']}")
+                        # print("-" * 60)
 
                         # 累計を更新
                         total_stats["total"] += result["total"]

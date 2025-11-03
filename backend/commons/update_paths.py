@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 from django.db import transaction
+from tqdm import tqdm
 
 # Djangoのセットアップ
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -22,25 +23,26 @@ def main():
 
     start = 0
     print(f"Total paths to process: {length}")
-    while True:
-        batch = list(qs[start : start + BATCH])
-        if not batch:
-            break
-        with transaction.atomic():
-            for p in batch:
-                p.update_geo_fields()
-                p.save(
-                    update_fields=[
-                        "route",
-                        "bbox",
-                        "minlon",
-                        "minlat",
-                        "maxlon",
-                        "maxlat",
-                    ]
-                )
-        start += BATCH
-        print(f"Processed up to {start} / {length} paths")
+    with tqdm(total=length, desc="Processing paths", unit="path") as pbar:
+        while True:
+            batch = list(qs[start : start + BATCH])
+            if not batch:
+                break
+            with transaction.atomic():
+                for p in batch:
+                    p.update_geo_fields()
+                    p.save(
+                        update_fields=[
+                            "route",
+                            "bbox",
+                            "minlon",
+                            "minlat",
+                            "maxlon",
+                            "maxlat",
+                        ]
+                    )
+            start += BATCH
+            pbar.update(len(batch))
 
 
 if __name__ == "__main__":
