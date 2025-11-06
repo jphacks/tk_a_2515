@@ -16,4 +16,7 @@ dependencies = [
     "inflection>=0.5.1",
     "uritemplate>=4.1.1",
     "drf-spectacular>=0.28.0",
+    "scikit-learn>=1.7.2",
+    "networkx>=3.5",
+    "tqdm>=4.67.1",
 ]
