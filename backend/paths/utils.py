@@ -11,7 +11,9 @@ DOMAIN_URL = "https://cyberjapandata.gsi.go.jp/xyz/dem/"
 DEFAULT_ZOOM = 14
 
 
-def fetch_dem_data(z: int, x: int, y: int, cache_dir: str = "/app/datas/dem_cache") -> dict | None:
+def fetch_dem_data(
+    z: int, x: int, y: int, cache_dir: str = "/app/datas/dem_cache"
+) -> dict | None:
     """
     指定されたz/x/y座標のDEMデータを取得（ローカルキャッシュ対応）
 
@@ -40,7 +42,7 @@ def fetch_dem_data(z: int, x: int, y: int, cache_dir: str = "/app/datas/dem_cach
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
-        time.sleep(0.5)  # To simulate API rate limiting
+        time.sleep(0.5)  # Rate limiting to avoid overwhelming the API
 
         # カンマ区切りデータをパース
         lines = response.text.strip().split("\n")

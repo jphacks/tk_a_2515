@@ -65,28 +65,12 @@ def get_elevation(lat, lon, cache_dir="/app/datas/elevation_cache"):
     cache_path = Path(cache_dir)
     cache_file = cache_path / cache_key
 
-    # キャッシュファイルが存在する場合は読み込み
-    if cache_file.exists():
-        try:
-            with open(cache_file, "rb") as f:
-                return pickle.load(f)
-        except Exception as e:
-            log.warning(f"Failed to load cache for {lat}, {lon}: {e}. Refetching.")
-            raise ValueError(f"Failed to load cache for {lat}, {lon}: {e}")
-
-    # キャッシュミスの場合はモックデータを生成
-    log.warning(f"Cache miss for {lat}, {lon}. Fetching... (Using MOCK data)")
-    elevation = (abs(lat) + abs(lon)) * 1000 % 500 + 2000
-
-    # 取得した標高をキャッシュに保存
     try:
-        os.makedirs(cache_path.parent, exist_ok=True)
-        with open(cache_file, "wb") as f:
-            pickle.dump(elevation, f)
+        with open(cache_file, "rb") as f:
+            return pickle.load(f)
     except Exception as e:
-        log.error(f"❌ Failed to write cache file {cache_file}: {e}")
-
-    return elevation
+        log.warning(f"Failed to load cache for {lat}, {lon}: {e}.")
+        raise ValueError(f"Failed to load cache for {lat}, {lon}: {e}")
 
 
 class UnionFind:
