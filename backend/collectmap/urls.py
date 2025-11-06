@@ -41,4 +41,5 @@ urlpatterns = [
     path('health', health_check, name='health'),
     path('mountains/', include('mountains.urls')),
     path('paths/', include('paths.urls')),
+    path('bear/', include('bear.urls')),
 ]

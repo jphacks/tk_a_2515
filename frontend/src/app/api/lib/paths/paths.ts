@@ -50,7 +50,7 @@ export const pathsList = async (
 };
 
 /**
- * 指定されたIDのPathの詳細情報を取得
+ * 指定されたIDのPathの詳細情報を取得（標高グラフデータ付き）
  */
 export type pathsRetrieveResponse200 = {
   data: Path;

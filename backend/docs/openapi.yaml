@@ -4,6 +4,45 @@ info:
   version: 1.0.0
   description: Django backend for Collect Map API - Mountain and Path data management
 paths:
+  /bear/:
+    get:
+      operationId: bear_list
+      description: BearSighting一覧を取得
+      parameters:
+      - in: query
+        name: city
+        schema:
+          type: string
+        description: 市区町村でフィルタ
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: 取得する最大件数
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - in: query
+        name: prefecture
+        schema:
+          type: string
+        description: 都道府県でフィルタ
+      tags:
+      - bear
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBearSightingList'
+          description: ''
   /mountains/:
     get:
       operationId: mountains_list
@@ -289,7 +328,7 @@ paths:
   /paths/{id}/:
     get:
       operationId: paths_retrieve
-      description: 指定されたIDのPathの詳細情報を取得
+      description: 指定されたIDのPathの詳細情報を取得（標高グラフデータ付き）
       parameters:
       - in: path
         name: id
@@ -312,6 +351,56 @@ paths:
           description: ''
 components:
   schemas:
+    BearSighting:
+      type: object
+      description: BearSighting serializer
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        prefecture:
+          type: string
+          title: 都道府県
+          maxLength: 100
+        city:
+          type: string
+          title: 市区町村
+          maxLength: 100
+        latitude:
+          type: number
+          format: double
+          title: 緯度
+        longitude:
+          type: number
+          format: double
+          title: 経度
+        summary:
+          type: string
+          title: 概要
+        source_url:
+          type: string
+          format: uri
+          title: 情報源URL
+          maxLength: 200
+        image_url:
+          type: string
+          format: uri
+          nullable: true
+          title: 画像URL
+          maxLength: 200
+        reported_at:
+          type: string
+          format: date-time
+          title: 報告日時
+      required:
+      - city
+      - id
+      - latitude
+      - longitude
+      - prefecture
+      - reported_at
+      - source_url
+      - summary
     Mountain:
       type: object
       description: Mountain serializer
@@ -532,6 +621,29 @@ components:
             $ref: '#/components/schemas/Prefecture'
       required:
       - name
+    PaginatedBearSightingList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BearSighting'
     PaginatedMountainList:
       type: object
       required:
