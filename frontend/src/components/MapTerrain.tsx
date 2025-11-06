@@ -64,13 +64,11 @@ export const MapTerrain = ({
   const mountainsRef = useRef<Mountain[]>(mountains);
   const previousPathsHash = useRef<string>("");
   const previousMountainsHash = useRef<string>("");
-  const isUpdatingPaths = useRef<boolean>(false);
-  const isUpdatingMountains = useRef<boolean>(false);
 
-  // データのハッシュを生成する関数（データの内容が変わったかを検知）
-  const createPathsHash = useCallback((pathsData: Path[]): string => {
-    if (!pathsData || pathsData.length === 0) return "empty";
-    return pathsData
+  // データのハッシュを生成する関数（メモ化）
+  const pathsHash = useMemo((): string => {
+    if (!paths || paths.length === 0) return "empty";
+    return paths
       .map(p => {
         const geomCount = p.geometries?.length || 0;
         const firstGeom = p.geometries?.[0];
@@ -79,18 +77,15 @@ export const MapTerrain = ({
       })
       .sort()
       .join("|");
-  }, []);
+  }, [paths]);
 
-  const createMountainsHash = useCallback(
-    (mountainsData: Mountain[]): string => {
-      if (!mountainsData || mountainsData.length === 0) return "empty";
-      return mountainsData
-        .map(m => `${m.id}-${m.lon}-${m.lat}-${m.elevation}`)
-        .sort()
-        .join("|");
-    },
-    [],
-  );
+  const mountainsHash = useMemo((): string => {
+    if (!mountains || mountains.length === 0) return "empty";
+    return mountains
+      .map(m => `${m.id}-${m.lon}-${m.lat}-${m.elevation}`)
+      .sort()
+      .join("|");
+  }, [mountains]);
 
   // pathsとmountainsのrefを常に最新に保つ
   useEffect(() => {
@@ -110,38 +105,35 @@ export const MapTerrain = ({
     m.setTerrain({ source: "maptiler-dem", exaggeration: 1.5 });
   }, [demTilesJsonUrl]);
 
-  // pathsプロパティをGeoJSON形式に変換する関数
-  const createGeoJSON = useCallback(
-    (pathsData: Path[]): GeoJSON.FeatureCollection => {
-      const features = pathsData.map((path, _) => {
-        // ✨ geometries が存在しない場合は空の配列を返す
-        const geometries = path.geometries || [];
-        // readonlyの配列をコピーしてからソート
-        const sortedGeometries = [...geometries].sort(
-          (a, b) => a.sequence - b.sequence,
-        );
-        return {
-          type: "Feature" as const,
-          properties: {
-            ...path,
-          },
-          geometry: {
-            type: "LineString" as const,
-            coordinates: sortedGeometries.map(geometry => [
-              geometry.lon,
-              geometry.lat,
-            ]), // [lon, lat] の順序に変換
-          },
-        };
-      });
-
+  // pathsプロパティをGeoJSON形式に変換する関数（メモ化）
+  const pathsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
+    const features = paths.map((path, _) => {
+      // ✨ geometries が存在しない場合は空の配列を返す
+      const geometries = path.geometries || [];
+      // readonlyの配列をコピーしてからソート
+      const sortedGeometries = [...geometries].sort(
+        (a, b) => a.sequence - b.sequence,
+      );
       return {
-        type: "FeatureCollection",
-        features,
+        type: "Feature" as const,
+        properties: {
+          ...path,
+        },
+        geometry: {
+          type: "LineString" as const,
+          coordinates: sortedGeometries.map(geometry => [
+            geometry.lon,
+            geometry.lat,
+          ]), // [lon, lat] の順序に変換
+        },
       };
-    },
-    [],
-  );
+    });
+
+    return {
+      type: "FeatureCollection",
+      features,
+    };
+  }, [paths]);
 
   // パスのソースとレイヤーを追加または更新する関数
   const addOrUpdatePaths = useCallback(() => {
@@ -158,20 +150,18 @@ export const MapTerrain = ({
     }
 
     // 最新のpathsを使用
-    const currentPaths = pathsRef.current;
-    const geojsonData = createGeoJSON(currentPaths);
     const source = m.getSource("paths-source") as maplibregl.GeoJSONSource;
 
     // ソースが既にあればデータを更新
     if (source) {
-      source.setData(geojsonData);
+      source.setData(pathsGeoJSON);
       return;
     }
 
     // ソースを新しく追加
     m.addSource("paths-source", {
       type: "geojson",
-      data: geojsonData,
+      data: pathsGeoJSON,
     });
 
     // メインのパスレイヤー
@@ -245,38 +235,35 @@ export const MapTerrain = ({
 
       pathsListenersRegistered.current = true;
     }
-  }, [createGeoJSON, onSelectPath]);
+  }, [pathsGeoJSON, onSelectPath]);
 
-  // mountainsプロパティをGeoJSON形式に変換する関数
-  const createMountainGeoJSON = useCallback(
-    (mountainsData: Mountain[]): GeoJSON.FeatureCollection => {
-      const features = mountainsData
-        .filter(
-          mountain =>
-            mountain.lon !== null &&
-            mountain.lon !== undefined &&
-            mountain.lat !== null &&
-            mountain.lat !== undefined,
-        )
-        .map(mountain => ({
-          type: "Feature" as const,
-          properties: {
-            id: mountain.id,
-            name: mountain.name,
-            elevation: mountain.elevation,
-          },
-          geometry: {
-            type: "Point" as const,
-            coordinates: [mountain.lon, mountain.lat] as [number, number],
-          },
-        }));
-      return {
-        type: "FeatureCollection",
-        features,
-      };
-    },
-    [],
-  );
+  // mountainsプロパティをGeoJSON形式に変換する関数（メモ化）
+  const mountainsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
+    const features = mountains
+      .filter(
+        mountain =>
+          mountain.lon !== null &&
+          mountain.lon !== undefined &&
+          mountain.lat !== null &&
+          mountain.lat !== undefined,
+      )
+      .map(mountain => ({
+        type: "Feature" as const,
+        properties: {
+          id: mountain.id,
+          name: mountain.name,
+          elevation: mountain.elevation,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [mountain.lon, mountain.lat] as [number, number],
+        },
+      }));
+    return {
+      type: "FeatureCollection",
+      features,
+    };
+  }, [mountains]);
 
   // 山のピンのソースとレイヤーを追加または更新する関数
   const addOrUpdateMountains = useCallback(() => {
@@ -295,20 +282,18 @@ export const MapTerrain = ({
     }
 
     // 最新のmountainsを使用
-    const currentMountains = mountainsRef.current;
-    const geojsonData = createMountainGeoJSON(currentMountains);
     const source = m.getSource("mountains-source") as maplibregl.GeoJSONSource;
 
     // ソースが既にあればデータを更新
     if (source) {
-      source.setData(geojsonData);
+      source.setData(mountainsGeoJSON);
       return;
     }
 
     // ソースを新しく追加
     m.addSource("mountains-source", {
       type: "geojson",
-      data: geojsonData,
+      data: mountainsGeoJSON,
     });
 
     // 影レイヤー（背景）
@@ -507,7 +492,7 @@ export const MapTerrain = ({
 
       mountainsListenersRegistered.current = true;
     }
-  }, [createMountainGeoJSON, onSelectMountain]);
+  }, [mountainsGeoJSON, onSelectMountain]);
 
   // 初期化用のuseEffect
   // biome-ignore lint/correctness/useExhaustiveDependencies: false positive
@@ -659,73 +644,64 @@ export const MapTerrain = ({
     addOrUpdateMountains,
   ]);
 
-  // pathsプロパティが変更された時にパスを更新（実際のデータ変更を検知）
+  // pathsプロパティが変更された時にパスを更新（ハッシュベース）
   useEffect(() => {
     if (!map.current?.isStyleLoaded()) return;
-    if (isUpdatingPaths.current) return; // 更新中は処理をスキップ
 
     const zoomLevel = map.current.getZoom();
 
     if (zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
-      // データの内容が実際に変わったかをハッシュで確認
-      const currentHash = createPathsHash(paths);
+      // 初回ロード時（previousHashが空）または、ハッシュが変わった場合に更新
+      const isFirstLoad = previousPathsHash.current === "";
+      const hasChanged = pathsHash !== previousPathsHash.current;
 
-      // データが空でなく、かつハッシュが変わった場合のみ更新
-      if (
-        currentHash !== "empty" &&
-        currentHash !== previousPathsHash.current
-      ) {
+      if (pathsHash !== "empty" && (isFirstLoad || hasChanged)) {
         console.log("[MapTerrain] Paths data changed, updating...", {
           pathCount: paths.length,
-          previousHash: previousPathsHash.current.substring(0, 50),
-          currentHash: currentHash.substring(0, 50),
+          isFirstLoad,
+          previousHash: previousPathsHash.current.substring(0, 50) || "(empty)",
+          currentHash: pathsHash.substring(0, 50),
         });
 
-        isUpdatingPaths.current = true;
-        previousPathsHash.current = currentHash;
+        previousPathsHash.current = pathsHash;
 
         // 次のフレームで更新を実行
         requestAnimationFrame(() => {
           addOrUpdatePaths();
-          isUpdatingPaths.current = false;
         });
       }
     }
-  }, [paths, addOrUpdatePaths, createPathsHash]);
+  }, [pathsHash, paths.length, addOrUpdatePaths]);
 
-  // mountainsプロパティが変更された時にピンを更新（実際のデータ変更を検知）
+  // mountainsプロパティが変更された時にピンを更新（ハッシュベース）
   useEffect(() => {
     if (!map.current?.isStyleLoaded()) return;
-    if (isUpdatingMountains.current) return; // 更新中は処理をスキップ
 
     const zoomLevel = map.current.getZoom();
 
     if (zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
-      // データの内容が実際に変わったかをハッシュで確認
-      const currentHash = createMountainsHash(mountains);
+      // 初回ロード時（previousHashが空）または、ハッシュが変わった場合に更新
+      const isFirstLoad = previousMountainsHash.current === "";
+      const hasChanged = mountainsHash !== previousMountainsHash.current;
 
-      // データが空でなく、かつハッシュが変わった場合のみ更新
-      if (
-        currentHash !== "empty" &&
-        currentHash !== previousMountainsHash.current
-      ) {
+      if (mountainsHash !== "empty" && (isFirstLoad || hasChanged)) {
         console.log("[MapTerrain] Mountains data changed, updating...", {
           mountainCount: mountains.length,
-          previousHash: previousMountainsHash.current.substring(0, 50),
-          currentHash: currentHash.substring(0, 50),
+          isFirstLoad,
+          previousHash:
+            previousMountainsHash.current.substring(0, 50) || "(empty)",
+          currentHash: mountainsHash.substring(0, 50),
         });
 
-        isUpdatingMountains.current = true;
-        previousMountainsHash.current = currentHash;
+        previousMountainsHash.current = mountainsHash;
 
         // 次のフレームで更新を実行
         requestAnimationFrame(() => {
           addOrUpdateMountains();
-          isUpdatingMountains.current = false;
         });
       }
     }
-  }, [mountains, addOrUpdateMountains, createMountainsHash]);
+  }, [mountainsHash, mountains.length, addOrUpdateMountains]);
 
   // ✨ 指定された山の位置にジャンプする関数
   const jumpToMountain = useCallback((mountain: Mountain) => {
