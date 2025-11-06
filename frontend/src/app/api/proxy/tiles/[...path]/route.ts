@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getRedisClient } from "@/libs/redis";
 
+// MapTilerのタイルデータをプロキシ経由で取得するAPI
 export async function GET(
   _: NextRequest,
   context: { params: Promise<{ path: string[] }> },
@@ -16,17 +17,17 @@ export async function GET(
   const cacheKey = `tile:${requestPath}`;
   const contentType = getContentType(requestPath);
 
+  // Redisキャッシュから取得を試行
   try {
     const redis = await getRedisClient();
     const cachedData = await redis.get(cacheKey);
 
     if (cachedData) {
-      // ✨ キャッシュデータのフォーマットを検証
       if (validateContentType(Buffer.from(cachedData), contentType)) {
         return new NextResponse(cachedData, {
           headers: {
             "Content-Type": contentType,
-            "Cache-Control": "public, max-age=86400",
+            "Cache-Control": "public, immutable",
             "X-Cache-Status": "HIT",
           },
         });
@@ -38,6 +39,7 @@ export async function GET(
     console.error(`Redis GET error for key ${cacheKey}:`, error);
   }
 
+  // MapTiler APIから取得
   const targetUrl = `https://api.maptiler.com/tiles/${requestPath}?key=${process.env.MAPTILER_KEY}`;
   const response = await fetch(targetUrl);
 
@@ -47,7 +49,7 @@ export async function GET(
 
   const dataBuffer = Buffer.from(await response.arrayBuffer());
 
-  // ✨ フォーマットの検証
+  // Content-Typeを検証
   if (!response.headers.get("Content-Type")?.startsWith(contentType)) {
     console.error(
       `Validation failed: Expected Content-Type ${contentType}, but received ${response.headers.get(
@@ -57,9 +59,10 @@ export async function GET(
     return new NextResponse("Invalid content format", { status: 400 });
   }
 
+  // Redisにキャッシュを保存
   try {
     const redis = await getRedisClient();
-    await redis.set(cacheKey, dataBuffer, { EX: 86400 });
+    await redis.set(cacheKey, dataBuffer);
   } catch (error) {
     console.error(`Redis SET error for key ${cacheKey}:`, error);
   }
@@ -67,13 +70,13 @@ export async function GET(
   return new NextResponse(dataBuffer, {
     headers: {
       "Content-Type": contentType,
-      "Cache-Control": "public, max-age=86400",
+      "Cache-Control": "public, immutable",
       "X-Cache-Status": "MISS",
     },
   });
 }
 
-// 拡張子からContent-Typeを判断するヘルパー関数
+// 拡張子からContent-Typeを判定
 function getContentType(path: string): string {
   if (path.endsWith(".png")) return "image/png";
   if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
@@ -83,40 +86,44 @@ function getContentType(path: string): string {
   return "application/octet-stream";
 }
 
-// ✨ キャッシュデータのフォーマットを検証する関数
+// データのマジックバイトで形式を検証
 function validateContentType(
   data: Buffer,
   expectedContentType: string,
 ): boolean {
-  // 簡易的な検証として、データの先頭バイトをチェック
+  // PNGシグネチャ
   if (
     expectedContentType === "image/png" &&
     data.slice(0, 8).toString("hex") === "89504e470d0a1a0a"
   ) {
     return true;
   }
+  // JPEGシグネチャ
   if (
     expectedContentType === "image/jpeg" &&
     data.slice(0, 2).toString("hex") === "ffd8"
   ) {
     return true;
   }
+  // WEBPシグネチャ
   if (
     expectedContentType === "image/webp" &&
-    data.slice(0, 4).toString("hex") === "52494646" && // "RIFF"
+    data.slice(0, 4).toString("hex") === "52494646" &&
     data.slice(8, 12).toString("ascii") === "WEBP"
   ) {
     return true;
   }
+  // Protobufシグネチャ
   if (
     expectedContentType === "application/x-protobuf" &&
     data.slice(0, 4).toString("hex") === "504b0304"
   ) {
     return true;
   }
+  // JSON形式
   if (
     expectedContentType === "application/json" &&
-    data.slice(0, 1).toString("ascii") === "{" // JSON starts with '{'
+    data.slice(0, 1).toString("ascii") === "{"
   ) {
     return true;
   }
