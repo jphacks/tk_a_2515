@@ -26,7 +26,7 @@ export async function GET(
         return new NextResponse(cachedStyle, {
           headers: {
             "Content-Type": "application/json",
-            "Cache-Control": "public, immutable",
+            "Cache-Control": "public, max-age=31536000, immutable",
             "X-Cache-Status": "HIT",
           },
         });
@@ -65,7 +65,7 @@ export async function GET(
   return new NextResponse(styleString, {
     headers: {
       "Content-Type": "application/json",
-      "Cache-Control": "public, immutable",
+      "Cache-Control": "public, max-age=31536000, immutable",
       "X-Cache-Status": "MISS",
     },
   });
