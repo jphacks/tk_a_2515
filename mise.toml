@@ -38,25 +38,27 @@ cd backend && docker compose exec -T api bash -lc 'uv run python -u paths/merge.
 depends = ["prepare-db"]
 
 [tasks.import-mountain-data]
-description = "Import initial database data"
+description = "Import mountain data"
 run = """cd backend && docker compose exec -T api \
 bash -lc 'uv run python -u commons/import_mountains.py'
 """
 depends = ["prepare-db"]
 
 [tasks.import-path-data]
-description = "Import initial database data"
+description = "Import path data"
 run = """
-cd backend && docker compose exec -T api bash -lc 'uv run python -u commons/import_paths.py --workers 16'
+cd backend
+docker compose exec -T api bash -lc 'uv run python -u commons/import_paths.py --workers 16'
+docker compose exec -T api bash -lc 'uv run python -u commons/update_paths.py --workers 16'
 """
 depends = ["prepare-db"]
 
-[tasks.update-path-data]
-description = "Update path data"
+[tasks.delete-path-data]
+description = "Delete path data"
 run = """
-cd backend && docker compose exec -T api \
-bash -lc 'uv run python -u commons/update_paths.py'
+cd backend && docker compose exec -T api bash -lc 'uv run python -u commons/delete_paths.py'
 """
+depends = ["prepare-db"]
 
 [tasks.import-bear-sight]
 description = "Import bear sighting data"
