@@ -24,3 +24,13 @@ dependencies = [
     "dotenv>=0.9.9",
     "geopy>=2.4.1",
 ]
+
+[tool.ruff]
+line-length = 128
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
