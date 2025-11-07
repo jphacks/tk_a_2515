@@ -70,6 +70,7 @@ export const MapTerrain = ({
   const animationFrameIdsRef = useRef<Set<number>>(new Set());
   const selectedPathIdRef = useRef<number | null>(null);
   const selectedMountainIdRef = useRef<number | null>(null);
+  const geolocateControl = useRef<maplibregl.GeolocateControl | null>(null);
 
   // イベントハンドラーの参照を保持（クリーンアップ用）
   const mountainsEventHandlers = useRef<{
@@ -867,6 +868,14 @@ export const MapTerrain = ({
       },
     });
 
+    // GeolocateControlを作成
+    geolocateControl.current = new maplibregl.GeolocateControl({
+      positionOptions: {
+        enableHighAccuracy: true,
+      },
+      trackUserLocation: true,
+    });
+
     // マップ移動時の処理
     const handleMapMove = () => {
       if (!map.current) return;
@@ -951,6 +960,11 @@ export const MapTerrain = ({
       addDemAndTerrain();
       addOrUpdatePaths();
       addOrUpdateMountains();
+
+      // GeolocateControlを追加
+      if (geolocateControl.current && map.current) {
+        map.current.addControl(geolocateControl.current);
+      }
 
       // 初期カメラアニメーション
       map.current?.flyTo({
@@ -1257,6 +1271,13 @@ export const MapTerrain = ({
     m.easeTo({ bearing: 0, duration: 1000 });
   }, []);
 
+  // 現在地へ移動
+  const goToCurrentLocation = useCallback(() => {
+    if (geolocateControl.current) {
+      geolocateControl.current.trigger();
+    }
+  }, []);
+
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
@@ -1296,6 +1317,22 @@ export const MapTerrain = ({
       `}</style>
       {/* マップ操作ボタン */}
       <div className="absolute top-2 right-2 z-10 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={goToCurrentLocation}
+          className="cursor-pointer flex items-center justify-center w-9 h-9 bg-white border border-gray-300 rounded shadow hover:bg-gray-100 transition-colors"
+          title="現在地へ移動"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 512 512"
+            className="w-5 h-5"
+            fill="currentColor"
+          >
+            <title>Go to Current Location</title>
+            <path d="M256 0c17.7 0 32 14.3 32 32V66.7C368.4 80.1 431.9 143.6 445.3 224H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H445.3C431.9 368.4 368.4 431.9 288 445.3V480c0 17.7-14.3 32-32 32s-32-14.3-32-32V445.3C143.6 431.9 80.1 368.4 66.7 288H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H66.7C80.1 143.6 143.6 80.1 224 66.7V32c0-17.7 14.3-32 32-32zM128 256a128 128 0 1 0 256 0 128 128 0 1 0 -256 0zm128-80a80 80 0 1 1 0 160 80 80 0 1 1 0-160z" />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={resetNorth}
