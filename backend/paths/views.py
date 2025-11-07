@@ -6,7 +6,12 @@ from rest_framework.response import Response
 
 from .models import Path
 from .serializers import PathDetailSerializer, PathSerializer
-from .utils import fetch_all_dem_data_from_bbox, get_nearest_elevation, local_distance_m
+from .utils import (
+    calc_necessary_bbox,
+    fetch_all_dem_data_from_bbox,
+    get_nearest_elevation,
+    local_distance_m,
+)
 
 
 class PathViewSet(viewsets.ReadOnlyModelViewSet):
@@ -123,6 +128,34 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
                 location=OpenApiParameter.QUERY,
             ),
             OpenApiParameter(
+                name="pre_minlat",
+                type=float,
+                description="検索範囲の最小緯度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="pre_maxlat",
+                type=float,
+                description="検索範囲の最大緯度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="pre_minlon",
+                type=float,
+                description="検索範囲の最小経度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="pre_maxlon",
+                type=float,
+                description="検索範囲の最大経度（bboxフィルタ用）",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
                 name="skip",
                 type=int,
                 description="スキップする件数（ページネーション用、デフォルト: 0）",
@@ -149,22 +182,32 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
         minlon = request.query_params.get("minlon")
         maxlat = request.query_params.get("maxlat")
         maxlon = request.query_params.get("maxlon")
+        pre_minlat = request.query_params.get("pre_minlat")
+        pre_minlon = request.query_params.get("pre_minlon")
+        pre_maxlat = request.query_params.get("pre_maxlat")
+        pre_maxlon = request.query_params.get("pre_maxlon")
 
-        # bbox検索（PostGIS）
-        if minlat and minlon and maxlat and maxlon:
-            minlat = float(minlat)
-            minlon = float(minlon)
-            maxlat = float(maxlat)
-            maxlon = float(maxlon)
+        necessary_bboxes = calc_necessary_bbox(
+            minlon,
+            minlat,
+            maxlon,
+            maxlat,
+            pre_minlon,
+            pre_minlat,
+            pre_maxlon,
+            pre_maxlat,
+        )
 
-            search_bbox = Polygon.from_bbox((minlon, minlat, maxlon, maxlat))
+        need_queryset = queryset.none()
+        for bbox in necessary_bboxes:
+            search_bbox = Polygon.from_bbox(bbox)
             search_bbox.srid = 4326
-            queryset = queryset.filter(bbox__intersects=search_bbox)
+            need_queryset |= queryset.filter(bbox__intersects=search_bbox)
 
-        total = queryset.count()
+        total = need_queryset.count()
 
         # ページネーション
-        items = queryset[skip : skip + limit]
+        items = need_queryset[skip : skip + limit]
 
         serializer = PathSerializer(items, many=True)
         return Response(
