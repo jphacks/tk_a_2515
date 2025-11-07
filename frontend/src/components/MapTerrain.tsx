@@ -68,6 +68,7 @@ export const MapTerrain = ({
   const previousMountainsHash = useRef<string>("");
   const isMountedRef = useRef<boolean>(true);
   const animationFrameIdsRef = useRef<Set<number>>(new Set());
+  const selectedPathIdRef = useRef<number | null>(null);
 
   // イベントハンドラーの参照を保持（クリーンアップ用）
   const mountainsEventHandlers = useRef<{
@@ -231,6 +232,8 @@ export const MapTerrain = ({
     // ズームレベルが閾値未満の場合はレイヤーを削除
     if (m.getZoom() < ZOOM_LEVEL_THRESHOLD) {
       cleanupPathsListeners();
+      if (m.getLayer("paths-layer-selected"))
+        m.removeLayer("paths-layer-selected");
       if (m.getLayer("paths-layer-hitbox")) m.removeLayer("paths-layer-hitbox");
       if (m.getLayer("paths-layer")) m.removeLayer("paths-layer");
       if (m.getSource("paths-source")) m.removeSource("paths-source");
@@ -255,6 +258,16 @@ export const MapTerrain = ({
       ) => {
         if (!e.features || !e.features[0]) return;
         const feature = e.features[0];
+        const pathId = feature.properties?.id;
+
+        // 選択されたパスIDを更新
+        selectedPathIdRef.current = pathId;
+
+        // 選択されたパスレイヤーのフィルターを更新
+        if (m.getLayer("paths-layer-selected")) {
+          m.setFilter("paths-layer-selected", ["==", ["get", "id"], pathId]);
+        }
+
         if (onSelectPath) {
           onSelectPath(feature.properties as Path);
         }
@@ -289,6 +302,18 @@ export const MapTerrain = ({
     if (source) {
       source.setData(pathsGeoJSON);
       registerPathsEventListeners();
+
+      // 選択されたパスのフィルターを再適用
+      if (
+        m.getLayer("paths-layer-selected") &&
+        selectedPathIdRef.current !== null
+      ) {
+        m.setFilter("paths-layer-selected", [
+          "==",
+          ["get", "id"],
+          selectedPathIdRef.current,
+        ]);
+      }
       return;
     }
 
@@ -298,7 +323,7 @@ export const MapTerrain = ({
       data: pathsGeoJSON,
     });
 
-    // 視覚的なパスレイヤー
+    // 視覚的なパスレイヤー（通常）
     m.addLayer({
       id: "paths-layer",
       type: "line",
@@ -322,6 +347,34 @@ export const MapTerrain = ({
         ],
         "line-opacity": 0.8,
       },
+      filter: ["!=", ["get", "id"], selectedPathIdRef.current ?? -1],
+    });
+
+    // 選択されたパスレイヤー（目立つ色）
+    m.addLayer({
+      id: "paths-layer-selected",
+      type: "line",
+      source: "paths-source",
+      layout: {
+        "line-join": "round",
+        "line-cap": "round",
+      },
+      paint: {
+        "line-color": "#FF6B35",
+        "line-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          12,
+          6,
+          16,
+          9,
+          20,
+          12,
+        ],
+        "line-opacity": 1,
+      },
+      filter: ["==", ["get", "id"], selectedPathIdRef.current ?? -1],
     });
 
     // クリック判定用の透明なヒットボックスレイヤー
@@ -768,6 +821,8 @@ export const MapTerrain = ({
           map.current.removeLayer("mountains-points-shadow");
         if (map.current.getSource("mountains-source"))
           map.current.removeSource("mountains-source");
+        if (map.current.getLayer("paths-layer-selected"))
+          map.current.removeLayer("paths-layer-selected");
         if (map.current.getLayer("paths-layer-hitbox"))
           map.current.removeLayer("paths-layer-hitbox");
         if (map.current.getLayer("paths-layer"))
@@ -1186,7 +1241,7 @@ export const MapTerrain = ({
           ></div>
           <span>山頂（標高に応じた色）</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-1">
           <div
             className="w-4 h-1"
             style={{
@@ -1195,6 +1250,16 @@ export const MapTerrain = ({
             }}
           ></div>
           <span>登山道</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div
+            className="w-4 h-1"
+            style={{
+              backgroundColor: "#FF6B35",
+              opacity: 1,
+            }}
+          ></div>
+          <span>選択中の登山道</span>
         </div>
       </div>
     </div>
