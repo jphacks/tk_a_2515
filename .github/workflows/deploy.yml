@@ -55,6 +55,7 @@ jobs:
 
           # Backend files
           mkdir -p deploy_package/backend
+          cp -r backend/bear deploy_package/backend/
           cp -r backend/collectmap deploy_package/backend/
           cp -r backend/commons deploy_package/backend/
           cp -r backend/mountains deploy_package/backend/
