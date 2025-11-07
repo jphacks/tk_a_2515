@@ -24,7 +24,7 @@ EPSILON_H_METERS = 80
 EPSILON_V_METERS = 50
 EARTH_RADIUS_METERS = 6371000
 FILTER_MAX_SHORT_PATH_LENGTH_METERS = 500
-FILTER_MAX_FLAT_ELEV_DIFF_METERS = 20
+FILTER_MAX_FLAT_ELEV_DIFF_METERS = 50
 
 # =============================================================================
 # ログ設定
@@ -54,10 +54,12 @@ def haversine(lat1, lon1, lat2, lon2):
 
 
 def calculate_way_length(geometry):
-    """経路の始点と終点間の直線距離を計算"""
-    return haversine(
-        geometry[0]["lat"], geometry[0]["lon"], geometry[-1]["lat"], geometry[-1]["lon"]
-    )
+    """経路の全長を計算"""
+    total_length = 0.0
+    for i in range(len(geometry) - 1):
+        p1, p2 = geometry[i], geometry[i + 1]
+        total_length += haversine(p1["lat"], p1["lon"], p2["lat"], p2["lon"])
+    return total_length
 
 
 @functools.lru_cache(maxsize=None)
@@ -508,7 +510,11 @@ def save_graph_to_json(G, output_dir, chunk_size):
         elements.append(element)
         unique_id_counter += 1
 
-    os.makedirs(output_dir, exist_ok=True)
+    if os.path.exists(output_dir):
+        for f in glob.glob(os.path.join(output_dir, "*.json")):
+            os.remove(f)
+    else:
+        os.makedirs(output_dir, exist_ok=True)
     for i in tqdm(
         range(0, len(elements), chunk_size), desc="Saving chunks", unit="chunk"
     ):

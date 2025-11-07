@@ -9,11 +9,9 @@ Example:
     python commons/import_paths.py
 """
 
-import argparse
 import json
 import os
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from tqdm import tqdm
@@ -126,6 +124,19 @@ def import_path_data(
                             kuma=tags.get("kuma"),
                         )
 
+                    # 地理情報フィールドを更新
+                    path.update_geo_fields()
+                    path.save(
+                        update_fields=[
+                            "route",
+                            "bbox",
+                            "minlon",
+                            "minlat",
+                            "maxlon",
+                            "maxlat",
+                        ]
+                    )
+
                     stats["created"] += 1
             except Exception as e:
                 stats["errors"] += 1
@@ -136,15 +147,6 @@ def import_path_data(
 
 def main():
     """メイン関数"""
-    # コマンドライン引数の設定
-    parser = argparse.ArgumentParser(description="登山道データJSONインポートスクリプト")
-    parser.add_argument(
-        "--workers",
-        type=int,
-        default=16,
-        help="並列処理のワーカースレッド数 (デフォルト: 16)",
-    )
-    args = parser.parse_args()
 
     # データフォルダのパスを設定
     data_folder = Path(__file__).parent.parent / "datas" / "paths_merged"
@@ -168,7 +170,6 @@ def main():
         print("=" * 60)
         print("🚀 Path Data Import Started")
         print(f"📁 Found {len(files)} JSON file(s) in {data_folder.name}")
-        print(f"⚙️  Workers: {args.workers}")
         print("=" * 60)
 
         # 統計情報の初期化
@@ -179,43 +180,31 @@ def main():
             "errors": 0,
         }
 
-        # 複数ファイルを並列処理
         with tqdm(
             total=len(files), desc="Processing JSON files", unit="file"
         ) as overall_pbar:
-            with ThreadPoolExecutor(max_workers=args.workers) as executor:
-                # 各ファイルのインポートタスクを投入
-                future_to_file = {
-                    executor.submit(
-                        import_path_data, str(json_path), True, batch_size
-                    ): json_path
-                    for json_path in files
-                }
+            for json_path in files:
+                try:
+                    result = import_path_data(str(json_path), True, batch_size)
 
-                # タスク完了時に結果を集計
-                for future in as_completed(future_to_file):
-                    json_path = future_to_file[future]
-                    try:
-                        result = future.result()
+                    # 統計を累積
+                    total_stats["total"] += result["total"]
+                    total_stats["created"] += result["created"]
+                    total_stats["skipped"] += result["skipped"]
+                    total_stats["errors"] += result["errors"]
 
-                        # 統計を累積
-                        total_stats["total"] += result["total"]
-                        total_stats["created"] += result["created"]
-                        total_stats["skipped"] += result["skipped"]
-                        total_stats["errors"] += result["errors"]
-
-                        # エラーがあれば警告表示
-                        if result["errors"] > 0:
-                            print(
-                                f"\n⚠️  Warning: {result['errors']} error(s) in {json_path.name}"
-                            )
-                    except Exception as e:
-                        print(f"\n❌ Fatal error processing {json_path.name}: {e}")
-                    finally:
-                        overall_pbar.update(1)
+                    # エラーがあれば警告表示
+                    if result["errors"] > 0:
+                        print(
+                            f"\n⚠️  Warning: {result['errors']} error(s) in {json_path.name}"
+                        )
+                except Exception as e:
+                    print(f"\n❌ Fatal error processing {json_path.name}: {e}")
+                finally:
+                    overall_pbar.update(1)
 
         # 最終結果の表示
-        print("\n" * args.workers + "=" * 60)
+        print("\n" + "=" * 60)
         print("✅ Import Completed Successfully")
         print(f"📊 Summary:")
         print(f"   Files processed: {len(files)}")
