@@ -29,14 +29,15 @@ export const MapPageClient = ({
   hoveredPoint, // ホバー地点
 }: Props) => {
   const [mode, setMode] = useState<StyleMode>("normal");
+  const [isLegendOpen, setIsLegendOpen] = useState(true);
 
   return (
     <div className="w-full h-full relative">
-      <div className="absolute top-2.5 left-2.5 z-10 bg-white p-2.5 rounded shadow-md flex gap-2">
+      <div className="absolute top-2.5 left-2.5 z-10 bg-white p-2.5 rounded shadow-md flex gap-2 w-48">
         <button
           type="button"
           onClick={() => setMode("normal")}
-          className={`flex items-center gap-2 px-3 py-2 rounded transition-colors cursor-pointer ${
+          className={`flex items-center gap-2 p-2 rounded transition-colors cursor-pointer flex-1 justify-center ${
             mode === "normal"
               ? "bg-blue-500 text-white hover:bg-blue-600"
               : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -56,7 +57,7 @@ export const MapPageClient = ({
         <button
           type="button"
           onClick={() => setMode("hybrid")}
-          className={`flex items-center gap-2 px-3 py-2 rounded transition-colors cursor-pointer ${
+          className={`flex items-center gap-2 p-2 rounded transition-colors cursor-pointer flex-1 justify-center ${
             mode === "hybrid"
               ? "bg-blue-500 text-white hover:bg-blue-600"
               : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -74,7 +75,57 @@ export const MapPageClient = ({
           航空
         </button>
       </div>
-
+      <div className="absolute top-20 left-2.5 z-10 bg-white bg-opacity-90 rounded shadow w-48">
+        <button
+          type="button"
+          onClick={() => setIsLegendOpen(!isLegendOpen)}
+          className="w-full px-3 py-2 flex items-center justify-between hover:bg-gray-100 transition-colors rounded-t"
+        >
+          <h3 className="font-bold text-sm">凡例</h3>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`w-4 h-4 transition-transform ${isLegendOpen ? "rotate-180" : ""}`}
+          >
+            <title>Toggle legend</title>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <div
+          className={`overflow-hidden transition-all duration-300 ${
+            isLegendOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="p-3 text-sm border-t">
+            <div className="flex items-center gap-2 mb-1">
+              <div
+                className="w-4 h-4 rounded-full flex-shrink-0"
+                style={{
+                  background:
+                    "linear-gradient(90deg, #ff6b6b, #ff8e53, #ff6b9d, #845ec2, #4e8fdf)",
+                  border: "2px solid #ffffff",
+                }}
+              ></div>
+              <span>山頂（標高に応じた色）</span>
+            </div>
+            <div className="flex items-center gap-2 mb-1">
+              <div
+                className="w-4 h-1 flex-shrink-0"
+                style={{
+                  backgroundColor: "#829DFF",
+                  opacity: 0.8,
+                }}
+              ></div>
+              <span>登山道</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <MapTerrain
         styleMode={mode}
         mountains={mountains}
