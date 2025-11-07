@@ -7,6 +7,7 @@ import { renderToString } from "react-dom/server";
 import type { Mountain, Path, PathDetail } from "@/app/api/lib/models";
 import { MountainTooltip } from "./MountainTooltip";
 
+// 山とパスを表示するズームレベルの閾値
 export const ZOOM_LEVEL_THRESHOLD = 11;
 
 type StyleMode = "hybrid" | "normal";
@@ -35,9 +36,9 @@ export const MapTerrain = ({
   paths,
   onBoundsChange,
   onSelectMountain,
-  selectedMountain, // ✨ プロパティを受け取り
+  selectedMountain,
   onSelectPath,
-  hoveredPoint, // ホバー地点
+  hoveredPoint,
 }: Props) => {
   if (!process.env.NEXT_PUBLIC_FULL_URL) {
     throw new Error(
@@ -54,6 +55,7 @@ export const MapTerrain = ({
     [],
   );
 
+  // 参照の保持
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const currentMode = useRef<StyleMode>(styleMode);
@@ -65,7 +67,32 @@ export const MapTerrain = ({
   const previousPathsHash = useRef<string>("");
   const previousMountainsHash = useRef<string>("");
 
-  // データのハッシュを生成する関数（メモ化）
+  // イベントハンドラーの参照を保持してクリーンアップ可能にする
+  const mountainsEventHandlers = useRef<{
+    handleClick?: (
+      e: maplibregl.MapMouseEvent & {
+        features?: maplibregl.MapGeoJSONFeature[];
+      },
+    ) => void;
+    handleMouseEnter?: (
+      e: maplibregl.MapMouseEvent & {
+        features?: maplibregl.MapGeoJSONFeature[];
+      },
+    ) => void;
+    handleMouseLeave?: () => void;
+  }>({});
+
+  const pathsEventHandlers = useRef<{
+    handleClick?: (
+      e: maplibregl.MapMouseEvent & {
+        features?: maplibregl.MapGeoJSONFeature[];
+      },
+    ) => void;
+    handleMouseEnter?: () => void;
+    handleMouseLeave?: () => void;
+  }>({});
+
+  // データのハッシュを生成して変更検知に使用
   const pathsHash = useMemo((): string => {
     if (!paths || paths.length === 0) return "empty";
     return paths
@@ -87,7 +114,7 @@ export const MapTerrain = ({
       .join("|");
   }, [mountains]);
 
-  // pathsとmountainsのrefを常に最新に保つ
+  // 最新のデータへの参照を常に保持
   useEffect(() => {
     pathsRef.current = paths;
   }, [paths]);
@@ -96,6 +123,7 @@ export const MapTerrain = ({
     mountainsRef.current = mountains;
   }, [mountains]);
 
+  // 地形タイルとDEMを追加
   const addDemAndTerrain = useCallback(() => {
     const m = map.current;
     if (!m) return;
@@ -105,12 +133,10 @@ export const MapTerrain = ({
     m.setTerrain({ source: "maptiler-dem", exaggeration: 1.5 });
   }, [demTilesJsonUrl]);
 
-  // pathsプロパティをGeoJSON形式に変換する関数（メモ化）
+  // パスデータをGeoJSON形式に変換
   const pathsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
     const features = paths.map((path, _) => {
-      // ✨ geometries が存在しない場合は空の配列を返す
       const geometries = path.geometries || [];
-      // readonlyの配列をコピーしてからソート
       const sortedGeometries = [...geometries].sort(
         (a, b) => a.sequence - b.sequence,
       );
@@ -124,7 +150,7 @@ export const MapTerrain = ({
           coordinates: sortedGeometries.map(geometry => [
             geometry.lon,
             geometry.lat,
-          ]), // [lon, lat] の順序に変換
+          ]),
         },
       };
     });
@@ -135,13 +161,39 @@ export const MapTerrain = ({
     };
   }, [paths]);
 
-  // パスのソースとレイヤーを追加または更新する関数
+  // パスのレイヤーを追加または更新
   const addOrUpdatePaths = useCallback(() => {
     const m = map.current;
     if (!m) return;
 
     // ズームレベルが閾値未満の場合はレイヤーを削除
     if (m.getZoom() < ZOOM_LEVEL_THRESHOLD) {
+      // イベントリスナーをクリーンアップ
+      if (pathsListenersRegistered.current) {
+        if (pathsEventHandlers.current.handleClick) {
+          m.off(
+            "click",
+            "paths-layer-hitbox",
+            pathsEventHandlers.current.handleClick,
+          );
+        }
+        if (pathsEventHandlers.current.handleMouseEnter) {
+          m.off(
+            "mouseenter",
+            "paths-layer-hitbox",
+            pathsEventHandlers.current.handleMouseEnter,
+          );
+        }
+        if (pathsEventHandlers.current.handleMouseLeave) {
+          m.off(
+            "mouseleave",
+            "paths-layer-hitbox",
+            pathsEventHandlers.current.handleMouseLeave,
+          );
+        }
+        pathsEventHandlers.current = {};
+      }
+
       if (m.getLayer("paths-layer-hitbox")) m.removeLayer("paths-layer-hitbox");
       if (m.getLayer("paths-layer")) m.removeLayer("paths-layer");
       if (m.getSource("paths-source")) m.removeSource("paths-source");
@@ -149,22 +201,21 @@ export const MapTerrain = ({
       return;
     }
 
-    // 最新のpathsを使用
     const source = m.getSource("paths-source") as maplibregl.GeoJSONSource;
 
-    // ソースが既にあればデータを更新
+    // ソースが既に存在する場合はデータのみ更新
     if (source) {
       source.setData(pathsGeoJSON);
       return;
     }
 
-    // ソースを新しく追加
+    // ソースとレイヤーを新規追加
     m.addSource("paths-source", {
       type: "geojson",
       data: pathsGeoJSON,
     });
 
-    // メインのパスレイヤー
+    // 視覚的なパスレイヤー
     m.addLayer({
       id: "paths-layer",
       type: "line",
@@ -190,7 +241,7 @@ export const MapTerrain = ({
       },
     });
 
-    // 透明なヒットボックスレイヤー
+    // クリック判定用の透明なヒットボックスレイヤー
     m.addLayer({
       id: "paths-layer-hitbox",
       type: "line",
@@ -217,27 +268,42 @@ export const MapTerrain = ({
 
     // イベントリスナーを一度だけ登録
     if (!pathsListenersRegistered.current && onSelectPath) {
-      m.on("click", "paths-layer-hitbox", e => {
+      const handleClick = (
+        e: maplibregl.MapMouseEvent & {
+          features?: maplibregl.MapGeoJSONFeature[];
+        },
+      ) => {
         if (!e.features || !e.features[0]) return;
         const feature = e.features[0];
         if (onSelectPath) {
           onSelectPath(feature.properties as Path);
         }
-      });
+      };
 
-      m.on("mouseenter", "paths-layer-hitbox", () => {
+      const handleMouseEnter = () => {
         m.getCanvas().style.cursor = "pointer";
-      });
+      };
 
-      m.on("mouseleave", "paths-layer-hitbox", () => {
+      const handleMouseLeave = () => {
         m.getCanvas().style.cursor = "";
-      });
+      };
+
+      // ハンドラーの参照を保存
+      pathsEventHandlers.current = {
+        handleClick,
+        handleMouseEnter,
+        handleMouseLeave,
+      };
+
+      m.on("click", "paths-layer-hitbox", handleClick);
+      m.on("mouseenter", "paths-layer-hitbox", handleMouseEnter);
+      m.on("mouseleave", "paths-layer-hitbox", handleMouseLeave);
 
       pathsListenersRegistered.current = true;
     }
   }, [pathsGeoJSON, onSelectPath]);
 
-  // mountainsプロパティをGeoJSON形式に変換する関数（メモ化）
+  // 山データをGeoJSON形式に変換
   const mountainsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
     const features = mountains
       .filter(
@@ -265,14 +331,42 @@ export const MapTerrain = ({
     };
   }, [mountains]);
 
-  // 山のピンのソースとレイヤーを追加または更新する関数
+  // 山のレイヤーを追加または更新
   const addOrUpdateMountains = useCallback(() => {
     const m = map.current;
-    if (!m || !m.isStyleLoaded()) return;
+    if (!m) return;
 
     // ズームレベルが閾値未満の場合はレイヤーを削除
     if (m.getZoom() < ZOOM_LEVEL_THRESHOLD) {
+      // イベントリスナーをクリーンアップ
+      if (mountainsListenersRegistered.current) {
+        if (mountainsEventHandlers.current.handleClick) {
+          m.off(
+            "click",
+            "mountains-points",
+            mountainsEventHandlers.current.handleClick,
+          );
+        }
+        if (mountainsEventHandlers.current.handleMouseEnter) {
+          m.off(
+            "mouseenter",
+            "mountains-points",
+            mountainsEventHandlers.current.handleMouseEnter,
+          );
+        }
+        if (mountainsEventHandlers.current.handleMouseLeave) {
+          m.off(
+            "mouseleave",
+            "mountains-points",
+            mountainsEventHandlers.current.handleMouseLeave,
+          );
+        }
+        mountainsEventHandlers.current = {};
+      }
+
       if (m.getLayer("mountains-labels")) m.removeLayer("mountains-labels");
+      if (m.getLayer("mountains-points-hover"))
+        m.removeLayer("mountains-points-hover");
       if (m.getLayer("mountains-points")) m.removeLayer("mountains-points");
       if (m.getLayer("mountains-points-shadow"))
         m.removeLayer("mountains-points-shadow");
@@ -281,118 +375,185 @@ export const MapTerrain = ({
       return;
     }
 
-    // 最新のmountainsを使用
     const source = m.getSource("mountains-source") as maplibregl.GeoJSONSource;
 
-    // ソースが既にあればデータを更新
+    // ソースが既に存在する場合はデータのみ更新
     if (source) {
       source.setData(mountainsGeoJSON);
       return;
     }
 
-    // ソースを新しく追加
-    m.addSource("mountains-source", {
-      type: "geojson",
-      data: mountainsGeoJSON,
-    });
+    // スタイルがロードされていない場合は次のフレームで再試行
+    if (!m.isStyleLoaded()) {
+      requestAnimationFrame(() => {
+        addOrUpdateMountains();
+      });
+      return;
+    }
 
-    // 影レイヤー（背景）
-    m.addLayer({
-      id: "mountains-points-shadow",
-      type: "circle",
-      source: "mountains-source",
-      paint: {
-        "circle-color": "rgba(0, 0, 0, 0.3)",
-        "circle-radius": 8,
-        "circle-translate": [2, 2],
-        "circle-blur": 0.5,
-      },
-    });
+    // レイヤー追加時のエラーハンドリング
+    try {
+      // ソースを追加
+      m.addSource("mountains-source", {
+        type: "geojson",
+        data: mountainsGeoJSON,
+      });
 
-    // メインの山ピンレイヤー（グラデーション効果）
-    m.addLayer({
-      id: "mountains-points",
-      type: "circle",
-      source: "mountains-source",
-      paint: {
-        "circle-color": [
-          "interpolate",
-          ["linear"],
-          ["get", "elevation"],
-          0,
-          "#ff6b6b",
-          1000,
-          "#ff8e53",
-          2000,
-          "#ff6b9d",
-          3000,
-          "#845ec2",
-          4000,
-          "#4e8fdf",
-        ],
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          12,
-          5,
-          16,
-          8,
-          20,
-          12,
-        ],
-        "circle-stroke-color": "#ffffff",
-        "circle-stroke-width": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          12,
-          2,
-          16,
-          3,
-          20,
-          4,
-        ],
-        "circle-opacity": 0.9,
-        "circle-stroke-opacity": 1,
-      },
-    });
+      // 影レイヤー
+      m.addLayer({
+        id: "mountains-points-shadow",
+        type: "circle",
+        source: "mountains-source",
+        paint: {
+          "circle-color": "rgba(0, 0, 0, 0.3)",
+          "circle-radius": 8,
+          "circle-translate": [2, 2],
+          "circle-blur": 0.5,
+        },
+      });
 
-    // 改善されたラベルレイヤー
-    m.addLayer({
-      id: "mountains-labels",
-      type: "symbol",
-      source: "mountains-source",
-      layout: {
-        "text-field": ["get", "name"],
-        "text-font": ["Noto Sans Bold"],
-        "text-size": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          12,
-          10,
-          16,
-          12,
-          20,
-          14,
-        ],
-        "text-offset": [0, 1.5],
-        "text-anchor": "top",
-        "text-allow-overlap": false,
-        "text-optional": true,
-      },
-      paint: {
-        "text-color": "#2d3748",
-        "text-halo-color": "rgba(255, 255, 255, 0.95)",
-        "text-halo-width": 2,
-        "text-halo-blur": 1,
-      },
-    });
+      // メインの山ピンレイヤー（標高に応じた色分け）
+      m.addLayer({
+        id: "mountains-points",
+        type: "circle",
+        source: "mountains-source",
+        paint: {
+          "circle-color": [
+            "interpolate",
+            ["linear"],
+            ["get", "elevation"],
+            0,
+            "#ff6b6b",
+            1000,
+            "#ff8e53",
+            2000,
+            "#ff6b9d",
+            3000,
+            "#845ec2",
+            4000,
+            "#4e8fdf",
+          ],
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            12,
+            5,
+            16,
+            8,
+            20,
+            12,
+          ],
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            12,
+            2,
+            16,
+            3,
+            20,
+            4,
+          ],
+          "circle-opacity": 0.9,
+          "circle-stroke-opacity": 1,
+        },
+      });
+
+      // ホバー時に表示する拡大されたレイヤー
+      m.addLayer({
+        id: "mountains-points-hover",
+        type: "circle",
+        source: "mountains-source",
+        paint: {
+          "circle-color": [
+            "interpolate",
+            ["linear"],
+            ["get", "elevation"],
+            0,
+            "#ff6b6b",
+            1000,
+            "#ff8e53",
+            2000,
+            "#ff6b9d",
+            3000,
+            "#845ec2",
+            4000,
+            "#4e8fdf",
+          ],
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            12,
+            7,
+            16,
+            10,
+            20,
+            14,
+          ],
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            12,
+            3,
+            16,
+            4,
+            20,
+            5,
+          ],
+          "circle-opacity": 0.9,
+          "circle-stroke-opacity": 1,
+        },
+        filter: ["==", ["get", "id"], ""], // 初期状態では非表示
+      });
+
+      // ラベルレイヤー
+      m.addLayer({
+        id: "mountains-labels",
+        type: "symbol",
+        source: "mountains-source",
+        layout: {
+          "text-field": ["get", "name"],
+          "text-font": ["Noto Sans Bold"],
+          "text-size": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            12,
+            10,
+            16,
+            12,
+            20,
+            14,
+          ],
+          "text-offset": [0, 1.5],
+          "text-anchor": "top",
+          "text-allow-overlap": false,
+          "text-optional": true,
+        },
+        paint: {
+          "text-color": "#2d3748",
+          "text-halo-color": "rgba(255, 255, 255, 0.95)",
+          "text-halo-width": 2,
+          "text-halo-blur": 1,
+        },
+      });
+    } catch (error) {
+      console.error("[MapTerrain] Error adding mountains layers:", error);
+      // エラー時は次のフレームで再試行
+      requestAnimationFrame(() => {
+        addOrUpdateMountains();
+      });
+      return;
+    }
 
     // イベントリスナーを一度だけ登録
     if (!mountainsListenersRegistered.current) {
-      // クリックイベント
+      // クリック時にポップアップを表示
       const handleClick = (
         e: maplibregl.MapMouseEvent & {
           features?: maplibregl.MapGeoJSONFeature[];
@@ -400,6 +561,7 @@ export const MapTerrain = ({
       ) => {
         if (!e.features || !e.features[0]) return;
 
+        // 既存のポップアップを削除
         const existingPopups = document.querySelectorAll(".maplibregl-popup");
         for (const popup of existingPopups) {
           popup.remove();
@@ -410,7 +572,7 @@ export const MapTerrain = ({
         const coordinates = feature.geometry.coordinates.slice();
         const { name, elevation, id } = feature.properties || {};
 
-        // 最新のmountains配列から検索
+        // 最新のデータから山情報を取得
         const latestMountains = mountainsRef.current;
         const selectedMountain = latestMountains.find(m => m.id === id);
 
@@ -430,6 +592,7 @@ export const MapTerrain = ({
           .setHTML(tooltipHtml)
           .addTo(m);
 
+        // 詳細ボタンのイベントリスナーを追加
         setTimeout(() => {
           const detailButton = popup
             .getElement()
@@ -453,7 +616,7 @@ export const MapTerrain = ({
         }
       };
 
-      // マウスエンターイベント
+      // マウスホバー時にホバーレイヤーを表示
       const handleMouseEnter = (
         e: maplibregl.MapMouseEvent & {
           features?: maplibregl.MapGeoJSONFeature[];
@@ -461,29 +624,27 @@ export const MapTerrain = ({
       ) => {
         m.getCanvas().style.cursor = "pointer";
         if (e.features?.[0]) {
-          m.setPaintProperty("mountains-points", "circle-radius", [
-            "case",
-            ["==", ["get", "id"], e.features[0].properties?.id],
-            ["interpolate", ["linear"], ["zoom"], 12, 7, 16, 10, 20, 14],
-            ["interpolate", ["linear"], ["zoom"], 12, 5, 16, 8, 20, 12],
+          const featureId = e.features[0].properties?.id;
+          // フィルターを更新してホバーレイヤーを表示
+          m.setFilter("mountains-points-hover", [
+            "==",
+            ["get", "id"],
+            featureId,
           ]);
         }
       };
 
-      // マウスリーブイベント
+      // マウスが離れたらホバーレイヤーを非表示
       const handleMouseLeave = () => {
         m.getCanvas().style.cursor = "";
-        m.setPaintProperty("mountains-points", "circle-radius", [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          12,
-          5,
-          16,
-          8,
-          20,
-          12,
-        ]);
+        m.setFilter("mountains-points-hover", ["==", ["get", "id"], ""]);
+      };
+
+      // ハンドラーの参照を保存
+      mountainsEventHandlers.current = {
+        handleClick,
+        handleMouseEnter,
+        handleMouseLeave,
       };
 
       m.on("click", "mountains-points", handleClick);
@@ -494,8 +655,8 @@ export const MapTerrain = ({
     }
   }, [mountainsGeoJSON, onSelectMountain]);
 
-  // 初期化用のuseEffect
-  // biome-ignore lint/correctness/useExhaustiveDependencies: false positive
+  // マップの初期化
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 初期化は一度だけ実行
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
     map.current = new maplibregl.Map({
@@ -532,22 +693,84 @@ export const MapTerrain = ({
       },
     });
 
-    // バウンディングボックスを処理する関数
+    // マップ移動時の処理
     const handleMapMove = () => {
       if (!map.current) return;
       const bounds = map.current.getBounds();
+      const center = map.current.getCenter();
+      const fullWidth = bounds.getEast() - bounds.getWest();
+      const fullHeight = bounds.getNorth() - bounds.getSouth();
+
+      // マップ中央70%の領域を計算
+      const targetRatio = 0.7;
+      const halfWidth = (fullWidth * targetRatio) / 2;
+      const halfHeight = (fullHeight * targetRatio) / 2;
       const newBounds = {
-        minLon: bounds.getWest(),
-        minLat: bounds.getSouth(),
-        maxLon: bounds.getEast(),
-        maxLat: bounds.getNorth(),
+        minLon: center.lng - halfWidth,
+        minLat: center.lat - halfHeight,
+        maxLon: center.lng + halfWidth,
+        maxLat: center.lat + halfHeight,
       };
 
       const zoomLevel = map.current.getZoom();
 
       if (zoomLevel < ZOOM_LEVEL_THRESHOLD) {
+        // ズームレベルが閾値未満の場合、イベントリスナーとレイヤーをクリーンアップ
+        if (pathsListenersRegistered.current) {
+          if (pathsEventHandlers.current.handleClick) {
+            map.current.off(
+              "click",
+              "paths-layer-hitbox",
+              pathsEventHandlers.current.handleClick,
+            );
+          }
+          if (pathsEventHandlers.current.handleMouseEnter) {
+            map.current.off(
+              "mouseenter",
+              "paths-layer-hitbox",
+              pathsEventHandlers.current.handleMouseEnter,
+            );
+          }
+          if (pathsEventHandlers.current.handleMouseLeave) {
+            map.current.off(
+              "mouseleave",
+              "paths-layer-hitbox",
+              pathsEventHandlers.current.handleMouseLeave,
+            );
+          }
+          pathsEventHandlers.current = {};
+        }
+
+        if (mountainsListenersRegistered.current) {
+          if (mountainsEventHandlers.current.handleClick) {
+            map.current.off(
+              "click",
+              "mountains-points",
+              mountainsEventHandlers.current.handleClick,
+            );
+          }
+          if (mountainsEventHandlers.current.handleMouseEnter) {
+            map.current.off(
+              "mouseenter",
+              "mountains-points",
+              mountainsEventHandlers.current.handleMouseEnter,
+            );
+          }
+          if (mountainsEventHandlers.current.handleMouseLeave) {
+            map.current.off(
+              "mouseleave",
+              "mountains-points",
+              mountainsEventHandlers.current.handleMouseLeave,
+            );
+          }
+          mountainsEventHandlers.current = {};
+        }
+
+        // レイヤーを削除（ホバーレイヤーも含む）
         if (map.current.getLayer("mountains-labels"))
           map.current.removeLayer("mountains-labels");
+        if (map.current.getLayer("mountains-points-hover"))
+          map.current.removeLayer("mountains-points-hover");
         if (map.current.getLayer("mountains-points"))
           map.current.removeLayer("mountains-points");
         if (map.current.getLayer("mountains-points-shadow"))
@@ -563,33 +786,35 @@ export const MapTerrain = ({
 
         mountainsListenersRegistered.current = false;
         pathsListenersRegistered.current = false;
+      } else {
+        // ズームレベルが閾値以上の場合、レイヤーを更新
+        addOrUpdatePaths();
+        addOrUpdateMountains();
       }
 
-      // 先にonBoundsChangeを呼び出して新しいデータの取得を開始
+      // バウンディングボックスの変更を通知
       if (onBoundsChange) {
         onBoundsChange({ ...newBounds, zoomLevel });
       }
     };
 
-    // ズームレベルの変化を検知してレイヤーを更新
+    // ズーム時の処理
     const handleZoom = () => {
       if (!map.current) return;
       const zoomLevel = map.current.getZoom();
 
       if (zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
-        // ズーム時は即座に更新
         addOrUpdatePaths();
         addOrUpdateMountains();
       }
     };
 
-    // ピッチの変化を検知してレイヤーを更新（3D/2D切り替え時）
+    // ピッチ変更時の処理
     const handlePitch = () => {
       if (!map.current) return;
       const zoomLevel = map.current.getZoom();
 
       if (zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
-        // ピッチ変更時は即座に更新
         addOrUpdatePaths();
         addOrUpdateMountains();
       }
@@ -600,6 +825,7 @@ export const MapTerrain = ({
       addOrUpdatePaths();
       addOrUpdateMountains();
 
+      // 初期カメラアニメーション
       map.current?.flyTo({
         center: [138.7273, 35.3606],
         zoom: 12,
@@ -615,7 +841,56 @@ export const MapTerrain = ({
     map.current.on("zoomend", handleZoom);
     map.current.on("pitchend", handlePitch);
 
+    // クリーンアップ
     return () => {
+      const m = map.current;
+      if (m) {
+        // イベントリスナーを削除
+        if (pathsEventHandlers.current.handleClick) {
+          m.off(
+            "click",
+            "paths-layer-hitbox",
+            pathsEventHandlers.current.handleClick,
+          );
+        }
+        if (pathsEventHandlers.current.handleMouseEnter) {
+          m.off(
+            "mouseenter",
+            "paths-layer-hitbox",
+            pathsEventHandlers.current.handleMouseEnter,
+          );
+        }
+        if (pathsEventHandlers.current.handleMouseLeave) {
+          m.off(
+            "mouseleave",
+            "paths-layer-hitbox",
+            pathsEventHandlers.current.handleMouseLeave,
+          );
+        }
+
+        if (mountainsEventHandlers.current.handleClick) {
+          m.off(
+            "click",
+            "mountains-points",
+            mountainsEventHandlers.current.handleClick,
+          );
+        }
+        if (mountainsEventHandlers.current.handleMouseEnter) {
+          m.off(
+            "mouseenter",
+            "mountains-points",
+            mountainsEventHandlers.current.handleMouseEnter,
+          );
+        }
+        if (mountainsEventHandlers.current.handleMouseLeave) {
+          m.off(
+            "mouseleave",
+            "mountains-points",
+            mountainsEventHandlers.current.handleMouseLeave,
+          );
+        }
+      }
+
       map.current?.off("moveend", handleMapMove);
       map.current?.off("zoomend", handleZoom);
       map.current?.off("pitchend", handlePitch);
@@ -623,10 +898,60 @@ export const MapTerrain = ({
     };
   }, []);
 
-  // 更新用のuseEffect
+  // スタイルモード変更時の処理
   useEffect(() => {
     const m = map.current;
     if (!m || currentMode.current === styleMode) return;
+
+    // スタイル変更前にイベントリスナーをクリーンアップ
+    if (pathsEventHandlers.current.handleClick) {
+      m.off(
+        "click",
+        "paths-layer-hitbox",
+        pathsEventHandlers.current.handleClick,
+      );
+    }
+    if (pathsEventHandlers.current.handleMouseEnter) {
+      m.off(
+        "mouseenter",
+        "paths-layer-hitbox",
+        pathsEventHandlers.current.handleMouseEnter,
+      );
+    }
+    if (pathsEventHandlers.current.handleMouseLeave) {
+      m.off(
+        "mouseleave",
+        "paths-layer-hitbox",
+        pathsEventHandlers.current.handleMouseLeave,
+      );
+    }
+
+    if (mountainsEventHandlers.current.handleClick) {
+      m.off(
+        "click",
+        "mountains-points",
+        mountainsEventHandlers.current.handleClick,
+      );
+    }
+    if (mountainsEventHandlers.current.handleMouseEnter) {
+      m.off(
+        "mouseenter",
+        "mountains-points",
+        mountainsEventHandlers.current.handleMouseEnter,
+      );
+    }
+    if (mountainsEventHandlers.current.handleMouseLeave) {
+      m.off(
+        "mouseleave",
+        "mountains-points",
+        mountainsEventHandlers.current.handleMouseLeave,
+      );
+    }
+
+    pathsEventHandlers.current = {};
+    mountainsEventHandlers.current = {};
+
+    // スタイルを変更してレイヤーを再構築
     m.setStyle(styleUrls[styleMode]);
     m.once("styledata", () => {
       pathsListenersRegistered.current = false;
@@ -644,14 +969,13 @@ export const MapTerrain = ({
     addOrUpdateMountains,
   ]);
 
-  // pathsプロパティが変更された時にパスを更新（ハッシュベース）
+  // パスデータ変更時の処理（ハッシュベースで変更検知）
   useEffect(() => {
-    if (!map.current?.isStyleLoaded()) return;
+    if (!map.current) return;
 
     const zoomLevel = map.current.getZoom();
 
     if (zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
-      // 初回ロード時（previousHashが空）または、ハッシュが変わった場合に更新
       const isFirstLoad = previousPathsHash.current === "";
       const hasChanged = pathsHash !== previousPathsHash.current;
 
@@ -663,24 +987,26 @@ export const MapTerrain = ({
           currentHash: pathsHash.substring(0, 50),
         });
 
+        // ハッシュを先に更新して重複更新を防ぐ
         previousPathsHash.current = pathsHash;
 
         // 次のフレームで更新を実行
         requestAnimationFrame(() => {
-          addOrUpdatePaths();
+          if (map.current && map.current.getZoom() >= ZOOM_LEVEL_THRESHOLD) {
+            addOrUpdatePaths();
+          }
         });
       }
     }
   }, [pathsHash, paths.length, addOrUpdatePaths]);
 
-  // mountainsプロパティが変更された時にピンを更新（ハッシュベース）
+  // 山データ変更時の処理（ハッシュベースで変更検知）
   useEffect(() => {
-    if (!map.current?.isStyleLoaded()) return;
+    if (!map.current) return;
 
     const zoomLevel = map.current.getZoom();
 
     if (zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
-      // 初回ロード時（previousHashが空）または、ハッシュが変わった場合に更新
       const isFirstLoad = previousMountainsHash.current === "";
       const hasChanged = mountainsHash !== previousMountainsHash.current;
 
@@ -693,30 +1019,31 @@ export const MapTerrain = ({
           currentHash: mountainsHash.substring(0, 50),
         });
 
+        // ハッシュを先に更新して重複更新を防ぐ
         previousMountainsHash.current = mountainsHash;
 
         // 次のフレームで更新を実行
         requestAnimationFrame(() => {
-          addOrUpdateMountains();
+          if (map.current && map.current.getZoom() >= ZOOM_LEVEL_THRESHOLD) {
+            addOrUpdateMountains();
+          }
         });
       }
     }
   }, [mountainsHash, mountains.length, addOrUpdateMountains]);
 
-  // ✨ 指定された山の位置にジャンプする関数
+  // 指定された山にカメラを移動
   const jumpToMountain = useCallback((mountain: Mountain) => {
     const m = map.current;
     if (!m) return;
 
-    // ✨ 座標が有効な場合のみジャンプ
     if (mountain.lon !== undefined && mountain.lat !== undefined) {
-      // ✨ 標高に基づいてカメラ設定を動的に調整
       const elevation = mountain.elevation || 0;
 
-      // 標高に応じたズームレベルの調整
+      // 標高に応じたカメラパラメータを決定
       let zoom: number;
       if (elevation >= 3000) {
-        zoom = Math.min(m.getZoom(), 14); // 現在のズームレベルを考慮
+        zoom = Math.min(m.getZoom(), 14);
       } else if (elevation >= 2000) {
         zoom = Math.min(m.getZoom(), 15);
       } else if (elevation >= 1000) {
@@ -725,7 +1052,6 @@ export const MapTerrain = ({
         zoom = Math.min(m.getZoom(), 17);
       }
 
-      // 標高に応じたピッチとベアリングの調整
       const pitch =
         elevation >= 3000
           ? 70
@@ -743,7 +1069,6 @@ export const MapTerrain = ({
               ? 15
               : 0;
 
-      // アニメーション時間を調整
       const duration =
         elevation >= 3000 ? 2000 : elevation >= 2000 ? 1800 : 1500;
 
@@ -757,14 +1082,14 @@ export const MapTerrain = ({
     }
   }, []);
 
-  // ✨ selectedMountainが変更されたときに地図をジャンプさせる
+  // 選択された山が変更されたらカメラを移動
   useEffect(() => {
     if (selectedMountain) {
       jumpToMountain(selectedMountain);
     }
   }, [selectedMountain, jumpToMountain]);
 
-  // ✨ hoveredPointが変更されたときにマーカーを表示/更新/削除
+  // ホバーポイントのマーカー表示
   useEffect(() => {
     const m = map.current;
     if (!m) return;
@@ -775,9 +1100,8 @@ export const MapTerrain = ({
       hoveredPointMarker.current = null;
     }
 
-    // hoveredPointが存在する場合は新しいマーカーを追加
+    // ホバーポイントが指定されている場合はマーカーを表示
     if (hoveredPoint) {
-      // カスタムマーカー要素を作成
       const el = document.createElement("div");
       el.className = "hovered-point-marker";
       el.style.width = "16px";
@@ -788,13 +1112,13 @@ export const MapTerrain = ({
       el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
       el.style.cursor = "pointer";
 
-      // マーカーを作成して地図に追加
       hoveredPointMarker.current = new maplibregl.Marker({ element: el })
         .setLngLat([hoveredPoint.lon, hoveredPoint.lat])
         .addTo(m);
     }
   }, [hoveredPoint]);
 
+  // 2D/3Dビューの切り替え
   const toggle2D3D = useCallback(() => {
     const m = map.current;
     if (!m) return;
@@ -815,17 +1139,18 @@ export const MapTerrain = ({
     }
   }, []);
 
+  // 北方向にリセット
   const resetNorth = useCallback(() => {
     const m = map.current;
     if (!m) return;
 
-    m.easeTo({ bearing: 0 }); // 地図を北方向に向ける
+    m.easeTo({ bearing: 0 });
   }, []);
 
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
-      {/* ✨ 改善されたカスタムPopupのスタイル */}
+      {/* カスタムポップアップのスタイル */}
       <style jsx global>{`
         .custom-mountain-popup .maplibregl-popup-content {
           padding: 0 !important;
@@ -859,7 +1184,7 @@ export const MapTerrain = ({
           transform: scale(0.95) !important;
         }
       `}</style>
-      {/* ✨ ボタンコンテナ */}
+      {/* マップ操作ボタン */}
       <div className="absolute top-2 right-2 z-10 flex flex-col gap-2">
         <button
           type="button"
@@ -918,7 +1243,7 @@ export const MapTerrain = ({
           </svg>
         </button>
       </div>
-      {/* ✨ 凡例コンテナ */}
+      {/* 凡例 */}
       <div className="absolute top-20 left-2 z-10 bg-white bg-opacity-90 rounded shadow p-3 text-sm">
         <h3 className="font-bold mb-2">凡例</h3>
         <div className="flex items-center gap-2 mb-1">
@@ -936,8 +1261,8 @@ export const MapTerrain = ({
           <div
             className="w-4 h-1"
             style={{
-              backgroundColor: "#15A34C",
-              opacity: 0.7,
+              backgroundColor: "#829DFF",
+              opacity: 0.8,
             }}
           ></div>
           <span>登山道</span>
