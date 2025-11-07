@@ -19,4 +19,8 @@ dependencies = [
     "scikit-learn>=1.7.2",
     "networkx>=3.5",
     "tqdm>=4.67.1",
+    "openai>=2.7.1",
+    "httpx>=0.28.1",
+    "dotenv>=0.9.9",
+    "geopy>=2.4.1",
 ]

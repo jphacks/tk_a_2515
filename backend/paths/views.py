@@ -49,15 +49,17 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
         print(f"Fetched DEM data for {len(dem_data)} tiles")
 
         # 各ジオメトリポイントの標高と累積距離を計算
-        geometries = list(path.geometries.order_by('sequence'))
+        geometries = list(path.geometries.order_by("sequence"))
         if not geometries:
             return {
-                'id': path.id,
-                'path_id': path.id,
-                'osm_id': path.osm_id,
-                'type': path.type,
-                'difficulty': path.tags.first().difficulty if path.tags.exists() else None,
-                'path_graphic': [],
+                "id": path.id,
+                "path_id": path.id,
+                "osm_id": path.osm_id,
+                "type": path.type,
+                "difficulty": path.tags.first().difficulty
+                if path.tags.exists()
+                else None,
+                "path_graphic": [],
             }
 
         base_lon = geometries[0].lon
@@ -68,22 +70,24 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
         for geom in geometries:
             elevation_value = get_nearest_elevation(geom.lat, geom.lon, dem_data)
             distance += int(local_distance_m(base_lat, base_lon, geom.lat, geom.lon))
-            points.append({
-                'x': distance,
-                'y': elevation_value,
-                'lon': geom.lon,
-                'lat': geom.lat,
-            })
+            points.append(
+                {
+                    "x": distance,
+                    "y": elevation_value,
+                    "lon": geom.lon,
+                    "lat": geom.lat,
+                }
+            )
             base_lon = geom.lon
             base_lat = geom.lat
 
         return {
-            'id': path.id,
-            'path_id': path.id,
-            'osm_id': path.osm_id,
-            'type': path.type,
-            'difficulty': path.tags.first().difficulty if path.tags.exists() else None,
-            'path_graphic': points,
+            "id": path.id,
+            "path_id": path.id,
+            "osm_id": path.osm_id,
+            "type": path.type,
+            "difficulty": path.tags.first().difficulty if path.tags.exists() else None,
+            "path_graphic": points,
         }
 
     @extend_schema(

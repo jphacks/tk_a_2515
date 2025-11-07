@@ -12,10 +12,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # .envファイルを読み込み
-env_path = Path(__file__).resolve().parent.parent.parent / 'backend' / '.env'
+env_path = Path(__file__).resolve().parent.parent.parent / "backend" / ".env"
 load_dotenv(dotenv_path=env_path)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,29 +24,29 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # GeoDjango GDAL/GEOS library paths
 # Dockerコンテナ内でGDALライブラリのパスを自動検出
-if os.path.exists('/usr/lib'):
+if os.path.exists("/usr/lib"):
     import ctypes.util
 
     # GDALライブラリのパスを検出
-    gdal_lib = ctypes.util.find_library('gdal')
+    gdal_lib = ctypes.util.find_library("gdal")
     if gdal_lib:
         GDAL_LIBRARY_PATH = gdal_lib
     else:
         # 明示的にパスを指定
-        for version in ['35', '34', '33', '32', '31', '30']:
-            path = f'/usr/lib/x86_64-linux-gnu/libgdal.so.{version}'
+        for version in ["35", "34", "33", "32", "31", "30"]:
+            path = f"/usr/lib/x86_64-linux-gnu/libgdal.so.{version}"
             if os.path.exists(path):
                 GDAL_LIBRARY_PATH = path
                 break
 
     # GEOSライブラリのパスを検出
-    geos_lib = ctypes.util.find_library('geos_c')
+    geos_lib = ctypes.util.find_library("geos_c")
     if geos_lib:
         GEOS_LIBRARY_PATH = geos_lib
     else:
         # 明示的にパスを指定
-        if os.path.exists('/usr/lib/x86_64-linux-gnu/libgeos_c.so'):
-            GEOS_LIBRARY_PATH = '/usr/lib/x86_64-linux-gnu/libgeos_c.so'
+        if os.path.exists("/usr/lib/x86_64-linux-gnu/libgeos_c.so"):
+            GEOS_LIBRARY_PATH = "/usr/lib/x86_64-linux-gnu/libgeos_c.so"
 
 
 # Quick-start development settings - unsuitable for production
@@ -53,107 +54,109 @@ if os.path.exists('/usr/lib'):
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-5()8xa$#@1v@gt)uh!*@^et4z$ehe$c$sdl!3m$vkiy)=!tczw'
+    "DJANGO_SECRET_KEY",
+    "django-insecure-5()8xa$#@1v@gt)uh!*@^et4z$ehe$c$sdl!3m$vkiy)=!tczw",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
+DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'django.contrib.gis',  # GeoDjango
-    'rest_framework',
-    'drf_spectacular',  # OpenAPI schema generation
-    'corsheaders',
-    'mountains',
-    'paths',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django.contrib.gis",  # GeoDjango
+    "rest_framework",
+    "drf_spectacular",  # OpenAPI schema generation
+    "corsheaders",
+    "mountains",
+    "paths",
+    "bear",  # Bear sighting analysis
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'collectmap.urls'
+ROOT_URLCONF = "collectmap.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'collectmap.wsgi.application'
+WSGI_APPLICATION = "collectmap.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # DATABASE_URLが設定されている場合はそれを使用、なければ個別の環境変数を使用
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
     # DATABASE_URLをパース（簡易版）
     # 形式: postgresql://user:password@host:port/dbname
     import re
-    match = re.match(r'postgresql://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)', DATABASE_URL)
+
+    match = re.match(r"postgresql://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)", DATABASE_URL)
     if match:
         db_user, db_password, db_host, db_port, db_name = match.groups()
         DATABASES = {
-            'default': {
-                'ENGINE': 'django.contrib.gis.db.backends.postgis',
-                'NAME': db_name,
-                'USER': db_user,
-                'PASSWORD': db_password,
-                'HOST': db_host,
-                'PORT': db_port,
+            "default": {
+                "ENGINE": "django.contrib.gis.db.backends.postgis",
+                "NAME": db_name,
+                "USER": db_user,
+                "PASSWORD": db_password,
+                "HOST": db_host,
+                "PORT": db_port,
             }
         }
     else:
         # パースに失敗した場合はデフォルト設定
         DATABASES = {
-            'default': {
-                'ENGINE': 'django.contrib.gis.db.backends.postgis',
-                'NAME': os.getenv('POSTGRES_DB', 'app'),
-                'USER': os.getenv('POSTGRES_USER', 'app'),
-                'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'app'),
-                'HOST': 'localhost',
-                'PORT': '5432',
+            "default": {
+                "ENGINE": "django.contrib.gis.db.backends.postgis",
+                "NAME": os.getenv("POSTGRES_DB", "app"),
+                "USER": os.getenv("POSTGRES_USER", "app"),
+                "PASSWORD": os.getenv("POSTGRES_PASSWORD", "app"),
+                "HOST": "localhost",
+                "PORT": "5432",
             }
         }
 else:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',
-            'NAME': os.getenv('POSTGRES_DB', 'app'),
-            'USER': os.getenv('POSTGRES_USER', 'app'),
-            'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'app'),
-            'HOST': 'localhost',
-            'PORT': '5432',
+        "default": {
+            "ENGINE": "django.contrib.gis.db.backends.postgis",
+            "NAME": os.getenv("POSTGRES_DB", "app"),
+            "USER": os.getenv("POSTGRES_USER", "app"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD", "app"),
+            "HOST": "localhost",
+            "PORT": "5432",
         }
     }
 
@@ -163,16 +166,16 @@ else:
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -180,9 +183,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -192,12 +195,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # CORS settings - 全てのオリジンを許可
 CORS_ALLOW_ALL_ORIGINS = True
@@ -205,18 +208,18 @@ CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework settings
 REST_FRAMEWORK = {
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 100,
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 100,
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
     ],
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 # drf-spectacular settings
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Collect Map API',
-    'DESCRIPTION': 'Django backend for Collect Map API - Mountain and Path data management',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
+    "TITLE": "Collect Map API",
+    "DESCRIPTION": "Django backend for Collect Map API - Mountain and Path data management",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }

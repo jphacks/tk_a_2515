@@ -6,6 +6,8 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export * from "./bearListParams";
+export * from "./bearSighting";
 export * from "./hTTPValidationError";
 export * from "./listMountains200";
 export * from "./listMountainsMountainsGetParams";
@@ -64,6 +66,7 @@ export * from "./mountainUpdateYamatan";
 export * from "./mountainUpdateYomi";
 export * from "./mountainYamatan";
 export * from "./mountainYomi";
+export * from "./paginatedBearSightingList";
 export * from "./paginatedMountainList";
 export * from "./paginatedPathList";
 export * from "./patchedMountainUpdate";
