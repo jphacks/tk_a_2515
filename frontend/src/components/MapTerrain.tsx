@@ -55,7 +55,7 @@ export const MapTerrain = ({
     [],
   );
 
-  // 参照の保持
+  // マップとコンポーネントの状態管理用ref
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const currentMode = useRef<StyleMode>(styleMode);
@@ -69,7 +69,7 @@ export const MapTerrain = ({
   const isMountedRef = useRef<boolean>(true);
   const animationFrameIdsRef = useRef<Set<number>>(new Set());
 
-  // イベントハンドラーの参照を保持してクリーンアップ可能にする
+  // イベントハンドラーの参照を保持（クリーンアップ用）
   const mountainsEventHandlers = useRef<{
     handleClick?: (
       e: maplibregl.MapMouseEvent & {
@@ -94,7 +94,7 @@ export const MapTerrain = ({
     handleMouseLeave?: () => void;
   }>({});
 
-  // データのハッシュを生成して変更検知に使用
+  // データ変更検知用のハッシュ値を生成
   const pathsHash = useMemo((): string => {
     if (!paths || paths.length === 0) return "empty";
     return paths
@@ -116,7 +116,7 @@ export const MapTerrain = ({
       .join("|");
   }, [mountains]);
 
-  // 最新のデータへの参照を常に保持
+  // 最新のデータへの参照を保持
   useEffect(() => {
     pathsRef.current = paths;
   }, [paths]);
@@ -247,6 +247,7 @@ export const MapTerrain = ({
         return;
       }
 
+      // クリックイベント: パスを選択
       const handleClick = (
         e: maplibregl.MapMouseEvent & {
           features?: maplibregl.MapGeoJSONFeature[];
@@ -259,10 +260,12 @@ export const MapTerrain = ({
         }
       };
 
+      // マウスエンターイベント: カーソルをポインターに変更
       const handleMouseEnter = () => {
         m.getCanvas().style.cursor = "pointer";
       };
 
+      // マウスリーブイベント: カーソルをデフォルトに戻す
       const handleMouseLeave = () => {
         m.getCanvas().style.cursor = "";
       };
@@ -346,7 +349,6 @@ export const MapTerrain = ({
       },
     });
 
-    // イベントリスナーを登録
     registerPathsEventListeners();
   }, [pathsGeoJSON, onSelectPath, cleanupPathsListeners]);
 
@@ -406,6 +408,7 @@ export const MapTerrain = ({
         return;
       }
 
+      // クリックイベント: ポップアップを表示
       const handleClick = (
         e: maplibregl.MapMouseEvent & {
           features?: maplibregl.MapGeoJSONFeature[];
@@ -468,6 +471,7 @@ export const MapTerrain = ({
         }
       };
 
+      // マウスエンターイベント: ホバーレイヤーを表示
       const handleMouseEnter = (
         e: maplibregl.MapMouseEvent & {
           features?: maplibregl.MapGeoJSONFeature[];
@@ -484,6 +488,7 @@ export const MapTerrain = ({
         }
       };
 
+      // マウスリーブイベント: ホバーレイヤーを非表示
       const handleMouseLeave = () => {
         m.getCanvas().style.cursor = "";
         m.setFilter("mountains-points-hover", ["==", ["get", "id"], ""]);
@@ -525,7 +530,6 @@ export const MapTerrain = ({
 
     // レイヤー追加時のエラーハンドリング
     try {
-      // ソースを追加
       m.addSource("mountains-source", {
         type: "geojson",
         data: mountainsGeoJSON,
@@ -593,7 +597,7 @@ export const MapTerrain = ({
         },
       });
 
-      // ホバー時に表示する拡大されたレイヤー
+      // ホバー時に表示する拡大レイヤー
       m.addLayer({
         id: "mountains-points-hover",
         type: "circle",
@@ -640,7 +644,7 @@ export const MapTerrain = ({
           "circle-opacity": 0.9,
           "circle-stroke-opacity": 1,
         },
-        filter: ["==", ["get", "id"], ""], // 初期状態では非表示
+        filter: ["==", ["get", "id"], ""],
       });
 
       // ラベルレイヤー
@@ -687,7 +691,6 @@ export const MapTerrain = ({
       return;
     }
 
-    // イベントリスナーを登録
     registerMountainsEventListeners();
   }, [mountainsGeoJSON, onSelectMountain, cleanupMountainsListeners]);
 
@@ -751,11 +754,10 @@ export const MapTerrain = ({
       const zoomLevel = map.current.getZoom();
 
       if (zoomLevel < ZOOM_LEVEL_THRESHOLD) {
-        // ズームレベルが閾値未満の場合、イベントリスナーとレイヤーをクリーンアップ
+        // ズームレベルが閾値未満の場合、リスナーとレイヤーをクリーンアップ
         cleanupPathsListeners();
         cleanupMountainsListeners();
 
-        // レイヤーを削除
         if (map.current.getLayer("mountains-labels"))
           map.current.removeLayer("mountains-labels");
         if (map.current.getLayer("mountains-points-hover"))
@@ -855,11 +857,10 @@ export const MapTerrain = ({
     const m = map.current;
     if (!m || currentMode.current === styleMode) return;
 
-    // スタイル変更前にイベントリスナーをクリーンアップ
+    // スタイル変更前にリスナーをクリーンアップ
     cleanupPathsListeners();
     cleanupMountainsListeners();
 
-    // スタイルを変更してレイヤーを再構築
     m.setStyle(styleUrls[styleMode]);
     m.once("styledata", () => {
       pathsListenersRegistered.current = false;
@@ -879,7 +880,7 @@ export const MapTerrain = ({
     cleanupMountainsListeners,
   ]);
 
-  // パスデータ変更時の処理(ハッシュベースで変更検知)
+  // パスデータ変更時の処理（ハッシュベースで変更検知）
   useEffect(() => {
     if (!map.current || !isMountedRef.current) return;
 
@@ -911,7 +912,6 @@ export const MapTerrain = ({
               previousPathsHash.current = pathsHash;
             } catch (error) {
               console.error("[MapTerrain] Error updating paths:", error);
-              // エラー時はハッシュを更新しないため、次回再試行される
             }
           }
         });
@@ -920,7 +920,7 @@ export const MapTerrain = ({
     }
   }, [pathsHash, paths.length, addOrUpdatePaths]);
 
-  // 山データ変更時の処理(ハッシュベースで変更検知)
+  // 山データ変更時の処理（ハッシュベースで変更検知）
   useEffect(() => {
     if (!map.current || !isMountedRef.current) return;
 
@@ -953,7 +953,6 @@ export const MapTerrain = ({
               previousMountainsHash.current = mountainsHash;
             } catch (error) {
               console.error("[MapTerrain] Error updating mountains:", error);
-              // エラー時はハッシュを更新しないため、次回再試行される
             }
           }
         });
