@@ -5,9 +5,8 @@
  * Django backend for Collect Map API - Mountain and Path data management
  * OpenAPI spec version: 1.0.0
  */
-
-import type { Prefecture } from "./prefecture";
 import type { Type } from "./type";
+import type { Prefecture } from "./prefecture";
 
 /**
  * Mountain serializer
