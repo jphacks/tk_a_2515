@@ -51,9 +51,11 @@ export default function HomePage() {
     : mountains;
 
   useEffect(() => {
-    const tutorialCompleted = localStorage.getItem("tutorialCompleted");
-    if (!tutorialCompleted) {
-      setShowTutorial(true);
+    if (typeof window !== "undefined") {
+      const tutorialCompleted = localStorage.getItem("tutorialCompleted");
+      if (!tutorialCompleted) {
+        setShowTutorial(true);
+      }
     }
 
     // クマ情報を初期化時に全件取得

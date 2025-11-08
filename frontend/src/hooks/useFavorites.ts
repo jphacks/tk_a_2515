@@ -25,7 +25,9 @@ export function useFavorites() {
       if (exists) return prev;
 
       const updated = [...prev, mountain];
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        localStorage.setItem(FAVORITES_KEY, JSON.stringify(updated));
+      }
       return updated;
     });
   };

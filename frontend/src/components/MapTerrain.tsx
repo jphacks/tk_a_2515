@@ -657,7 +657,7 @@ export const MapTerrain = ({
   }, [displayMountains, onSelectMountain, cleanupMountainsListeners]);
 
   // クマデータをGeoJSON形式に変換（山のパターンを完全に模倣）
-  const _bearsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
+  const bearsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
     const features = bears
       .filter(
         bear =>
@@ -697,9 +697,7 @@ export const MapTerrain = ({
     const zoomLevel = m.getZoom();
 
     // ズームレベルに応じて半径を動的に調整
-    // ズームレベルが高い（近い）ほど半径を小さく、低い（遠い）ほど半径を大きく
     const getRadiusForZoom = (zoom: number): number => {
-      // ズームレベル10: 約500m、15: 約100m、20: 約20m
       if (zoom >= 18) return 0.0005; // 約20m
       if (zoom >= 16) return 0.001; // 約50m
       if (zoom >= 14) return 0.002; // 約100m
@@ -709,18 +707,32 @@ export const MapTerrain = ({
 
     const radius = getRadiusForZoom(zoomLevel);
 
-    // 同じ位置にあるクマをグループ化
+    // 座標を丸めてグループ化するヘルパー関数
+    const roundCoordinate = (coord: number, precision: number = 6): number => {
+      const factor = Math.pow(10, precision);
+      return Math.round(coord * factor) / factor;
+    };
+
+    // GeoJSONから有効なクマデータを抽出してグループ化
     const locationGroups = new Map<string, BearSighting[]>();
-    bears.forEach(bear => {
-      if (
-        bear.longitude === null ||
-        bear.longitude === undefined ||
-        bear.latitude === null ||
-        bear.latitude === undefined
-      ) {
+    bearsGeoJSON.features.forEach(feature => {
+      let lon: number;
+      let lat: number;
+      if (feature.geometry.type === "Point" && feature.geometry.coordinates) {
+        [lon, lat] = feature.geometry.coordinates;
+      } else {
         return;
       }
-      const key = `${bear.longitude.toFixed(6)},${bear.latitude.toFixed(6)}`;
+      const bearId = feature.properties!.id;
+      const bear = bears.find(b => b.id === bearId);
+
+      if (!bear) return;
+
+      // 座標を丸めてキーを生成
+      const roundedLon = roundCoordinate(lon);
+      const roundedLat = roundCoordinate(lat);
+      const key = `${roundedLon},${roundedLat}`;
+
       const group = locationGroups.get(key) || [];
       group.push(bear);
       locationGroups.set(key, group);
@@ -857,7 +869,7 @@ export const MapTerrain = ({
     }
 
     bearsListenersRegistered.current = true;
-  }, [bears, onSelectBear, cleanupBearsListeners]);
+  }, [bears, bearsGeoJSON, onSelectBear, cleanupBearsListeners]);
 
   // マップの初期化
   // biome-ignore lint/correctness/useExhaustiveDependencies: 初期化は一度だけ実行
