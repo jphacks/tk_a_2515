@@ -349,9 +349,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/PathDetail'
           description: ''
-  /paths/route/:
+  /route/:
     get:
-      operationId: paths_route_list
+      operationId: route_list
       description: ダイクストラ法でstartノードからdestノードまでの最短経路のPath一覧を取得
       parameters:
       - in: query
@@ -379,7 +379,7 @@ paths:
         description: 開始ノードのnode_id
         required: true
       tags:
-      - paths
+      - route
       security:
       - cookieAuth: []
       - basicAuth: []
@@ -391,9 +391,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedPathList'
           description: ''
-  /paths/route/{id}/:
+  /route/{id}/:
     get:
-      operationId: paths_route_retrieve
+      operationId: route_retrieve
       description: PathGeometry API ViewSet (Read-only) - Dijkstra shortest path
       parameters:
       - in: path
@@ -403,7 +403,7 @@ paths:
         description: A unique integer value identifying this path.
         required: true
       tags:
-      - paths
+      - route
       security:
       - cookieAuth: []
       - basicAuth: []
