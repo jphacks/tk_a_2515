@@ -11,9 +11,7 @@ DOMAIN_URL = "https://cyberjapandata.gsi.go.jp/xyz/dem/"
 DEFAULT_ZOOM = 14
 
 
-def fetch_dem_data(
-    z: int, x: int, y: int, cache_dir: str = "/app/datas/dem_cache"
-) -> dict | None:
+def fetch_dem_data(z: int, x: int, y: int, cache_dir: str = "/app/datas/dem_cache") -> dict | None:
     """
     指定されたz/x/y座標のDEMデータを取得（ローカルキャッシュ対応）
 
@@ -47,9 +45,7 @@ def fetch_dem_data(
         # カンマ区切りデータをパース
         lines = response.text.strip().split("\n")
         data = [line.split(",") for line in lines]
-        data = [
-            [float(value) if value != "e" else 0 for value in line] for line in data
-        ]
+        data = [[float(value) if value != "e" else 0 for value in line] for line in data]
         res = {}
         for i, row in enumerate(data):
             for j, value in enumerate(row):
@@ -175,9 +171,7 @@ def fetch_all_dem_data_from_bbox(
     return dem_data
 
 
-def get_nearest_elevation(
-    lat: float, lon: float, dem_data: dict, z: int = DEFAULT_ZOOM
-) -> float:
+def get_nearest_elevation(lat: float, lon: float, dem_data: dict, z: int = DEFAULT_ZOOM) -> float:
     """
     指定した座標に最も近い標高データを取得
 
@@ -206,27 +200,3 @@ def get_nearest_elevation(
             return data.get((j, i), 0)
 
     return 0
-
-
-def local_distance_m(
-    lat1: float, lon1: float, lat2: float, lon2: float, R: float = 6_371_000.0
-) -> float:
-    """
-    2点間の距離を計算（メートル）
-
-    Args:
-        lat1: 開始地点の緯度
-        lon1: 開始地点の経度
-        lat2: 終了地点の緯度
-        lon2: 終了地点の経度
-        R: 地球の半径（メートル）
-
-    Returns:
-        float: 距離（メートル）
-    """
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
-    phi = math.radians((lat1 + lat2) / 2.0)
-    x = dlon * math.cos(phi) * R
-    y = dlat * R
-    return math.hypot(x, y)

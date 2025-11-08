@@ -349,6 +349,72 @@ paths:
               schema:
                 $ref: '#/components/schemas/PathDetail'
           description: ''
+  /paths/route/:
+    get:
+      operationId: paths_route_list
+      description: ダイクストラ法でstartノードからdestノードまでの最短経路のPath一覧を取得
+      parameters:
+      - in: query
+        name: dest
+        schema:
+          type: integer
+        description: 終了ノードのnode_id
+        required: true
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - in: query
+        name: start
+        schema:
+          type: integer
+        description: 開始ノードのnode_id
+        required: true
+      tags:
+      - paths
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPathList'
+          description: ''
+  /paths/route/{id}/:
+    get:
+      operationId: paths_route_retrieve
+      description: PathGeometry API ViewSet (Read-only) - Dijkstra shortest path
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this path.
+        required: true
+      tags:
+      - paths
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Path'
+          description: ''
 components:
   schemas:
     BearSighting:

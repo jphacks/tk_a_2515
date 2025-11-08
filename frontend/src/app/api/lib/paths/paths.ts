@@ -9,8 +9,10 @@
 import { customFetch } from ".././custom-fetch";
 import type {
   PaginatedPathList,
+  Path,
   PathDetail,
   PathsListParams,
+  PathsRouteListParams,
 } from ".././models";
 
 /**
@@ -76,6 +78,75 @@ export const pathsRetrieve = async (
   options?: RequestInit,
 ): Promise<pathsRetrieveResponse> => {
   return customFetch<pathsRetrieveResponse>(getPathsRetrieveUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+/**
+ * ダイクストラ法でstartノードからdestノードまでの最短経路のPath一覧を取得
+ */
+export type pathsRouteListResponse200 = {
+  data: PaginatedPathList;
+  status: 200;
+};
+
+export type pathsRouteListResponseSuccess = pathsRouteListResponse200 & {
+  headers: Headers;
+};
+
+export type pathsRouteListResponse = pathsRouteListResponseSuccess;
+
+export const getPathsRouteListUrl = (params: PathsRouteListParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/paths/route/?${stringifiedParams}`
+    : `/paths/route/`;
+};
+
+export const pathsRouteList = async (
+  params: PathsRouteListParams,
+  options?: RequestInit,
+): Promise<pathsRouteListResponse> => {
+  return customFetch<pathsRouteListResponse>(getPathsRouteListUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+/**
+ * PathGeometry API ViewSet (Read-only) - Dijkstra shortest path
+ */
+export type pathsRouteRetrieveResponse200 = {
+  data: Path;
+  status: 200;
+};
+
+export type pathsRouteRetrieveResponseSuccess =
+  pathsRouteRetrieveResponse200 & {
+    headers: Headers;
+  };
+
+export type pathsRouteRetrieveResponse = pathsRouteRetrieveResponseSuccess;
+
+export const getPathsRouteRetrieveUrl = (id: number) => {
+  return `/paths/route/${id}/`;
+};
+
+export const pathsRouteRetrieve = async (
+  id: number,
+  options?: RequestInit,
+): Promise<pathsRouteRetrieveResponse> => {
+  return customFetch<pathsRouteRetrieveResponse>(getPathsRouteRetrieveUrl(id), {
     ...options,
     method: "GET",
   });

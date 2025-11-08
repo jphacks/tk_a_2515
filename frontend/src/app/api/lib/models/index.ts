@@ -88,6 +88,7 @@ export * from "./pathMaxlon";
 export * from "./pathMinlat";
 export * from "./pathMinlon";
 export * from "./pathsListParams";
+export * from "./pathsRouteListParams";
 export * from "./pathTag";
 export * from "./pathTagCreatedAt";
 export * from "./pathTagDifficulty";
