@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BottomSheet from "@/components/BottomSheet";
 import ContextPanel from "@/components/ContextPanel";
-import FavoritesModal from "@/components/FavoritesModal";
 import Header from "@/components/Header";
 import { MapPageClient } from "@/components/Map";
 import { ZOOM_LEVEL_THRESHOLD } from "@/components/MapTerrain";
@@ -39,7 +38,6 @@ export default function HomePage() {
     lon: number;
   } | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [showFavoritesModal, setShowFavoritesModal] = useState(false);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
   const { favorites, isFavorite, toggleFavorite } = useFavorites();
@@ -47,8 +45,13 @@ export default function HomePage() {
 
   // 表示用の山リスト（お気に入りフィルター適用）
   const displayMountains = showOnlyFavorites
-    ? mountains.filter(m => favoriteIds.has(m.id))
+    ? favorites // お気に入り表示時は全てのお気に入りを表示
     : mountains;
+
+  // 画面内の山のIDセット
+  const visibleMountainIds = useMemo(() => {
+    return new Set(mountains.map(m => m.id));
+  }, [mountains]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -161,21 +164,13 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <Header
-        onOpenTutorial={() => setShowTutorial(true)}
-        onOpenFavorites={() => setShowFavoritesModal(true)}
-        favoritesCount={favorites.length}
-      />
+      <Header onOpenTutorial={() => setShowTutorial(true)} />
       <Tutorial isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
-      <FavoritesModal
-        isOpen={showFavoritesModal}
-        favorites={favorites}
-        onClose={() => setShowFavoritesModal(false)}
-        onSelectMountain={handleSelectMountain}
-      />
       <main className="flex flex-1 overflow-hidden">
         <ContextPanel
           mountains={displayMountains}
+          allMountains={mountains}
+          visibleMountainIds={visibleMountainIds}
           selectedMountain={selectedMountain}
           selectedPath={selectedPath}
           selectedBear={selectedBear}
@@ -186,6 +181,11 @@ export default function HomePage() {
           onHoverPointChange={handleHoverPointChange}
           isFavorite={isFavorite}
           onToggleFavorite={toggleFavorite}
+          showOnlyFavorites={showOnlyFavorites}
+          onToggleShowOnlyFavorites={() =>
+            setShowOnlyFavorites(!showOnlyFavorites)
+          }
+          favorites={favorites}
         />
         <MapPageClient
           mountains={mountains}
@@ -200,14 +200,13 @@ export default function HomePage() {
           selectedBear={selectedBear}
           hoveredPoint={hoveredPoint}
           showOnlyFavorites={showOnlyFavorites}
-          onToggleShowOnlyFavorites={() =>
-            setShowOnlyFavorites(!showOnlyFavorites)
-          }
           favoriteIds={favoriteIds}
         />
       </main>
       <BottomSheet
         mountains={displayMountains}
+        allMountains={mountains}
+        visibleMountainIds={visibleMountainIds}
         selectedMountain={selectedMountain}
         selectedPath={selectedPath}
         selectedBear={selectedBear}
@@ -218,6 +217,11 @@ export default function HomePage() {
         onHoverPointChange={handleHoverPointChange}
         isFavorite={isFavorite}
         onToggleFavorite={toggleFavorite}
+        showOnlyFavorites={showOnlyFavorites}
+        onToggleShowOnlyFavorites={() =>
+          setShowOnlyFavorites(!showOnlyFavorites)
+        }
+        favorites={favorites}
         isOpen={isSheetOpen}
         onToggle={handleToggleSheet}
         onClose={handleCloseSheet}

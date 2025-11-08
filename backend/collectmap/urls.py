@@ -18,6 +18,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
 from django.db import connection
+from rest_framework.routers import DefaultRouter
+from paths.views import PathGeometryViewSet
 
 
 def root(request):
@@ -34,6 +36,9 @@ def health_check(request):
     except Exception as e:
         return JsonResponse({"status": "unhealthy", "database": "disconnected", "error": str(e)})
 
+# ルート計算用のルーター
+route_router = DefaultRouter()
+route_router.register(r'', PathGeometryViewSet, basename='route')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -41,5 +46,6 @@ urlpatterns = [
     path('health', health_check, name='health'),
     path('mountains/', include('mountains.urls')),
     path('paths/', include('paths.urls')),
+    path('route/', include(route_router.urls)),
     path('bear/', include('bear.urls')),
 ]

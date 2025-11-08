@@ -9,6 +9,8 @@ import PanelContent from "./PanelContent";
 
 type Props = {
   mountains: Mountain[];
+  allMountains: Mountain[];
+  visibleMountainIds: Set<number>;
   selectedMountain: Mountain | null;
   selectedPath: PathDetail | null;
   selectedBear: BearSighting | null;
@@ -16,9 +18,12 @@ type Props = {
   onSelectPath: (path: Path) => void;
   onSelectBear: (bear: BearSighting) => void;
   onClearSelection: () => void;
+  onHoverPointChange: (point: { lat: number; lon: number } | null) => void;
   isFavorite: (mountainId: number) => boolean;
   onToggleFavorite: (mountain: Mountain) => void;
-  onHoverPointChange: (point: { lat: number; lon: number } | null) => void;
+  showOnlyFavorites: boolean;
+  onToggleShowOnlyFavorites: () => void;
+  favorites: Mountain[];
   isOpen: boolean;
   onToggle: () => void;
   onClose: () => void;

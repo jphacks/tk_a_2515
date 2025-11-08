@@ -11,6 +11,8 @@ import ElevationChart from "./ElevationChart";
 
 type Props = {
   mountains: Mountain[];
+  allMountains: Mountain[];
+  visibleMountainIds: Set<number>;
   selectedMountain: Mountain | null;
   selectedPath: PathDetail | null;
   selectedBear: BearSighting | null;
@@ -21,10 +23,14 @@ type Props = {
   onHoverPointChange: (point: { lat: number; lon: number } | null) => void;
   isFavorite: (mountainId: number) => boolean;
   onToggleFavorite: (mountain: Mountain) => void;
+  showOnlyFavorites: boolean;
+  onToggleShowOnlyFavorites: () => void;
+  favorites: Mountain[];
 };
 
 export default function PanelContent({
   mountains,
+  visibleMountainIds,
   selectedMountain,
   selectedPath,
   selectedBear,
@@ -33,6 +39,8 @@ export default function PanelContent({
   onHoverPointChange,
   isFavorite,
   onToggleFavorite,
+  showOnlyFavorites,
+  onToggleShowOnlyFavorites,
 }: Props) {
   // ✨ 2. スクロール位置を保持するためのstateと、リストコンテナへの参照(ref)を作成
   const listContainerRef = useRef<HTMLDivElement>(null);
@@ -372,7 +380,30 @@ export default function PanelContent({
   // リスト表示
   return (
     <div ref={listContainerRef} className="h-full overflow-y-auto">
-      {/* ヘッダー部分はスクロールしても追従するように sticky を指定 */}
+      {!selectedMountain && !selectedPath && !selectedBear && (
+        <div className="p-3 border-b border-slate-200 bg-slate-50">
+          <button
+            type="button"
+            onClick={onToggleShowOnlyFavorites}
+            className={`w-full px-3 py-2 flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+              showOnlyFavorites
+                ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className={`w-4 h-4 ${showOnlyFavorites ? "text-yellow-500" : "text-gray-400"}`}
+            >
+              <title>お気に入りのみ表示</title>
+              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+            </svg>
+            {showOnlyFavorites ? `絞り込みを解除` : "お気に入りのみ表示"}
+          </button>
+        </div>
+      )}
       <div className="p-5 border-b border-slate-200 sticky top-0 bg-white z-10">
         <h2 className="text-xl font-bold text-slate-800">
           {mountains.length > 0
@@ -380,50 +411,88 @@ export default function PanelContent({
             : "山がある場所でズームしてください"}
         </h2>
       </div>
-      {mountains.length > 0 ? ( // ✨ mountains が存在する場合のみリストを表示
+      {mountains.length > 0 ? (
         <ul className="divide-y divide-slate-100">
-          {mountains.map(mountain => (
-            <li key={mountain.id} className="p-0">
-              <button
-                type="button"
-                onClick={() => handleSelectAndSaveScroll(mountain)}
-                onKeyDown={e => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    handleSelectAndSaveScroll(mountain);
-                  }
-                }}
-                className="w-full text-left p-5 hover:bg-green-50 cursor-pointer transition-colors flex items-center gap-4"
-              >
-                {mountain.photo_url ? (
-                  <Image
-                    src={mountain.photo_url}
-                    alt={mountain.name}
-                    className="w-16 h-16 object-cover rounded-lg border border-slate-200"
-                    width={64}
-                    height={64}
-                  />
-                ) : (
-                  <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 text-sm">
-                    画像なし
+          {mountains.map(mountain => {
+            const isVisible = visibleMountainIds?.has(mountain.id) ?? true;
+            return (
+              <li key={mountain.id} className="p-0">
+                <button
+                  type="button"
+                  onClick={() => handleSelectAndSaveScroll(mountain)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      handleSelectAndSaveScroll(mountain);
+                    }
+                  }}
+                  className={`w-full text-left p-5 cursor-pointer transition-colors flex items-center gap-4 ${
+                    isVisible
+                      ? "hover:bg-green-50"
+                      : "bg-slate-100 hover:bg-slate-200"
+                  }`}
+                >
+                  {mountain.photo_url ? (
+                    <Image
+                      src={mountain.photo_url}
+                      alt={mountain.name}
+                      className={`w-16 h-16 object-cover rounded-lg border ${
+                        isVisible
+                          ? "border-slate-200"
+                          : "border-slate-300 opacity-70"
+                      }`}
+                      width={64}
+                      height={64}
+                    />
+                  ) : (
+                    <div
+                      className={`w-16 h-16 rounded-lg flex items-center justify-center text-slate-400 text-sm ${
+                        isVisible ? "bg-slate-100" : "bg-slate-200 opacity-70"
+                      }`}
+                    >
+                      画像なし
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3
+                        className={`font-bold ${
+                          isVisible ? "text-slate-700" : "text-slate-500"
+                        }`}
+                      >
+                        {mountain.name}
+                      </h3>
+                      {!isVisible && (
+                        <span className="text-xs px-2 py-0.5 bg-slate-300 text-slate-600 rounded-full">
+                          画面外
+                        </span>
+                      )}
+                    </div>
+                    {mountain.elevation &&
+                      !Number.isNaN(mountain.elevation) && (
+                        <p
+                          className={`text-sm ${
+                            isVisible ? "text-slate-500" : "text-slate-400"
+                          }`}
+                        >
+                          標高: {mountain.elevation.toLocaleString()} m
+                        </p>
+                      )}
+                    {mountain.prefectures &&
+                      mountain.prefectures.length > 0 && (
+                        <p
+                          className={`text-sm ${
+                            isVisible ? "text-slate-500" : "text-slate-400"
+                          }`}
+                        >
+                          都道府県:{" "}
+                          {mountain.prefectures.map(p => p.name).join(", ")}
+                        </p>
+                      )}
                   </div>
-                )}
-                <div>
-                  <h3 className="font-bold text-slate-700">{mountain.name}</h3>
-                  {mountain.elevation && !Number.isNaN(mountain.elevation) && (
-                    <p className="text-sm text-slate-500">
-                      標高: {mountain.elevation.toLocaleString()} m
-                    </p>
-                  )}
-                  {mountain.prefectures && mountain.prefectures.length > 0 && (
-                    <p className="text-sm text-slate-500">
-                      都道府県:{" "}
-                      {mountain.prefectures.map(p => p.name).join(", ")}
-                    </p>
-                  )}
-                </div>
-              </button>
-            </li>
-          ))}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <div className="p-5 text-center text-slate-500"></div>

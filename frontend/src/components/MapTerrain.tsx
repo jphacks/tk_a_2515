@@ -93,7 +93,7 @@ export const MapTerrain = ({
   const mountainMarkersRef = useRef<Map<number, maplibregl.Marker>>(new Map());
 
   // イベントハンドラーの参照を保持（クリーンアップ用）
-  const mountainsEventHandlers = useRef<{
+  const _mountainsEventHandlers = useRef<{
     handleClick?: (
       e: maplibregl.MapMouseEvent & {
         features?: maplibregl.MapGeoJSONFeature[];
@@ -117,7 +117,7 @@ export const MapTerrain = ({
     handleMouseLeave?: () => void;
   }>({});
 
-  const bearsEventHandlers = useRef<{
+  const _bearsEventHandlers = useRef<{
     handleClick?: (
       e: maplibregl.MapMouseEvent & {
         features?: maplibregl.MapGeoJSONFeature[];
@@ -510,23 +510,23 @@ export const MapTerrain = ({
           16,
           5,
           20,
-          7,
+          6,
         ],
-        "circle-color": "#ffffff",
-        "circle-stroke-color": "#ff0000",
+        "circle-color": "#5a65ffff",
+        "circle-stroke-color": "#1660ffff",
         "circle-stroke-width": [
           "interpolate",
           ["linear"],
           ["zoom"],
           12,
-          2,
+          1,
           16,
-          3,
+          2,
           20,
-          4,
+          3,
         ],
-        "circle-opacity": 1,
-        "circle-stroke-opacity": 1,
+        "circle-opacity": 0.8,
+        "circle-stroke-opacity": 0.8,
       },
     });
 
@@ -715,7 +715,7 @@ export const MapTerrain = ({
           className: "custom-mountain-popup",
           maxWidth: "300px",
         })
-          .setLngLat([mountain.lon!, mountain.lat!])
+          .setLngLat([mountain.lon ?? 0, mountain.lat ?? 0])
           .setHTML(tooltipHtml)
           .addTo(m);
 
@@ -807,7 +807,7 @@ export const MapTerrain = ({
 
     // 座標を丸めてグループ化するヘルパー関数
     const roundCoordinate = (coord: number, precision: number = 6): number => {
-      const factor = Math.pow(10, precision);
+      const factor = 10 ** precision;
       return Math.round(coord * factor) / factor;
     };
 
@@ -821,7 +821,7 @@ export const MapTerrain = ({
       } else {
         return;
       }
-      const bearId = feature.properties!.id;
+      const bearId = feature.properties?.id;
       const bear = bears.find(b => b.id === bearId);
 
       if (!bear) return;
@@ -1330,22 +1330,8 @@ export const MapTerrain = ({
         zoom = 15;
       }
 
-      const pitch =
-        elevation >= 3000
-          ? 60
-          : elevation >= 2000
-            ? 45
-            : elevation >= 1000
-              ? 30
-              : 15;
-      const bearing =
-        elevation >= 3000
-          ? 45
-          : elevation >= 2000
-            ? 30
-            : elevation >= 1000
-              ? 15
-              : 0;
+      const pitch = 0;
+      const bearing = 0;
 
       const duration =
         elevation >= 3000 ? 3500 : elevation >= 2000 ? 3000 : 2500;
