@@ -11,6 +11,203 @@ DOMAIN_URL = "https://cyberjapandata.gsi.go.jp/xyz/dem/"
 DEFAULT_ZOOM = 14
 
 
+def a_contains_b(
+    a_min_lon: float,
+    a_min_lat: float,
+    a_max_lon: float,
+    a_max_lat: float,
+    b_min_lon: float,
+    b_min_lat: float,
+    b_max_lon: float,
+    b_max_lat: float,
+) -> bool:
+    return (
+        a_min_lon <= b_min_lon
+        and a_min_lat <= b_min_lat
+        and a_max_lon >= b_max_lon
+        and a_max_lat >= b_max_lat
+    )
+
+
+def a_contains_only_left_down_corner_of_b(
+    a_min_lon: float,
+    a_min_lat: float,
+    a_max_lon: float,
+    a_max_lat: float,
+    b_min_lon: float,
+    b_min_lat: float,
+    b_max_lon: float,
+    b_max_lat: float,
+) -> bool:
+    return (
+        a_min_lon <= b_min_lon
+        and a_min_lat <= b_min_lat
+        and a_max_lon >= b_min_lon
+        and a_max_lat >= b_min_lat
+        and a_max_lon <= b_max_lon
+        and a_max_lat <= b_max_lat
+    )
+
+
+def a_contains_only_left_up_corner_of_b(
+    a_min_lon: float,
+    a_min_lat: float,
+    a_max_lon: float,
+    a_max_lat: float,
+    b_min_lon: float,
+    b_min_lat: float,
+    b_max_lon: float,
+    b_max_lat: float,
+) -> bool:
+    return (
+        a_min_lon >= b_min_lon
+        and a_min_lat >= b_min_lat
+        and a_max_lon >= b_max_lon
+        and a_max_lat >= b_max_lat
+        and a_min_lon <= b_max_lon
+        and a_min_lat <= b_max_lat
+    )
+
+
+def a_contains_left_edge_of_b(
+    a_min_lon: float,
+    a_min_lat: float,
+    a_max_lon: float,
+    a_max_lat: float,
+    b_min_lon: float,
+    b_min_lat: float,
+    b_max_lon: float,
+    b_max_lat: float,
+) -> bool:
+    return (
+        a_min_lon <= b_min_lon
+        and a_min_lat <= b_min_lat
+        and a_max_lon >= b_min_lon
+        and a_max_lon <= b_max_lon
+        and a_max_lat >= b_max_lat
+    )
+
+
+def a_contains_bottom_edge_of_b(
+    a_min_lon: float,
+    a_min_lat: float,
+    a_max_lon: float,
+    a_max_lat: float,
+    b_min_lon: float,
+    b_min_lat: float,
+    b_max_lon: float,
+    b_max_lat: float,
+) -> bool:
+    return (
+        a_min_lon <= b_min_lon
+        and a_min_lat <= b_min_lat
+        and a_max_lon >= b_max_lon
+        and a_max_lat >= b_min_lat
+        and a_max_lat <= b_max_lat
+    )
+
+
+def a_contains_upper_edge_of_b(
+    a_min_lon: float,
+    a_min_lat: float,
+    a_max_lon: float,
+    a_max_lat: float,
+    b_min_lon: float,
+    b_min_lat: float,
+    b_max_lon: float,
+    b_max_lat: float,
+) -> bool:
+    return (
+        a_min_lon <= b_min_lon
+        and a_min_lat >= b_min_lat
+        and a_min_lat <= b_max_lat
+        and a_max_lon >= b_max_lon
+        and a_max_lat >= b_max_lat
+    )
+
+
+def calc_necessary_bbox(
+    min_lon: float,
+    min_lat: float,
+    max_lon: float,
+    max_lat: float,
+    pre_min_lon: float,
+    pre_min_lat: float,
+    pre_max_lon: float,
+    pre_max_lat: float,
+) -> list[tuple[float, float, float, float]]:
+    a = (min_lon, min_lat, max_lon, max_lat)
+    b = (pre_min_lon, pre_min_lat, pre_max_lon, pre_max_lat)
+
+    if a_contains_b(*b, *a):
+        return []
+
+    if a_contains_b(*a, *b):
+        return [(min_lon, min_lat, max_lon, max_lat)]
+
+    if a_contains_only_left_down_corner_of_b(*a, *b):
+        return [
+            (min_lon, min_lat, pre_min_lon, max_lat),
+            (pre_min_lon, min_lat, max_lon, pre_min_lat),
+        ]
+
+    if a_contains_only_left_down_corner_of_b(*b, *a):
+        return [
+            (pre_max_lon, min_lat, max_lon, max_lat),
+            (min_lon, pre_max_lat, pre_max_lon, max_lat),
+        ]
+
+    if a_contains_only_left_up_corner_of_b(*a, *b):
+        return [
+            (min_lon, min_lat, pre_min_lon, max_lat),
+            (pre_min_lon, pre_max_lat, max_lon, max_lat),
+        ]
+
+    if a_contains_only_left_up_corner_of_b(*b, *a):
+        return [
+            (min_lon, min_lat, max_lon, pre_min_lat),
+            (pre_max_lon, min_lat, max_lon, max_lat),
+        ]
+
+    if a_contains_left_edge_of_b(*a, *b):
+        return [
+            (min_lon, min_lat, pre_min_lon, max_lat),
+            (pre_min_lon, min_lat, max_lon, pre_max_lat),
+            (pre_min_lon, pre_max_lat, max_lon, max_lat),
+        ]
+
+    if a_contains_left_edge_of_b(*b, *a):
+        return [
+            (pre_max_lon, min_lat, max_lon, max_lat),
+        ]
+
+    if a_contains_bottom_edge_of_b(*a, *b):
+        return [
+            (min_lon, min_lat, max_lon, pre_min_lat),
+            (min_lon, pre_min_lat, pre_min_lon, max_lat),
+            (pre_max_lon, pre_min_lat, max_lon, max_lat),
+        ]
+
+    if a_contains_bottom_edge_of_b(*b, *a):
+        return [
+            (min_lon, pre_max_lat, max_lon, max_lat),
+        ]
+
+    if a_contains_upper_edge_of_b(*a, *b):
+        return [
+            (min_lon, pre_max_lat, max_lon, max_lat),
+            (min_lon, min_lat, pre_min_lon, pre_max_lat),
+            (pre_max_lon, min_lat, max_lon, pre_max_lat),
+        ]
+
+    if a_contains_upper_edge_of_b(*b, *a):
+        return [
+            (min_lon, min_lat, max_lon, pre_min_lat),
+        ]
+
+    return [(min_lon, min_lat, max_lon, max_lat)]
+
+
 def fetch_dem_data(
     z: int, x: int, y: int, cache_dir: str = "/app/datas/dem_cache"
 ) -> dict | None:
