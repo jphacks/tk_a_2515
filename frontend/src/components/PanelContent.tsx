@@ -12,15 +12,15 @@ import ElevationChart from "./ElevationChart";
 type Props = {
   mountains: Mountain[];
   selectedMountain: Mountain | null;
-  selectedPath?: PathDetail | null;
-  selectedBear?: BearSighting | null;
+  selectedPath: PathDetail | null;
+  selectedBear: BearSighting | null;
   onSelectMountain: (mountain: Mountain) => void;
-  onSelectPath?: (path: Path) => void;
-  onSelectBear?: (bear: BearSighting) => void;
+  onSelectPath: (path: Path) => void;
+  onSelectBear: (bear: BearSighting) => void;
   onClearSelection: () => void;
-  onHoverPointChange?: (point: { lat: number; lon: number } | null) => void;
-  isFavorite?: (mountainId: number) => boolean;
-  onToggleFavorite?: (mountain: Mountain) => void;
+  onHoverPointChange: (point: { lat: number; lon: number } | null) => void;
+  isFavorite: (mountainId: number) => boolean;
+  onToggleFavorite: (mountain: Mountain) => void;
 };
 
 export default function PanelContent({
@@ -80,18 +80,18 @@ export default function PanelContent({
             <ArrowLeft className="h-4 w-4" />
             山の一覧に戻る
           </button>
-            <button
-              type="button"
-              onClick={() => onToggleFavorite!(selectedMountain)}
-              className={`flex items-center gap-2 px-2 py-1 rounded-lg font-semibold text-base transition-colors cursor-pointer ${
-                isFav
-                  ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              <Heart className={`h-4 w-4 ${isFav ? "fill-current" : ""}`} />
-              {isFav ? "お気に入り解除" : "お気に入り登録"}
-            </button>
+          <button
+            type="button"
+            onClick={() => onToggleFavorite(selectedMountain)}
+            className={`flex items-center gap-2 px-2 py-1 rounded-lg font-semibold text-base transition-colors cursor-pointer ${
+              isFav
+                ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            <Heart className={`h-4 w-4 ${isFav ? "fill-current" : ""}`} />
+            {isFav ? "お気に入り解除" : "お気に入り登録"}
+          </button>
         </div>
         <div className="aspect-video bg-slate-200 rounded-lg mb-4 flex items-center justify-center">
           {selectedMountain.photo_url ? (

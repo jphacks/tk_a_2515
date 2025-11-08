@@ -23,7 +23,7 @@ export function useFavorites() {
     setFavorites(prev => {
       const exists = prev.some(m => m.id === mountain.id);
       if (exists) return prev;
-      
+
       const updated = [...prev, mountain];
       localStorage.setItem(FAVORITES_KEY, JSON.stringify(updated));
       return updated;

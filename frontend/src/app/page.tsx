@@ -198,7 +198,9 @@ export default function HomePage() {
           selectedBear={selectedBear}
           hoveredPoint={hoveredPoint}
           showOnlyFavorites={showOnlyFavorites}
-          onToggleShowOnlyFavorites={() => setShowOnlyFavorites(!showOnlyFavorites)}
+          onToggleShowOnlyFavorites={() =>
+            setShowOnlyFavorites(!showOnlyFavorites)
+          }
           favoriteIds={favoriteIds}
         />
       </main>

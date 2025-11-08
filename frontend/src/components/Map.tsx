@@ -98,7 +98,9 @@ export const MapPageClient = ({
             type="button"
             onClick={onToggleShowOnlyFavorites}
             className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 transition-colors rounded text-sm cursor-pointer ${
-              showOnlyFavorites ? "bg-yellow-50 text-yellow-700" : "text-gray-700"
+              showOnlyFavorites
+                ? "bg-yellow-50 text-yellow-700"
+                : "text-gray-700"
             }`}
           >
             <svg
@@ -107,6 +109,7 @@ export const MapPageClient = ({
               fill="currentColor"
               className={`w-5 h-5 ${showOnlyFavorites ? "text-yellow-500" : "text-gray-400"}`}
             >
+              <title>Show only favorites</title>
               <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
             </svg>
             お気に入りのみ
@@ -142,9 +145,31 @@ export const MapPageClient = ({
           <div className="p-3 text-sm border-t">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
-                  <circle cx="50" cy="50" r="48" fill="#4e8fdf" stroke="white" strokeWidth="4"/>
-                  <text x="50" y="50" fontSize="48" textAnchor="middle" dominantBaseline="central" fill="white">⛰️</text>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 100 100"
+                  width="100%"
+                  height="100%"
+                >
+                  <title>山頂</title>
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="48"
+                    fill="#4e8fdf"
+                    stroke="white"
+                    strokeWidth="4"
+                  />
+                  <text
+                    x="50"
+                    y="50"
+                    fontSize="48"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill="white"
+                  >
+                    ⛰️
+                  </text>
                 </svg>
               </div>
               <span className="text-xs">山頂（標高に応じた色）</span>
@@ -161,9 +186,31 @@ export const MapPageClient = ({
             </div>
             <div className="flex items-center gap-2 mb-2">
               <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
-                  <circle cx="50" cy="50" r="48" fill="#D97706" stroke="white" strokeWidth="4"/>
-                  <text x="50" y="50" fontSize="48" textAnchor="middle" dominantBaseline="central" fill="white">🐻</text>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 100 100"
+                  width="100%"
+                  height="100%"
+                >
+                  <title>クマ</title>
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="48"
+                    fill="#D97706"
+                    stroke="white"
+                    strokeWidth="4"
+                  />
+                  <text
+                    x="50"
+                    y="50"
+                    fontSize="48"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill="white"
+                  >
+                    🐻
+                  </text>
                 </svg>
               </div>
               <span className="text-xs">クマ目撃情報</span>
@@ -171,23 +218,38 @@ export const MapPageClient = ({
             <div className="mt-2 pt-2 border-t text-xs text-gray-600">
               <div className="mb-1">標高による色分け</div>
               <div className="flex items-center gap-1 text-[10px]">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ff6b6b" }}></div>
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: "#ff6b6b" }}
+                ></div>
                 <span>～1000m</span>
               </div>
               <div className="flex items-center gap-1 text-[10px]">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ff8e53" }}></div>
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: "#ff8e53" }}
+                ></div>
                 <span>1000～2000m</span>
               </div>
               <div className="flex items-center gap-1 text-[10px]">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ff6b9d" }}></div>
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: "#ff6b9d" }}
+                ></div>
                 <span>2000～3000m</span>
               </div>
               <div className="flex items-center gap-1 text-[10px]">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#845ec2" }}></div>
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: "#845ec2" }}
+                ></div>
                 <span>3000～4000m</span>
               </div>
               <div className="flex items-center gap-1 text-[10px]">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#4e8fdf" }}></div>
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: "#4e8fdf" }}
+                ></div>
                 <span>4000m～</span>
               </div>
             </div>

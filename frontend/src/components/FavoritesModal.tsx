@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useId } from "react";
 import type { Mountain } from "@/app/api/lib/models";
 
 type Props = {
@@ -15,9 +16,24 @@ export default function FavoritesModal({
   onClose,
   onSelectMountain,
 }: Props) {
+  const titleId = useId();
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: Modal backdrop for closing
+    // biome-ignore lint/a11y/useKeyWithClickEvents: Keyboard interaction handled via useEffect
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm"
       onClick={onClose}
@@ -25,9 +41,15 @@ export default function FavoritesModal({
       <div
         className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col"
         onClick={e => e.stopPropagation()}
+        onKeyDown={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
       >
         <div className="flex items-center justify-between p-5 border-b border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-800">お気に入りの山</h2>
+          <h2 id={titleId} className="text-2xl font-bold text-slate-800">
+            お気に入りの山
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -40,7 +62,9 @@ export default function FavoritesModal({
           {favorites.length === 0 ? (
             <div className="p-8 text-center text-slate-500">
               <p className="text-lg mb-2">お気に入りの山はまだありません</p>
-              <p className="text-sm">山の詳細ページからお気に入りに追加できます</p>
+              <p className="text-sm">
+                山の詳細ページからお気に入りに追加できます
+              </p>
             </div>
           ) : (
             <ul className="divide-y divide-slate-100">
@@ -68,18 +92,22 @@ export default function FavoritesModal({
                       </div>
                     )}
                     <div>
-                      <h3 className="font-bold text-slate-700">{mountain.name}</h3>
-                      {mountain.elevation && !Number.isNaN(mountain.elevation) && (
-                        <p className="text-sm text-slate-500">
-                          標高: {mountain.elevation.toLocaleString()} m
-                        </p>
-                      )}
-                      {mountain.prefectures && mountain.prefectures.length > 0 && (
-                        <p className="text-sm text-slate-500">
-                          都道府県:{" "}
-                          {mountain.prefectures.map(p => p.name).join(", ")}
-                        </p>
-                      )}
+                      <h3 className="font-bold text-slate-700">
+                        {mountain.name}
+                      </h3>
+                      {mountain.elevation &&
+                        !Number.isNaN(mountain.elevation) && (
+                          <p className="text-sm text-slate-500">
+                            標高: {mountain.elevation.toLocaleString()} m
+                          </p>
+                        )}
+                      {mountain.prefectures &&
+                        mountain.prefectures.length > 0 && (
+                          <p className="text-sm text-slate-500">
+                            都道府県:{" "}
+                            {mountain.prefectures.map(p => p.name).join(", ")}
+                          </p>
+                        )}
                     </div>
                   </button>
                 </li>

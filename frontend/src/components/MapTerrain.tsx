@@ -145,7 +145,7 @@ export const MapTerrain = ({
       .join("|");
   }, [paths]);
 
-  const mountainsHash = useMemo((): string => {
+  const _mountainsHash = useMemo((): string => {
     if (!mountains || mountains.length === 0) return "empty";
     return mountains
       .map(m => `${m.id}-${m.lon}-${m.lat}-${m.elevation}`)
@@ -444,7 +444,7 @@ export const MapTerrain = ({
   }, [mountains, showOnlyFavorites, favoriteIds]);
 
   // 山データをGeoJSON形式に変換（フィルタリング適用）
-  const mountainsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
+  const _mountainsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
     const features = displayMountains
       .filter(
         mountain =>
@@ -495,7 +495,7 @@ export const MapTerrain = ({
     };
 
     // フィルタリングされた山にマーカーを追加
-    displayMountains.forEach((mountain) => {
+    displayMountains.forEach(mountain => {
       if (
         mountain.lon === null ||
         mountain.lon === undefined ||
@@ -510,17 +510,17 @@ export const MapTerrain = ({
       const isSelected = selectedMountainIdRef.current === mountain.id;
 
       // マーカーのコンテナ要素を作成
-      const container = document.createElement('div');
-      container.style.display = 'flex';
-      container.style.flexDirection = 'column';
-      container.style.alignItems = 'center';
-      container.style.cursor = 'pointer';
-      container.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+      container.style.alignItems = "center";
+      container.style.cursor = "pointer";
+      container.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
 
       // SVGマーカー要素を作成
-      const el = document.createElement('div');
-      el.className = 'mountain-marker';
-      el.style.transition = 'all 0.2s ease';
+      const el = document.createElement("div");
+      el.className = "mountain-marker";
+      el.style.transition = "all 0.2s ease";
 
       // 選択状態に応じてサイズを変更
       const size = isSelected ? 32 : 24;
@@ -536,47 +536,47 @@ export const MapTerrain = ({
       `;
 
       // ラベル要素を作成
-      const label = document.createElement('div');
-      label.className = 'mountain-label';
+      const label = document.createElement("div");
+      label.className = "mountain-label";
       label.textContent = mountain.name;
-      label.style.marginTop = '2px';
-      label.style.fontSize = '10px';
-      label.style.fontWeight = 'bold';
-      label.style.color = '#333';
-      label.style.textShadow = '0 0 3px white, 0 0 3px white, 0 0 3px white';
-      label.style.whiteSpace = 'nowrap';
-      label.style.pointerEvents = 'none';
-      label.style.userSelect = 'none';
-      label.style.maxWidth = '100px';
-      label.style.overflow = 'hidden';
-      label.style.textOverflow = 'ellipsis';
+      label.style.marginTop = "2px";
+      label.style.fontSize = "10px";
+      label.style.fontWeight = "bold";
+      label.style.color = "#333";
+      label.style.textShadow = "0 0 3px white, 0 0 3px white, 0 0 3px white";
+      label.style.whiteSpace = "nowrap";
+      label.style.pointerEvents = "none";
+      label.style.userSelect = "none";
+      label.style.maxWidth = "100px";
+      label.style.overflow = "hidden";
+      label.style.textOverflow = "ellipsis";
 
       container.appendChild(el);
       container.appendChild(label);
 
       // ホバー効果
-      container.addEventListener('mouseenter', () => {
+      container.addEventListener("mouseenter", () => {
         if (!isSelected) {
-          el.style.width = '32px';
-          el.style.height = '32px';
-          container.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))';
-          m.getCanvas().style.cursor = 'pointer';
+          el.style.width = "32px";
+          el.style.height = "32px";
+          container.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.4))";
+          m.getCanvas().style.cursor = "pointer";
         }
       });
 
-      container.addEventListener('mouseleave', () => {
+      container.addEventListener("mouseleave", () => {
         if (!isSelected) {
-          el.style.width = '24px';
-          el.style.height = '24px';
-          container.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
-          m.getCanvas().style.cursor = '';
+          el.style.width = "24px";
+          el.style.height = "24px";
+          container.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+          m.getCanvas().style.cursor = "";
         }
       });
 
       // クリックイベント
-      container.addEventListener('click', (e) => {
+      container.addEventListener("click", e => {
         e.stopPropagation();
-        
+
         // 既存のポップアップを削除
         const existingPopups = document.querySelectorAll(".maplibregl-popup");
         for (const popup of existingPopups) {
@@ -588,16 +588,18 @@ export const MapTerrain = ({
         // すべてのマーカーのサイズをリセット
         for (const [id, marker] of mountainMarkersRef.current.entries()) {
           const markerEl = marker.getElement();
-          const iconEl = markerEl.querySelector('.mountain-marker') as HTMLElement;
+          const iconEl = markerEl.querySelector(
+            ".mountain-marker",
+          ) as HTMLElement;
           if (iconEl) {
             if (id === mountain.id) {
-              iconEl.style.width = '32px';
-              iconEl.style.height = '32px';
-              markerEl.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))';
+              iconEl.style.width = "32px";
+              iconEl.style.height = "32px";
+              markerEl.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.5))";
             } else {
-              iconEl.style.width = '24px';
-              iconEl.style.height = '24px';
-              markerEl.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+              iconEl.style.width = "24px";
+              iconEl.style.height = "24px";
+              markerEl.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
             }
           }
         }
@@ -655,7 +657,7 @@ export const MapTerrain = ({
   }, [displayMountains, onSelectMountain, cleanupMountainsListeners]);
 
   // クマデータをGeoJSON形式に変換（山のパターンを完全に模倣）
-  const bearsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
+  const _bearsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
     const features = bears
       .filter(
         bear =>
@@ -700,8 +702,8 @@ export const MapTerrain = ({
       // ズームレベル10: 約500m、15: 約100m、20: 約20m
       if (zoom >= 18) return 0.0005; // 約20m
       if (zoom >= 16) return 0.001; // 約50m
-      if (zoom >= 14) return 0.002;  // 約100m
-      if (zoom >= 12) return 0.005;  // 約200m
+      if (zoom >= 14) return 0.002; // 約100m
+      if (zoom >= 12) return 0.005; // 約200m
       return 0.01; // 約400m
     };
 
@@ -709,7 +711,7 @@ export const MapTerrain = ({
 
     // 同じ位置にあるクマをグループ化
     const locationGroups = new Map<string, BearSighting[]>();
-    bears.forEach((bear) => {
+    bears.forEach(bear => {
       if (
         bear.longitude === null ||
         bear.longitude === undefined ||
@@ -726,7 +728,7 @@ export const MapTerrain = ({
 
     // 各グループについてマーカーを配置
     locationGroups.forEach((bearGroup, locationKey) => {
-      const [lonStr, latStr] = locationKey.split(',');
+      const [lonStr, latStr] = locationKey.split(",");
       const baseLon = Number.parseFloat(lonStr);
       const baseLat = Number.parseFloat(latStr);
 
@@ -757,17 +759,17 @@ export const MapTerrain = ({
       const isSelected = selectedBearIdRef.current === bear.id;
 
       // マーカーのコンテナ要素を作成
-      const container = document.createElement('div');
-      container.style.display = 'flex';
-      container.style.flexDirection = 'column';
-      container.style.alignItems = 'center';
-      container.style.cursor = 'pointer';
-      container.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+      container.style.alignItems = "center";
+      container.style.cursor = "pointer";
+      container.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
 
       // SVGマーカー要素を作成
-      const el = document.createElement('div');
-      el.className = 'bear-marker';
-      el.style.transition = 'all 0.2s ease';
+      const el = document.createElement("div");
+      el.className = "bear-marker";
+      el.style.transition = "all 0.2s ease";
 
       const size = isSelected ? 32 : 24;
       el.style.width = `${size}px`;
@@ -782,61 +784,61 @@ export const MapTerrain = ({
       `;
 
       // ラベル要素を作成（市区町村名を表示）
-      const label = document.createElement('div');
-      label.className = 'bear-label';
+      const label = document.createElement("div");
+      label.className = "bear-label";
       label.textContent = bear.city || bear.prefecture;
-      label.style.marginTop = '2px';
-      label.style.fontSize = '10px';
-      label.style.fontWeight = 'bold';
-      label.style.color = '#D97706';
-      label.style.textShadow = '0 0 3px white, 0 0 3px white, 0 0 3px white';
-      label.style.whiteSpace = 'nowrap';
-      label.style.pointerEvents = 'none';
-      label.style.userSelect = 'none';
-      label.style.maxWidth = '100px';
-      label.style.overflow = 'hidden';
-      label.style.textOverflow = 'ellipsis';
+      label.style.marginTop = "2px";
+      label.style.fontSize = "10px";
+      label.style.fontWeight = "bold";
+      label.style.color = "#D97706";
+      label.style.textShadow = "0 0 3px white, 0 0 3px white, 0 0 3px white";
+      label.style.whiteSpace = "nowrap";
+      label.style.pointerEvents = "none";
+      label.style.userSelect = "none";
+      label.style.maxWidth = "100px";
+      label.style.overflow = "hidden";
+      label.style.textOverflow = "ellipsis";
 
       container.appendChild(el);
       container.appendChild(label);
 
       // ホバー効果
-      container.addEventListener('mouseenter', () => {
+      container.addEventListener("mouseenter", () => {
         if (!isSelected) {
-          el.style.width = '32px';
-          el.style.height = '32px';
-          container.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))';
-          m.getCanvas().style.cursor = 'pointer';
+          el.style.width = "32px";
+          el.style.height = "32px";
+          container.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.4))";
+          m.getCanvas().style.cursor = "pointer";
         }
       });
 
-      container.addEventListener('mouseleave', () => {
+      container.addEventListener("mouseleave", () => {
         if (!isSelected) {
-          el.style.width = '24px';
-          el.style.height = '24px';
-          container.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
-          m.getCanvas().style.cursor = '';
+          el.style.width = "24px";
+          el.style.height = "24px";
+          container.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+          m.getCanvas().style.cursor = "";
         }
       });
 
       // クリックイベント
-      container.addEventListener('click', (e) => {
+      container.addEventListener("click", e => {
         e.stopPropagation();
         selectedBearIdRef.current = bear.id;
 
         // すべてのマーカーのサイズをリセット
         for (const [id, marker] of bearMarkersRef.current.entries()) {
           const markerEl = marker.getElement();
-          const iconEl = markerEl.querySelector('.bear-marker') as HTMLElement;
+          const iconEl = markerEl.querySelector(".bear-marker") as HTMLElement;
           if (iconEl) {
             if (id === bear.id) {
-              iconEl.style.width = '32px';
-              iconEl.style.height = '32px';
-              markerEl.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))';
+              iconEl.style.width = "32px";
+              iconEl.style.height = "32px";
+              markerEl.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.5))";
             } else {
-              iconEl.style.width = '24px';
-              iconEl.style.height = '24px';
-              markerEl.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+              iconEl.style.width = "24px";
+              iconEl.style.height = "24px";
+              markerEl.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
             }
           }
         }
@@ -1132,7 +1134,10 @@ export const MapTerrain = ({
       const hasChanged = displayMountainsHash !== previousMountainsHash.current;
 
       // showOnlyFavoritesがtrueの場合は常に更新
-      if (displayMountainsHash !== "empty" && (isFirstLoad || hasChanged || showOnlyFavorites)) {
+      if (
+        displayMountainsHash !== "empty" &&
+        (isFirstLoad || hasChanged || showOnlyFavorites)
+      ) {
         console.log("[MapTerrain] Mountains data changed, updating...", {
           mountainCount: displayMountains.length,
           isFirstLoad,
@@ -1163,7 +1168,13 @@ export const MapTerrain = ({
         animationFrameIdsRef.current.add(frameId);
       }
     }
-  }, [displayMountainsHash, displayMountains.length, addOrUpdateMountains, showOnlyFavorites, favoriteIds]);
+  }, [
+    displayMountainsHash,
+    displayMountains.length,
+    addOrUpdateMountains,
+    showOnlyFavorites,
+    favoriteIds,
+  ]);
 
   // クマデータ変更時の処理
   useEffect(() => {
@@ -1262,16 +1273,16 @@ export const MapTerrain = ({
       // すべてのマーカーのサイズを更新
       for (const [id, marker] of mountainMarkersRef.current.entries()) {
         const el = marker.getElement();
-        const iconEl = el.querySelector('.mountain-marker') as HTMLElement;
+        const iconEl = el.querySelector(".mountain-marker") as HTMLElement;
         if (iconEl) {
           if (id === selectedMountain.id) {
-            iconEl.style.width = '32px';
-            iconEl.style.height = '32px';
-            el.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))';
+            iconEl.style.width = "32px";
+            iconEl.style.height = "32px";
+            el.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.5))";
           } else {
-            iconEl.style.width = '24px';
-            iconEl.style.height = '24px';
-            el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+            iconEl.style.width = "24px";
+            iconEl.style.height = "24px";
+            el.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
           }
         }
       }
@@ -1280,15 +1291,15 @@ export const MapTerrain = ({
     } else {
       // 選択解除時
       selectedMountainIdRef.current = null;
-      
+
       // すべてのマーカーを通常サイズに戻す
       for (const marker of mountainMarkersRef.current.values()) {
         const el = marker.getElement();
-        const iconEl = el.querySelector('.mountain-marker') as HTMLElement;
+        const iconEl = el.querySelector(".mountain-marker") as HTMLElement;
         if (iconEl) {
-          iconEl.style.width = '24px';
-          iconEl.style.height = '24px';
-          el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+          iconEl.style.width = "24px";
+          iconEl.style.height = "24px";
+          el.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
         }
       }
     }
@@ -1304,16 +1315,16 @@ export const MapTerrain = ({
       // すべてのマーカーのサイズを更新
       for (const [id, marker] of bearMarkersRef.current.entries()) {
         const el = marker.getElement();
-        const iconEl = el.querySelector('.bear-marker') as HTMLElement;
+        const iconEl = el.querySelector(".bear-marker") as HTMLElement;
         if (iconEl) {
           if (id === selectedBear.id) {
-            iconEl.style.width = '32px';
-            iconEl.style.height = '32px';
-            el.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))';
+            iconEl.style.width = "32px";
+            iconEl.style.height = "32px";
+            el.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.5))";
           } else {
-            iconEl.style.width = '24px';
-            iconEl.style.height = '24px';
-            el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+            iconEl.style.width = "24px";
+            iconEl.style.height = "24px";
+            el.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
           }
         }
       }
@@ -1323,11 +1334,11 @@ export const MapTerrain = ({
       // すべてのマーカーを通常サイズに戻す
       for (const marker of bearMarkersRef.current.values()) {
         const el = marker.getElement();
-        const iconEl = el.querySelector('.bear-marker') as HTMLElement;
+        const iconEl = el.querySelector(".bear-marker") as HTMLElement;
         if (iconEl) {
-          iconEl.style.width = '24px';
-          iconEl.style.height = '24px';
-          el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+          iconEl.style.width = "24px";
+          iconEl.style.height = "24px";
+          el.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
         }
       }
     }
@@ -1507,7 +1518,7 @@ export const MapTerrain = ({
           >
             <title>Toggle 2D/3D View</title>
             <path d="M288.3 61.5C308.1 50.1 332.5 50.1 352.3 61.5L528.2 163C548 174.4 560.2 195.6 560.2 218.4L560.2 421.4C560.2 444.3 548 465.4 528.2 476.8L352.3 578.5C332.5 589.9 308.1 589.9 288.3 578.5L112.5 477C92.7 465.6 80.5 444.4 80.5 421.6L80.5 218.6C80.5 195.7 92.7 174.6 112.5 163.2L288.3 61.5zM496.1 421.5L496.1 255.4L352.3 338.4L352.3 504.5L496.1 421.5z" />
-        </svg>
+          </svg>
         </button>
       </div>
     </div>
