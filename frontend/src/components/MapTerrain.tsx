@@ -1197,12 +1197,12 @@ export const MapTerrain = ({
       const hasChanged = pathsHash !== previousPathsHash.current;
 
       if (pathsHash !== "empty" && (isFirstLoad || hasChanged)) {
-        console.log("[MapTerrain] Paths data changed, updating...", {
-          pathCount: paths.length,
-          isFirstLoad,
-          previousHash: previousPathsHash.current.substring(0, 50) || "(empty)",
-          currentHash: pathsHash.substring(0, 50),
-        });
+        // console.log("[MapTerrain] Paths data changed, updating...", {
+        //   pathCount: paths.length,
+        //   isFirstLoad,
+        //   previousHash: previousPathsHash.current.substring(0, 50) || "(empty)",
+        //   currentHash: pathsHash.substring(0, 50),
+        // });
 
         // 次のフレームで更新を実行
         const frameId = requestAnimationFrame(() => {
@@ -1224,7 +1224,7 @@ export const MapTerrain = ({
         animationFrameIdsRef.current.add(frameId);
       }
     }
-  }, [pathsHash, paths.length, addOrUpdatePaths]);
+  }, [pathsHash, addOrUpdatePaths]);
 
   // 山データ変更時の処理（ハッシュベースで変更検知）
   // displayMountainsの変更を検知するためのハッシュを生成
@@ -1252,15 +1252,15 @@ export const MapTerrain = ({
         displayMountainsHash !== "empty" &&
         (isFirstLoad || hasChanged || showOnlyFavorites)
       ) {
-        console.log("[MapTerrain] Mountains data changed, updating...", {
-          mountainCount: displayMountains.length,
-          isFirstLoad,
-          showOnlyFavorites,
-          favoriteCount: favoriteIds?.size || 0,
-          previousHash:
-            previousMountainsHash.current.substring(0, 50) || "(empty)",
-          currentHash: displayMountainsHash.substring(0, 50),
-        });
+        // console.log("[MapTerrain] Mountains data changed, updating...", {
+        //   mountainCount: displayMountains.length,
+        //   isFirstLoad,
+        //   showOnlyFavorites,
+        //   favoriteCount: favoriteIds?.size || 0,
+        //   previousHash:
+        //     previousMountainsHash.current.substring(0, 50) || "(empty)",
+        //   currentHash: displayMountainsHash.substring(0, 50),
+        // });
 
         // 次のフレームで更新を実行
         const frameId = requestAnimationFrame(() => {
@@ -1282,22 +1282,16 @@ export const MapTerrain = ({
         animationFrameIdsRef.current.add(frameId);
       }
     }
-  }, [
-    displayMountainsHash,
-    displayMountains.length,
-    addOrUpdateMountains,
-    showOnlyFavorites,
-    favoriteIds,
-  ]);
+  }, [displayMountainsHash, addOrUpdateMountains, showOnlyFavorites]);
 
   // クマデータ変更時の処理
   useEffect(() => {
     if (!map.current || !isMountedRef.current) return;
     if (bears.length === 0) return;
 
-    console.log("[MapTerrain] Bears data loaded, adding markers...", {
-      bearCount: bears.length,
-    });
+    // console.log("[MapTerrain] Bears data loaded, adding markers...", {
+    //   bearCount: bears.length,
+    // });
 
     const frameId = requestAnimationFrame(() => {
       animationFrameIdsRef.current.delete(frameId);
