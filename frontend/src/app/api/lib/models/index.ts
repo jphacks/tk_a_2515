@@ -80,6 +80,7 @@ export * from "./pathDetailPathId";
 export * from "./pathGeometriesItem";
 export * from "./pathGeometry";
 export * from "./pathGeometryId";
+export * from "./pathGeometryWithSequence";
 export * from "./pathId";
 export * from "./pathList";
 export * from "./pathMaxlat";

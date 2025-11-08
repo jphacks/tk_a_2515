@@ -217,9 +217,7 @@ export const MapTerrain = ({
   const pathsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
     const features = paths.map((path, _) => {
       const geometries = path.geometries || [];
-      const sortedGeometries = [...geometries].sort(
-        (a, b) => a.sequence - b.sequence,
-      );
+      // geometriesは既にsequence順にソート済み（through modelから取得）
       return {
         type: "Feature" as const,
         properties: {
@@ -227,13 +225,62 @@ export const MapTerrain = ({
         },
         geometry: {
           type: "LineString" as const,
-          coordinates: sortedGeometries.map(geometry => [
-            geometry.lon,
-            geometry.lat,
-          ]),
+          coordinates: geometries.map(geometry => [geometry.lon, geometry.lat]),
         },
       };
     });
+
+    return {
+      type: "FeatureCollection",
+      features,
+    };
+  }, [paths]);
+
+  // パスの端点をGeoJSON形式に変換（始点と終点）
+  const pathEndpointsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
+    const features: GeoJSON.Feature[] = [];
+
+    for (const path of paths) {
+      const geometries = path.geometries || [];
+      if (geometries.length === 0) continue;
+
+      // geometriesは既にsequence順にソート済み
+      const sortedGeometries = geometries;
+
+      // 始点
+      const firstGeom = sortedGeometries[0];
+      if (firstGeom) {
+        features.push({
+          type: "Feature",
+          properties: {
+            pathId: path.id,
+            geometryId: firstGeom.id,
+            type: "start",
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [firstGeom.lon, firstGeom.lat],
+          },
+        });
+      }
+
+      // 終点
+      const lastGeom = sortedGeometries[sortedGeometries.length - 1];
+      if (lastGeom && sortedGeometries.length > 1) {
+        features.push({
+          type: "Feature",
+          properties: {
+            pathId: path.id,
+            geometryId: lastGeom.id,
+            type: "end",
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [lastGeom.lon, lastGeom.lat],
+          },
+        });
+      }
+    }
 
     return {
       type: "FeatureCollection",
@@ -249,10 +296,14 @@ export const MapTerrain = ({
     // ズームレベルが閾値未満の場合はレイヤーを削除
     if (m.getZoom() < ZOOM_LEVEL_THRESHOLD) {
       cleanupPathsListeners();
+      if (m.getLayer("paths-endpoints-layer"))
+        m.removeLayer("paths-endpoints-layer");
       if (m.getLayer("paths-layer-selected"))
         m.removeLayer("paths-layer-selected");
       if (m.getLayer("paths-layer-hitbox")) m.removeLayer("paths-layer-hitbox");
       if (m.getLayer("paths-layer")) m.removeLayer("paths-layer");
+      if (m.getSource("paths-endpoints-source"))
+        m.removeSource("paths-endpoints-source");
       if (m.getSource("paths-source")) m.removeSource("paths-source");
       return;
     }
@@ -314,10 +365,16 @@ export const MapTerrain = ({
     };
 
     const source = m.getSource("paths-source") as maplibregl.GeoJSONSource;
+    const endpointsSource = m.getSource(
+      "paths-endpoints-source",
+    ) as maplibregl.GeoJSONSource;
 
     // ソースが既に存在する場合はデータのみ更新
     if (source) {
       source.setData(pathsGeoJSON);
+      if (endpointsSource) {
+        endpointsSource.setData(pathEndpointsGeoJSON);
+      }
       registerPathsEventListeners();
 
       // 選択されたパスのフィルターを再適用
@@ -419,8 +476,49 @@ export const MapTerrain = ({
       },
     });
 
+    // 端点用のソースとレイヤーを追加
+    m.addSource("paths-endpoints-source", {
+      type: "geojson",
+      data: pathEndpointsGeoJSON,
+    });
+
+    // 端点を赤い中抜き丸で表示
+    m.addLayer({
+      id: "paths-endpoints-layer",
+      type: "circle",
+      source: "paths-endpoints-source",
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          12,
+          3,
+          16,
+          5,
+          20,
+          7,
+        ],
+        "circle-color": "#ffffff",
+        "circle-stroke-color": "#ff0000",
+        "circle-stroke-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          12,
+          2,
+          16,
+          3,
+          20,
+          4,
+        ],
+        "circle-opacity": 1,
+        "circle-stroke-opacity": 1,
+      },
+    });
+
     registerPathsEventListeners();
-  }, [pathsGeoJSON, onSelectPath, cleanupPathsListeners]);
+  }, [pathsGeoJSON, pathEndpointsGeoJSON, onSelectPath, cleanupPathsListeners]);
 
   // 山データをGeoJSON形式に変換
   const mountainsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
@@ -914,12 +1012,16 @@ export const MapTerrain = ({
           map.current.removeLayer("mountains-points-shadow");
         if (map.current.getSource("mountains-source"))
           map.current.removeSource("mountains-source");
+        if (map.current.getLayer("paths-endpoints-layer"))
+          map.current.removeLayer("paths-endpoints-layer");
         if (map.current.getLayer("paths-layer-selected"))
           map.current.removeLayer("paths-layer-selected");
         if (map.current.getLayer("paths-layer-hitbox"))
           map.current.removeLayer("paths-layer-hitbox");
         if (map.current.getLayer("paths-layer"))
           map.current.removeLayer("paths-layer");
+        if (map.current.getSource("paths-endpoints-source"))
+          map.current.removeSource("paths-endpoints-source");
         if (map.current.getSource("paths-source"))
           map.current.removeSource("paths-source");
       } else {

@@ -1,13 +1,12 @@
 import time
+from math import atan2, cos, radians, sin, sqrt
 
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 from geopy.geocoders import Nominatim
 
 # ジオコーダーの初期化
 # Nominatim使用時は必ずuser_agentを設定する
-geolocator = Nominatim(
-    user_agent="bear_sighting_app_v1", domain="nominatim.openstreetmap.org"
-)
+geolocator = Nominatim(user_agent="bear_sighting_app_v1", domain="nominatim.openstreetmap.org")
 
 # ジオコーディング結果のキャッシュ
 # 同じ場所を複数回検索することを避けるため
@@ -15,9 +14,7 @@ geolocator = Nominatim(
 LOCATION_CACHE: dict[str, tuple[float, float] | None] = {}
 
 
-def get_coordinates_for_location(
-    prefecture: str | None, city: str | None
-) -> tuple[float, float] | None:
+def get_coordinates_for_location(prefecture: str | None, city: str | None) -> tuple[float, float] | None:
     """
     都道府県と市区町村から緯度経度を取得する
     都道府県のみ指定された場合は県庁所在地などの代表地点の座標を返す
@@ -61,3 +58,16 @@ def get_coordinates_for_location(
         # その他の予期しないエラー
         print(f"❌ Unexpected geocoding error: {e}")
         return None
+
+
+def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371.0  # 地球の半径（km）
+
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    distance = R * c
+    return distance

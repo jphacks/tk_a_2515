@@ -782,7 +782,7 @@ components:
         geometries:
           type: array
           items:
-            $ref: '#/components/schemas/PathGeometry'
+            $ref: '#/components/schemas/PathGeometryWithSequence'
           readOnly: true
         tags:
           type: array
@@ -805,28 +805,27 @@ components:
       - tags
       - type
       - updated_at
-    PathGeometry:
+    PathGeometryWithSequence:
       type: object
-      description: PathGeometry serializer
+      description: PathGeometry with sequence from through model
       properties:
         id:
           type: integer
           readOnly: true
         node_id:
           type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
+          readOnly: true
         lat:
           type: number
           format: double
+          readOnly: true
         lon:
           type: number
           format: double
+          readOnly: true
         sequence:
           type: integer
-          maximum: 2147483647
-          minimum: -2147483648
+          readOnly: true
       required:
       - id
       - lat
