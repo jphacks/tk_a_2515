@@ -4,7 +4,12 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { renderToString } from "react-dom/server";
-import type { Mountain, Path, PathDetail } from "@/app/api/lib/models";
+import type {
+  BearSighting,
+  Mountain,
+  Path,
+  PathDetail,
+} from "@/app/api/lib/models";
 import { MountainTooltip } from "./MountainTooltip";
 
 // 山とパスを表示するズームレベルの閾値
@@ -16,6 +21,7 @@ interface Props {
   styleMode?: StyleMode;
   mountains: Mountain[];
   paths: Path[];
+  bears: BearSighting[];
   onBoundsChange?: (bounds: {
     minLon: number;
     minLat: number;
@@ -26,19 +32,28 @@ interface Props {
   onSelectMountain?: (mountain: Mountain) => void;
   selectedMountain?: Mountain | null;
   onSelectPath?: (path: Path) => void;
+  onSelectBear?: (bear: BearSighting) => void;
   selectedPath?: PathDetail | null;
+  selectedBear?: BearSighting | null;
   hoveredPoint?: { lat: number; lon: number } | null;
+  showOnlyFavorites?: boolean;
+  favoriteIds?: Set<number>;
 }
 
 export const MapTerrain = ({
   styleMode = "hybrid",
   mountains,
   paths,
+  bears,
   onBoundsChange,
   onSelectMountain,
   selectedMountain,
+  selectedBear,
   onSelectPath,
+  onSelectBear,
   hoveredPoint,
+  showOnlyFavorites,
+  favoriteIds,
 }: Props) => {
   if (!process.env.NEXT_PUBLIC_FULL_URL) {
     throw new Error(
@@ -62,15 +77,20 @@ export const MapTerrain = ({
   const hoveredPointMarker = useRef<maplibregl.Marker | null>(null);
   const pathsListenersRegistered = useRef<boolean>(false);
   const mountainsListenersRegistered = useRef<boolean>(false);
+  const bearsListenersRegistered = useRef<boolean>(false);
   const pathsRef = useRef<Path[]>(paths);
   const mountainsRef = useRef<Mountain[]>(mountains);
+  const bearsRef = useRef<BearSighting[]>(bears);
   const previousPathsHash = useRef<string>("");
   const previousMountainsHash = useRef<string>("");
   const isMountedRef = useRef<boolean>(true);
   const animationFrameIdsRef = useRef<Set<number>>(new Set());
   const selectedPathIdRef = useRef<number | null>(null);
   const selectedMountainIdRef = useRef<number | null>(null);
+  const selectedBearIdRef = useRef<number | null>(null);
   const geolocateControl = useRef<maplibregl.GeolocateControl | null>(null);
+  const bearMarkersRef = useRef<Map<number, maplibregl.Marker>>(new Map());
+  const mountainMarkersRef = useRef<Map<number, maplibregl.Marker>>(new Map());
 
   // イベントハンドラーの参照を保持（クリーンアップ用）
   const mountainsEventHandlers = useRef<{
@@ -97,6 +117,20 @@ export const MapTerrain = ({
     handleMouseLeave?: () => void;
   }>({});
 
+  const bearsEventHandlers = useRef<{
+    handleClick?: (
+      e: maplibregl.MapMouseEvent & {
+        features?: maplibregl.MapGeoJSONFeature[];
+      },
+    ) => void;
+    handleMouseEnter?: (
+      e: maplibregl.MapMouseEvent & {
+        features?: maplibregl.MapGeoJSONFeature[];
+      },
+    ) => void;
+    handleMouseLeave?: () => void;
+  }>({});
+
   // データ変更検知用のハッシュ値を生成
   const pathsHash = useMemo((): string => {
     if (!paths || paths.length === 0) return "empty";
@@ -111,7 +145,7 @@ export const MapTerrain = ({
       .join("|");
   }, [paths]);
 
-  const mountainsHash = useMemo((): string => {
+  const _mountainsHash = useMemo((): string => {
     if (!mountains || mountains.length === 0) return "empty";
     return mountains
       .map(m => `${m.id}-${m.lon}-${m.lat}-${m.elevation}`)
@@ -127,6 +161,10 @@ export const MapTerrain = ({
   useEffect(() => {
     mountainsRef.current = mountains;
   }, [mountains]);
+
+  useEffect(() => {
+    bearsRef.current = bears;
+  }, [bears]);
 
   // 地形タイルとDEMを追加
   const addDemAndTerrain = useCallback(() => {
@@ -170,47 +208,22 @@ export const MapTerrain = ({
 
   // 山のイベントリスナーをクリーンアップ
   const cleanupMountainsListeners = useCallback(() => {
-    const m = map.current;
-    if (!m || !mountainsListenersRegistered.current) return;
-
-    if (mountainsEventHandlers.current.handleClick) {
-      m.off(
-        "click",
-        "mountains-points",
-        mountainsEventHandlers.current.handleClick,
-      );
-      m.off(
-        "click",
-        "mountains-labels",
-        mountainsEventHandlers.current.handleClick,
-      );
+    // マーカーを削除
+    for (const marker of mountainMarkersRef.current.values()) {
+      marker.remove();
     }
-    if (mountainsEventHandlers.current.handleMouseEnter) {
-      m.off(
-        "mouseenter",
-        "mountains-points",
-        mountainsEventHandlers.current.handleMouseEnter,
-      );
-      m.off(
-        "mouseenter",
-        "mountains-labels",
-        mountainsEventHandlers.current.handleMouseEnter,
-      );
-    }
-    if (mountainsEventHandlers.current.handleMouseLeave) {
-      m.off(
-        "mouseleave",
-        "mountains-points",
-        mountainsEventHandlers.current.handleMouseLeave,
-      );
-      m.off(
-        "mouseleave",
-        "mountains-labels",
-        mountainsEventHandlers.current.handleMouseLeave,
-      );
-    }
-    mountainsEventHandlers.current = {};
+    mountainMarkersRef.current.clear();
     mountainsListenersRegistered.current = false;
+  }, []);
+
+  // クマのイベントリスナーをクリーンアップ
+  const cleanupBearsListeners = useCallback(() => {
+    // マーカーを削除
+    for (const marker of bearMarkersRef.current.values()) {
+      marker.remove();
+    }
+    bearMarkersRef.current.clear();
+    bearsListenersRegistered.current = false;
   }, []);
 
   // パスデータをGeoJSON形式に変換
@@ -520,9 +533,17 @@ export const MapTerrain = ({
     registerPathsEventListeners();
   }, [pathsGeoJSON, pathEndpointsGeoJSON, onSelectPath, cleanupPathsListeners]);
 
-  // 山データをGeoJSON形式に変換
-  const mountainsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
-    const features = mountains
+  // お気に入りフィルタリングを適用した山リスト
+  const displayMountains = useMemo(() => {
+    if (!showOnlyFavorites || !favoriteIds) {
+      return mountains;
+    }
+    return mountains.filter(m => favoriteIds.has(m.id));
+  }, [mountains, showOnlyFavorites, favoriteIds]);
+
+  // 山データをGeoJSON形式に変換（フィルタリング適用）
+  const _mountainsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
+    const features = displayMountains
       .filter(
         mountain =>
           mountain.lon !== null &&
@@ -546,45 +567,113 @@ export const MapTerrain = ({
       type: "FeatureCollection",
       features,
     };
-  }, [mountains]);
+  }, [displayMountains]);
 
-  // 山のレイヤーを追加または更新
+  // 山のレイヤーを追加または更新（カスタムマーカーを使用、フィルタリング適用）
   const addOrUpdateMountains = useCallback(() => {
     const m = map.current;
     if (!m || !isMountedRef.current) return;
 
-    // ズームレベルが閾値未満の場合はレイヤーを削除
+    // ズームレベルが閾値未満の場合はマーカーを削除
     if (m.getZoom() < ZOOM_LEVEL_THRESHOLD) {
       cleanupMountainsListeners();
-      if (m.getLayer("mountains-labels")) m.removeLayer("mountains-labels");
-      if (m.getLayer("mountains-points-selected"))
-        m.removeLayer("mountains-points-selected");
-      if (m.getLayer("mountains-points-hover"))
-        m.removeLayer("mountains-points-hover");
-      if (m.getLayer("mountains-points")) m.removeLayer("mountains-points");
-      if (m.getLayer("mountains-points-shadow"))
-        m.removeLayer("mountains-points-shadow");
-      if (m.getSource("mountains-source")) m.removeSource("mountains-source");
       return;
     }
 
-    // イベントリスナーを登録するヘルパー関数
-    const registerMountainsEventListeners = () => {
+    // 既存のマーカーをクリーンアップ
+    cleanupMountainsListeners();
+
+    // 標高に応じた色を取得する関数
+    const getColorForElevation = (elevation: number): string => {
+      if (elevation >= 4000) return "#4e8fdf";
+      if (elevation >= 3000) return "#845ec2";
+      if (elevation >= 2000) return "#ff6b9d";
+      if (elevation >= 1000) return "#ff8e53";
+      return "#ff6b6b";
+    };
+
+    // フィルタリングされた山にマーカーを追加
+    displayMountains.forEach(mountain => {
       if (
-        !onSelectMountain ||
-        mountainsListenersRegistered.current ||
-        !m.getLayer("mountains-points")
+        mountain.lon === null ||
+        mountain.lon === undefined ||
+        mountain.lat === null ||
+        mountain.lat === undefined
       ) {
         return;
       }
 
-      // クリックイベント: ポップアップを表示
-      const handleClick = (
-        e: maplibregl.MapMouseEvent & {
-          features?: maplibregl.MapGeoJSONFeature[];
-        },
-      ) => {
-        if (!e.features || !e.features[0]) return;
+      const elevation = mountain.elevation || 0;
+      const color = getColorForElevation(elevation);
+      const isSelected = selectedMountainIdRef.current === mountain.id;
+
+      // マーカーのコンテナ要素を作成
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+      container.style.alignItems = "center";
+      container.style.cursor = "pointer";
+      container.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+
+      // SVGマーカー要素を作成
+      const el = document.createElement("div");
+      el.className = "mountain-marker";
+      el.style.transition = "all 0.2s ease";
+
+      // 選択状態に応じてサイズを変更
+      const size = isSelected ? 32 : 24;
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+
+      // SVGで山の絵文字を表示（円形背景付き、標高に応じた色）
+      el.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+          <circle cx="50" cy="50" r="48" fill="${color}" stroke="white" stroke-width="4"/>
+          <text x="50" y="50" font-size="48" text-anchor="middle" dominant-baseline="central" fill="white">⛰️</text>
+        </svg>
+      `;
+
+      // ラベル要素を作成
+      const label = document.createElement("div");
+      label.className = "mountain-label";
+      label.textContent = mountain.name;
+      label.style.marginTop = "2px";
+      label.style.fontSize = "10px";
+      label.style.fontWeight = "bold";
+      label.style.color = "#333";
+      label.style.textShadow = "0 0 3px white, 0 0 3px white, 0 0 3px white";
+      label.style.whiteSpace = "nowrap";
+      label.style.pointerEvents = "none";
+      label.style.userSelect = "none";
+      label.style.maxWidth = "100px";
+      label.style.overflow = "hidden";
+      label.style.textOverflow = "ellipsis";
+
+      container.appendChild(el);
+      container.appendChild(label);
+
+      // ホバー効果
+      container.addEventListener("mouseenter", () => {
+        if (!isSelected) {
+          el.style.width = "32px";
+          el.style.height = "32px";
+          container.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.4))";
+          m.getCanvas().style.cursor = "pointer";
+        }
+      });
+
+      container.addEventListener("mouseleave", () => {
+        if (!isSelected) {
+          el.style.width = "24px";
+          el.style.height = "24px";
+          container.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+          m.getCanvas().style.cursor = "";
+        }
+      });
+
+      // クリックイベント
+      container.addEventListener("click", e => {
+        e.stopPropagation();
 
         // 既存のポップアップを削除
         const existingPopups = document.querySelectorAll(".maplibregl-popup");
@@ -592,25 +681,30 @@ export const MapTerrain = ({
           popup.remove();
         }
 
-        const feature = e.features[0];
-        if (feature.geometry.type !== "Point") return;
-        const coordinates = feature.geometry.coordinates.slice();
-        const { name, elevation, id } = feature.properties || {};
+        selectedMountainIdRef.current = mountain.id;
 
-        // 選択された山のIDを更新
-        selectedMountainIdRef.current = id;
-
-        // 選択された山レイヤーのフィルターを更新
-        if (m.getLayer("mountains-points-selected")) {
-          m.setFilter("mountains-points-selected", ["==", ["get", "id"], id]);
+        // すべてのマーカーのサイズをリセット
+        for (const [id, marker] of mountainMarkersRef.current.entries()) {
+          const markerEl = marker.getElement();
+          const iconEl = markerEl.querySelector(
+            ".mountain-marker",
+          ) as HTMLElement;
+          if (iconEl) {
+            if (id === mountain.id) {
+              iconEl.style.width = "32px";
+              iconEl.style.height = "32px";
+              markerEl.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.5))";
+            } else {
+              iconEl.style.width = "24px";
+              iconEl.style.height = "24px";
+              markerEl.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+            }
+          }
         }
 
-        // 最新のデータから山情報を取得
-        const latestMountains = mountainsRef.current;
-        const selectedMountain = latestMountains.find(m => m.id === id);
-
+        // ポップアップを表示
         const tooltipHtml = renderToString(
-          <MountainTooltip name={name} elevation={elevation} />,
+          <MountainTooltip name={mountain.name} elevation={elevation} />,
         );
 
         const popup = new maplibregl.Popup({
@@ -621,7 +715,7 @@ export const MapTerrain = ({
           className: "custom-mountain-popup",
           maxWidth: "300px",
         })
-          .setLngLat(coordinates as [number, number])
+          .setLngLat([mountain.lon!, mountain.lat!])
           .setHTML(tooltipHtml)
           .addTo(m);
 
@@ -630,10 +724,10 @@ export const MapTerrain = ({
           const detailButton = popup
             .getElement()
             ?.querySelector("[data-detail-button]");
-          if (detailButton && selectedMountain && onSelectMountain) {
+          if (detailButton && onSelectMountain) {
             detailButton.addEventListener("click", e => {
               e.stopPropagation();
-              onSelectMountain(selectedMountain);
+              onSelectMountain(mountain);
               popup.remove();
             });
           }
@@ -647,286 +741,233 @@ export const MapTerrain = ({
             popup.remove();
           });
         }
-      };
+      });
 
-      // マウスエンターイベント: ホバーレイヤーを表示
-      const handleMouseEnter = (
-        e: maplibregl.MapMouseEvent & {
-          features?: maplibregl.MapGeoJSONFeature[];
+      // マーカーを地図に追加
+      const marker = new maplibregl.Marker({ element: container })
+        .setLngLat([mountain.lon, mountain.lat])
+        .addTo(m);
+
+      mountainMarkersRef.current.set(mountain.id, marker);
+    });
+
+    mountainsListenersRegistered.current = true;
+  }, [displayMountains, onSelectMountain, cleanupMountainsListeners]);
+
+  // クマデータをGeoJSON形式に変換（山のパターンを完全に模倣）
+  const bearsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
+    const features = bears
+      .filter(
+        bear =>
+          bear.longitude !== null &&
+          bear.longitude !== undefined &&
+          bear.latitude !== null &&
+          bear.latitude !== undefined,
+      )
+      .map(bear => ({
+        type: "Feature" as const,
+        properties: {
+          id: bear.id,
+          prefecture: bear.prefecture,
+          city: bear.city,
+          summary: bear.summary,
         },
-      ) => {
-        m.getCanvas().style.cursor = "pointer";
-        if (e.features?.[0]) {
-          const featureId = e.features[0].properties?.id;
-          m.setFilter("mountains-points-hover", [
-            "==",
-            ["get", "id"],
-            featureId,
-          ]);
-        }
-      };
+        geometry: {
+          type: "Point" as const,
+          coordinates: [bear.longitude, bear.latitude] as [number, number],
+        },
+      }));
+    return {
+      type: "FeatureCollection",
+      features,
+    };
+  }, [bears]);
 
-      // マウスリーブイベント: ホバーレイヤーを非表示
-      const handleMouseLeave = () => {
-        m.getCanvas().style.cursor = "";
-        m.setFilter("mountains-points-hover", ["==", ["get", "id"], ""]);
-      };
+  // クマのレイヤーを追加または更新（カスタムマーカーを使用）
+  const addOrUpdateBears = useCallback(() => {
+    const m = map.current;
+    if (!m || !isMountedRef.current) return;
 
-      mountainsEventHandlers.current = {
-        handleClick,
-        handleMouseEnter,
-        handleMouseLeave,
-      };
+    // 既存のマーカーをクリーンアップ
+    cleanupBearsListeners();
 
-      // ピンレイヤーとラベルレイヤーの両方にイベントを登録
-      m.on("click", "mountains-points", handleClick);
-      m.on("mouseenter", "mountains-points", handleMouseEnter);
-      m.on("mouseleave", "mountains-points", handleMouseLeave);
+    // 現在のズームレベルを取得
+    const zoomLevel = m.getZoom();
 
-      // ラベルレイヤーにもイベントを登録
-      m.on("click", "mountains-labels", handleClick);
-      m.on("mouseenter", "mountains-labels", handleMouseEnter);
-      m.on("mouseleave", "mountains-labels", handleMouseLeave);
-
-      mountainsListenersRegistered.current = true;
+    // ズームレベルに応じて半径を動的に調整
+    const getRadiusForZoom = (zoom: number): number => {
+      if (zoom >= 18) return 0.0005; // 約20m
+      if (zoom >= 16) return 0.001; // 約50m
+      if (zoom >= 14) return 0.002; // 約100m
+      if (zoom >= 12) return 0.005; // 約200m
+      return 0.01; // 約400m
     };
 
-    const source = m.getSource("mountains-source") as maplibregl.GeoJSONSource;
+    const radius = getRadiusForZoom(zoomLevel);
 
-    // ソースが既に存在する場合はデータのみ更新
-    if (source) {
-      source.setData(mountainsGeoJSON);
-      registerMountainsEventListeners();
+    // 座標を丸めてグループ化するヘルパー関数
+    const roundCoordinate = (coord: number, precision: number = 6): number => {
+      const factor = Math.pow(10, precision);
+      return Math.round(coord * factor) / factor;
+    };
 
-      // 選択された山のフィルターを再適用
-      if (
-        m.getLayer("mountains-points-selected") &&
-        selectedMountainIdRef.current !== null
-      ) {
-        m.setFilter("mountains-points-selected", [
-          "==",
-          ["get", "id"],
-          selectedMountainIdRef.current,
-        ]);
+    // GeoJSONから有効なクマデータを抽出してグループ化
+    const locationGroups = new Map<string, BearSighting[]>();
+    bearsGeoJSON.features.forEach(feature => {
+      let lon: number;
+      let lat: number;
+      if (feature.geometry.type === "Point" && feature.geometry.coordinates) {
+        [lon, lat] = feature.geometry.coordinates;
+      } else {
+        return;
       }
-      return;
-    }
+      const bearId = feature.properties!.id;
+      const bear = bears.find(b => b.id === bearId);
 
-    // スタイルがロードされていない場合は次のフレームで再試行
-    if (!m.isStyleLoaded()) {
-      const frameId = requestAnimationFrame(() => {
-        animationFrameIdsRef.current.delete(frameId);
-        if (isMountedRef.current && map.current) {
-          addOrUpdateMountains();
+      if (!bear) return;
+
+      // 座標を丸めてキーを生成
+      const roundedLon = roundCoordinate(lon);
+      const roundedLat = roundCoordinate(lat);
+      const key = `${roundedLon},${roundedLat}`;
+
+      const group = locationGroups.get(key) || [];
+      group.push(bear);
+      locationGroups.set(key, group);
+    });
+
+    // 各グループについてマーカーを配置
+    locationGroups.forEach((bearGroup, locationKey) => {
+      const [lonStr, latStr] = locationKey.split(",");
+      const baseLon = Number.parseFloat(lonStr);
+      const baseLat = Number.parseFloat(latStr);
+
+      if (bearGroup.length === 1) {
+        // 1つの場合は通常通り配置
+        const bear = bearGroup[0];
+        const marker = createBearMarker(m, bear, baseLon, baseLat);
+        bearMarkersRef.current.set(bear.id, marker);
+      } else {
+        // 複数の場合は円形に配置
+        bearGroup.forEach((bear, index) => {
+          const angle = (2 * Math.PI * index) / bearGroup.length;
+          const offsetLon = baseLon + radius * Math.cos(angle);
+          const offsetLat = baseLat + radius * Math.sin(angle);
+          const marker = createBearMarker(m, bear, offsetLon, offsetLat);
+          bearMarkersRef.current.set(bear.id, marker);
+        });
+      }
+    });
+
+    // マーカー作成のヘルパー関数
+    function createBearMarker(
+      m: maplibregl.Map,
+      bear: BearSighting,
+      lon: number,
+      lat: number,
+    ): maplibregl.Marker {
+      const isSelected = selectedBearIdRef.current === bear.id;
+
+      // マーカーのコンテナ要素を作成
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+      container.style.alignItems = "center";
+      container.style.cursor = "pointer";
+      container.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+
+      // SVGマーカー要素を作成
+      const el = document.createElement("div");
+      el.className = "bear-marker";
+      el.style.transition = "all 0.2s ease";
+
+      const size = isSelected ? 32 : 24;
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+
+      // SVGでクマのアイコンを表示（円形背景付き）
+      el.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+          <circle cx="50" cy="50" r="48" fill="#D97706" stroke="white" stroke-width="4"/>
+          <text x="50" y="50" font-size="48" text-anchor="middle" dominant-baseline="central" fill="white">🐻</text>
+        </svg>
+      `;
+
+      // ラベル要素を作成（市区町村名を表示）
+      const label = document.createElement("div");
+      label.className = "bear-label";
+      label.textContent = bear.city || bear.prefecture;
+      label.style.marginTop = "2px";
+      label.style.fontSize = "10px";
+      label.style.fontWeight = "bold";
+      label.style.color = "#D97706";
+      label.style.textShadow = "0 0 3px white, 0 0 3px white, 0 0 3px white";
+      label.style.whiteSpace = "nowrap";
+      label.style.pointerEvents = "none";
+      label.style.userSelect = "none";
+      label.style.maxWidth = "100px";
+      label.style.overflow = "hidden";
+      label.style.textOverflow = "ellipsis";
+
+      container.appendChild(el);
+      container.appendChild(label);
+
+      // ホバー効果
+      container.addEventListener("mouseenter", () => {
+        if (!isSelected) {
+          el.style.width = "32px";
+          el.style.height = "32px";
+          container.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.4))";
+          m.getCanvas().style.cursor = "pointer";
         }
       });
-      animationFrameIdsRef.current.add(frameId);
-      return;
-    }
 
-    // レイヤー追加時のエラーハンドリング
-    try {
-      m.addSource("mountains-source", {
-        type: "geojson",
-        data: mountainsGeoJSON,
-      });
-
-      // 影レイヤー
-      m.addLayer({
-        id: "mountains-points-shadow",
-        type: "circle",
-        source: "mountains-source",
-        paint: {
-          "circle-color": "rgba(0, 0, 0, 0.3)",
-          "circle-radius": 8,
-          "circle-translate": [2, 2],
-          "circle-blur": 0.5,
-        },
-      });
-
-      // メインの山ピンレイヤー（標高に応じた色分け）
-      m.addLayer({
-        id: "mountains-points",
-        type: "circle",
-        source: "mountains-source",
-        paint: {
-          "circle-color": [
-            "interpolate",
-            ["linear"],
-            ["get", "elevation"],
-            0,
-            "#ff6b6b",
-            1000,
-            "#ff8e53",
-            2000,
-            "#ff6b9d",
-            3000,
-            "#845ec2",
-            4000,
-            "#4e8fdf",
-          ],
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            12,
-            5,
-            16,
-            8,
-            20,
-            12,
-          ],
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            12,
-            2,
-            16,
-            3,
-            20,
-            4,
-          ],
-          "circle-opacity": 0.9,
-          "circle-stroke-opacity": 1,
-        },
-        filter: ["!=", ["get", "id"], selectedMountainIdRef.current ?? -1],
-      });
-
-      // 選択された山専用のレイヤー（大きく目立つ）
-      m.addLayer({
-        id: "mountains-points-selected",
-        type: "circle",
-        source: "mountains-source",
-        paint: {
-          "circle-color": "#ffea71ff",
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            12,
-            8,
-            16,
-            13,
-            20,
-            19,
-          ],
-          "circle-stroke-color": "#FF4500",
-          "circle-stroke-width": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            12,
-            2,
-            16,
-            4,
-            20,
-            6,
-          ],
-          "circle-opacity": 1,
-          "circle-stroke-opacity": 1,
-        },
-        filter: ["==", ["get", "id"], selectedMountainIdRef.current ?? -1],
-      });
-
-      // ホバー時に表示する拡大レイヤー
-      m.addLayer({
-        id: "mountains-points-hover",
-        type: "circle",
-        source: "mountains-source",
-        paint: {
-          "circle-color": [
-            "interpolate",
-            ["linear"],
-            ["get", "elevation"],
-            0,
-            "#ff6b6b",
-            1000,
-            "#ff8e53",
-            2000,
-            "#ff6b9d",
-            3000,
-            "#845ec2",
-            4000,
-            "#4e8fdf",
-          ],
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            12,
-            7,
-            16,
-            10,
-            20,
-            14,
-          ],
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            12,
-            3,
-            16,
-            4,
-            20,
-            5,
-          ],
-          "circle-opacity": 0.9,
-          "circle-stroke-opacity": 1,
-        },
-        filter: ["==", ["get", "id"], ""],
-      });
-
-      // ラベルレイヤー
-      m.addLayer({
-        id: "mountains-labels",
-        type: "symbol",
-        source: "mountains-source",
-        layout: {
-          "text-field": ["get", "name"],
-          "text-font": ["Noto Sans Bold"],
-          "text-size": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            16,
-            14,
-            18,
-            14,
-            20,
-            14,
-          ],
-          "text-offset": [0, 1.5],
-          "text-anchor": "top",
-          "text-allow-overlap": true,
-          "text-optional": false,
-          "text-padding": 2,
-        },
-        paint: {
-          "text-color": "#2d3748",
-          "text-halo-color": "rgba(255, 255, 255, 0.95)",
-          "text-halo-width": 2,
-          "text-halo-blur": 1,
-        },
-      });
-
-      registerMountainsEventListeners();
-    } catch (error) {
-      console.error("[MapTerrain] Error adding mountains layers:", error);
-      // エラー時は次のフレームで再試行
-      const frameId = requestAnimationFrame(() => {
-        animationFrameIdsRef.current.delete(frameId);
-        if (isMountedRef.current && map.current) {
-          addOrUpdateMountains();
+      container.addEventListener("mouseleave", () => {
+        if (!isSelected) {
+          el.style.width = "24px";
+          el.style.height = "24px";
+          container.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+          m.getCanvas().style.cursor = "";
         }
       });
-      animationFrameIdsRef.current.add(frameId);
-      return;
+
+      // クリックイベント
+      container.addEventListener("click", e => {
+        e.stopPropagation();
+        selectedBearIdRef.current = bear.id;
+
+        // すべてのマーカーのサイズをリセット
+        for (const [id, marker] of bearMarkersRef.current.entries()) {
+          const markerEl = marker.getElement();
+          const iconEl = markerEl.querySelector(".bear-marker") as HTMLElement;
+          if (iconEl) {
+            if (id === bear.id) {
+              iconEl.style.width = "32px";
+              iconEl.style.height = "32px";
+              markerEl.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.5))";
+            } else {
+              iconEl.style.width = "24px";
+              iconEl.style.height = "24px";
+              markerEl.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+            }
+          }
+        }
+
+        if (onSelectBear) {
+          onSelectBear(bear);
+        }
+      });
+
+      // マーカーを地図に追加
+      const marker = new maplibregl.Marker({ element: container })
+        .setLngLat([lon, lat])
+        .addTo(m);
+
+      return marker;
     }
-  }, [mountainsGeoJSON, onSelectMountain, cleanupMountainsListeners]);
+
+    bearsListenersRegistered.current = true;
+  }, [bears, bearsGeoJSON, onSelectBear, cleanupBearsListeners]);
 
   // マップの初期化
   // biome-ignore lint/correctness/useExhaustiveDependencies: 初期化は一度だけ実行
@@ -1028,6 +1069,7 @@ export const MapTerrain = ({
         // ズームレベルが閾値以上の場合、レイヤーを更新
         addOrUpdatePaths();
         addOrUpdateMountains();
+        addOrUpdateBears();
       }
 
       // バウンディングボックスの変更を通知
@@ -1045,6 +1087,7 @@ export const MapTerrain = ({
         addOrUpdatePaths();
         addOrUpdateMountains();
       }
+      addOrUpdateBears();
     };
 
     // ピッチ変更時の処理
@@ -1056,12 +1099,14 @@ export const MapTerrain = ({
         addOrUpdatePaths();
         addOrUpdateMountains();
       }
+      addOrUpdateBears();
     };
 
     map.current.on("load", () => {
       addDemAndTerrain();
       addOrUpdatePaths();
       addOrUpdateMountains();
+      addOrUpdateBears();
 
       // GeolocateControlを追加
       if (geolocateControl.current && map.current) {
@@ -1098,6 +1143,7 @@ export const MapTerrain = ({
       if (m) {
         cleanupPathsListeners();
         cleanupMountainsListeners();
+        cleanupBearsListeners();
       }
 
       map.current?.off("moveend", handleMapMove);
@@ -1115,14 +1161,17 @@ export const MapTerrain = ({
     // スタイル変更前にリスナーをクリーンアップ
     cleanupPathsListeners();
     cleanupMountainsListeners();
+    cleanupBearsListeners();
 
     m.setStyle(styleUrls[styleMode]);
     m.once("styledata", () => {
       pathsListenersRegistered.current = false;
       mountainsListenersRegistered.current = false;
+      bearsListenersRegistered.current = false;
       addDemAndTerrain();
       addOrUpdatePaths();
       addOrUpdateMountains();
+      addOrUpdateBears();
     });
     currentMode.current = styleMode;
   }, [
@@ -1131,8 +1180,10 @@ export const MapTerrain = ({
     addDemAndTerrain,
     addOrUpdatePaths,
     addOrUpdateMountains,
+    addOrUpdateBears,
     cleanupPathsListeners,
     cleanupMountainsListeners,
+    cleanupBearsListeners,
   ]);
 
   // パスデータ変更時の処理（ハッシュベースで変更検知）
@@ -1176,6 +1227,17 @@ export const MapTerrain = ({
   }, [pathsHash, paths.length, addOrUpdatePaths]);
 
   // 山データ変更時の処理（ハッシュベースで変更検知）
+  // displayMountainsの変更を検知するためのハッシュを生成
+  const displayMountainsHash = useMemo((): string => {
+    if (!displayMountains || displayMountains.length === 0) return "empty";
+    // showOnlyFavoritesの状態もハッシュに含める
+    const filterState = showOnlyFavorites ? "favorites-only" : "all";
+    return `${filterState}:${displayMountains
+      .map(m => `${m.id}-${m.lon}-${m.lat}-${m.elevation}`)
+      .sort()
+      .join("|")}`;
+  }, [displayMountains, showOnlyFavorites]);
+
   useEffect(() => {
     if (!map.current || !isMountedRef.current) return;
 
@@ -1183,15 +1245,21 @@ export const MapTerrain = ({
 
     if (zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
       const isFirstLoad = previousMountainsHash.current === "";
-      const hasChanged = mountainsHash !== previousMountainsHash.current;
+      const hasChanged = displayMountainsHash !== previousMountainsHash.current;
 
-      if (mountainsHash !== "empty" && (isFirstLoad || hasChanged)) {
+      // showOnlyFavoritesがtrueの場合は常に更新
+      if (
+        displayMountainsHash !== "empty" &&
+        (isFirstLoad || hasChanged || showOnlyFavorites)
+      ) {
         console.log("[MapTerrain] Mountains data changed, updating...", {
-          mountainCount: mountains.length,
+          mountainCount: displayMountains.length,
           isFirstLoad,
+          showOnlyFavorites,
+          favoriteCount: favoriteIds?.size || 0,
           previousHash:
             previousMountainsHash.current.substring(0, 50) || "(empty)",
-          currentHash: mountainsHash.substring(0, 50),
+          currentHash: displayMountainsHash.substring(0, 50),
         });
 
         // 次のフレームで更新を実行
@@ -1205,7 +1273,7 @@ export const MapTerrain = ({
             try {
               addOrUpdateMountains();
               // 成功時のみハッシュを更新
-              previousMountainsHash.current = mountainsHash;
+              previousMountainsHash.current = displayMountainsHash;
             } catch (error) {
               console.error("[MapTerrain] Error updating mountains:", error);
             }
@@ -1214,7 +1282,35 @@ export const MapTerrain = ({
         animationFrameIdsRef.current.add(frameId);
       }
     }
-  }, [mountainsHash, mountains.length, addOrUpdateMountains]);
+  }, [
+    displayMountainsHash,
+    displayMountains.length,
+    addOrUpdateMountains,
+    showOnlyFavorites,
+    favoriteIds,
+  ]);
+
+  // クマデータ変更時の処理
+  useEffect(() => {
+    if (!map.current || !isMountedRef.current) return;
+    if (bears.length === 0) return;
+
+    console.log("[MapTerrain] Bears data loaded, adding markers...", {
+      bearCount: bears.length,
+    });
+
+    const frameId = requestAnimationFrame(() => {
+      animationFrameIdsRef.current.delete(frameId);
+      if (isMountedRef.current && map.current) {
+        try {
+          addOrUpdateBears();
+        } catch (error) {
+          console.error("[MapTerrain] Error adding bears:", error);
+        }
+      }
+    });
+    animationFrameIdsRef.current.add(frameId);
+  }, [bears, addOrUpdateBears]);
 
   // 指定された山にカメラを移動
   const jumpToMountain = useCallback((mountain: Mountain) => {
@@ -1288,32 +1384,79 @@ export const MapTerrain = ({
       // 選択された山のIDを更新
       selectedMountainIdRef.current = selectedMountain.id;
 
-      // マップが存在し、レイヤーが存在する場合はフィルターを更新
-      const m = map.current;
-      if (m?.getLayer("mountains-points-selected")) {
-        m.setFilter("mountains-points-selected", [
-          "==",
-          ["get", "id"],
-          selectedMountain.id,
-        ]);
-        m.setFilter("mountains-points", [
-          "!=",
-          ["get", "id"],
-          selectedMountain.id,
-        ]);
+      // すべてのマーカーのサイズを更新
+      for (const [id, marker] of mountainMarkersRef.current.entries()) {
+        const el = marker.getElement();
+        const iconEl = el.querySelector(".mountain-marker") as HTMLElement;
+        if (iconEl) {
+          if (id === selectedMountain.id) {
+            iconEl.style.width = "32px";
+            iconEl.style.height = "32px";
+            el.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.5))";
+          } else {
+            iconEl.style.width = "24px";
+            iconEl.style.height = "24px";
+            el.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+          }
+        }
       }
 
       jumpToMountain(selectedMountain);
     } else {
       // 選択解除時
       selectedMountainIdRef.current = null;
-      const m = map.current;
-      if (m?.getLayer("mountains-points-selected")) {
-        m.setFilter("mountains-points-selected", ["==", ["get", "id"], -1]);
-        m.setFilter("mountains-points", ["!=", ["get", "id"], -1]);
+
+      // すべてのマーカーを通常サイズに戻す
+      for (const marker of mountainMarkersRef.current.values()) {
+        const el = marker.getElement();
+        const iconEl = el.querySelector(".mountain-marker") as HTMLElement;
+        if (iconEl) {
+          iconEl.style.width = "24px";
+          iconEl.style.height = "24px";
+          el.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+        }
       }
     }
   }, [selectedMountain, jumpToMountain]);
+
+  // 選択されたクマが変更されたら表示を更新
+  useEffect(() => {
+    if (!map.current) return;
+
+    if (selectedBear) {
+      selectedBearIdRef.current = selectedBear.id;
+
+      // すべてのマーカーのサイズを更新
+      for (const [id, marker] of bearMarkersRef.current.entries()) {
+        const el = marker.getElement();
+        const iconEl = el.querySelector(".bear-marker") as HTMLElement;
+        if (iconEl) {
+          if (id === selectedBear.id) {
+            iconEl.style.width = "32px";
+            iconEl.style.height = "32px";
+            el.style.filter = "drop-shadow(0 4px 8px rgba(0,0,0,0.5))";
+          } else {
+            iconEl.style.width = "24px";
+            iconEl.style.height = "24px";
+            el.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+          }
+        }
+      }
+    } else {
+      selectedBearIdRef.current = null;
+
+      // すべてのマーカーを通常サイズに戻す
+      for (const marker of bearMarkersRef.current.values()) {
+        const el = marker.getElement();
+        const iconEl = el.querySelector(".bear-marker") as HTMLElement;
+        if (iconEl) {
+          iconEl.style.width = "24px";
+          iconEl.style.height = "24px";
+          el.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.3))";
+        }
+      }
+    }
+  }, [selectedBear]);
 
   // ホバーポイントのマーカー表示
   useEffect(() => {

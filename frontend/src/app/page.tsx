@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BottomSheet from "@/components/BottomSheet";
 import ContextPanel from "@/components/ContextPanel";
+import FavoritesModal from "@/components/FavoritesModal";
 import Header from "@/components/Header";
 import { MapPageClient } from "@/components/Map";
 import { ZOOM_LEVEL_THRESHOLD } from "@/components/MapTerrain";
-import type { Mountain, Path } from "./api/lib/models";
+import Tutorial from "@/components/Tutorial";
+import { useFavorites } from "@/hooks/useFavorites";
+import { bearList } from "./api/lib/bear/bear";
+import type { BearSighting, Mountain, Path } from "./api/lib/models";
 import type { PathDetail } from "./api/lib/models/pathDetail";
 import { mountainsList } from "./api/lib/mountains/mountains";
 import { pathsList, pathsRetrieve } from "./api/lib/paths/paths";
@@ -24,14 +28,51 @@ export default function HomePage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [mountains, setMountains] = useState<Mountain[]>([]);
   const [paths, setPaths] = useState<Path[]>([]);
+  const [bears, setBears] = useState<BearSighting[]>([]);
   const [selectedMountain, setSelectedMountain] = useState<Mountain | null>(
     null,
   );
   const [selectedPath, setSelectedPath] = useState<PathDetail | null>(null);
+  const [selectedBear, setSelectedBear] = useState<BearSighting | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<{
     lat: number;
     lon: number;
   } | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [showFavoritesModal, setShowFavoritesModal] = useState(false);
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+
+  const { favorites, isFavorite, toggleFavorite } = useFavorites();
+  const favoriteIds = new Set(favorites.map(m => m.id));
+
+  // 表示用の山リスト（お気に入りフィルター適用）
+  const displayMountains = showOnlyFavorites
+    ? mountains.filter(m => favoriteIds.has(m.id))
+    : mountains;
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const tutorialCompleted = localStorage.getItem("tutorialCompleted");
+      if (!tutorialCompleted) {
+        setShowTutorial(true);
+      }
+    }
+
+    // クマ情報を初期化時に全件取得
+    const fetchBears = async () => {
+      const response = await bearList({});
+      if (response.status === 200) {
+        const bearsData = Array.isArray(response.data)
+          ? response.data
+          : response.data.results || [];
+        setBears(bearsData);
+      } else {
+        console.error("Failed to fetch bears:", response);
+      }
+    };
+
+    fetchBears();
+  }, []);
 
   // ✨ MapTerrainからデータを受け取るためのコールバック関数
   const handleBoundsChange = async (newBounds: BoundingBox) => {
@@ -91,9 +132,17 @@ export default function HomePage() {
     }
   };
 
+  const handleSelectBear = (bear: BearSighting) => {
+    setSelectedMountain(null);
+    setSelectedPath(null);
+    setSelectedBear(bear);
+    setIsSheetOpen(true);
+  };
+
   const handleClearSelection = () => {
     setSelectedMountain(null);
-    setSelectedPath(null); // 追加
+    setSelectedPath(null);
+    setSelectedBear(null);
   };
 
   const handleToggleSheet = () => {
@@ -112,35 +161,63 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <Header />
+      <Header
+        onOpenTutorial={() => setShowTutorial(true)}
+        onOpenFavorites={() => setShowFavoritesModal(true)}
+        favoritesCount={favorites.length}
+      />
+      <Tutorial isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
+      <FavoritesModal
+        isOpen={showFavoritesModal}
+        favorites={favorites}
+        onClose={() => setShowFavoritesModal(false)}
+        onSelectMountain={handleSelectMountain}
+      />
       <main className="flex flex-1 overflow-hidden">
         <ContextPanel
-          mountains={mountains}
+          mountains={displayMountains}
           selectedMountain={selectedMountain}
-          selectedPath={selectedPath} // 追加
+          selectedPath={selectedPath}
+          selectedBear={selectedBear}
           onSelectMountain={handleSelectMountain}
-          onSelectPath={handleSelectPath} // 追加
+          onSelectPath={handleSelectPath}
+          onSelectBear={handleSelectBear}
           onClearSelection={handleClearSelection}
-          onHoverPointChange={handleHoverPointChange} // ホバー地点の変更
+          onHoverPointChange={handleHoverPointChange}
+          isFavorite={isFavorite}
+          onToggleFavorite={toggleFavorite}
         />
         <MapPageClient
           mountains={mountains}
           paths={paths}
+          bears={bears}
           onBoundsChange={handleBoundsChange}
           onSelectMountain={handleSelectMountain}
           selectedMountain={selectedMountain}
-          onSelectPath={handleSelectPath} // 追加
-          selectedPath={selectedPath} // 追加
-          hoveredPoint={hoveredPoint} // ホバー地点
+          onSelectPath={handleSelectPath}
+          selectedPath={selectedPath}
+          onSelectBear={handleSelectBear}
+          selectedBear={selectedBear}
+          hoveredPoint={hoveredPoint}
+          showOnlyFavorites={showOnlyFavorites}
+          onToggleShowOnlyFavorites={() =>
+            setShowOnlyFavorites(!showOnlyFavorites)
+          }
+          favoriteIds={favoriteIds}
         />
       </main>
       <BottomSheet
-        mountains={mountains}
+        mountains={displayMountains}
         selectedMountain={selectedMountain}
-        selectedPath={selectedPath} // 追加
+        selectedPath={selectedPath}
+        selectedBear={selectedBear}
         onSelectMountain={handleSelectMountain}
-        onSelectPath={handleSelectPath} // 追加
+        onSelectPath={handleSelectPath}
+        onSelectBear={handleSelectBear}
         onClearSelection={handleClearSelection}
+        onHoverPointChange={handleHoverPointChange}
+        isFavorite={isFavorite}
+        onToggleFavorite={toggleFavorite}
         isOpen={isSheetOpen}
         onToggle={handleToggleSheet}
         onClose={handleCloseSheet}
