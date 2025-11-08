@@ -102,6 +102,7 @@ export * from "./pathUpdatedAt";
 export * from "./point";
 export * from "./prefecture";
 export * from "./prefectureBase";
+export * from "./routeListParams";
 export * from "./type";
 export * from "./validationError";
 export * from "./validationErrorLocItem";

@@ -54,12 +54,16 @@ class PathGeometryViewSet(viewsets.ReadOnlyModelViewSet):
         except ValueError:
             raise ValidationError("start and dest must be integers")
 
+        try:
+            dest_geom = PathGeometry.objects.get(node_id=dest_node_id)
+        except PathGeometry.DoesNotExist:
+            raise NotFound("Destination node not found")
+
         # ノードの存在確認
         try:
             start_geom = PathGeometry.objects.get(node_id=start_node_id)
-            dest_geom = PathGeometry.objects.get(node_id=dest_node_id)
         except PathGeometry.DoesNotExist:
-            raise NotFound("Start or destination node not found")
+            raise NotFound("Start node not found")
 
         # グラフを構築（隣接リスト）
         graph = self._build_graph()
