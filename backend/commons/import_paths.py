@@ -35,7 +35,7 @@ from paths.models import PathGeometry, PathGeometryOrder, PathTag
 def merge_nodes_from_query_set(
     queryset: QuerySet[PathModel],
 ):
-    threshold_distance_km = 0.02  # ノードをマージする距離の閾値（km単位）
+    threshold_distance_km = 0.1  # ノードをマージする距離の閾値（km単位）
     try:
         count = queryset.count()
         print(f"Starting merge_nodes_from_query_set with {count} paths")
