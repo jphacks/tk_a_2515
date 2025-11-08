@@ -1,4 +1,8 @@
-export default function Header() {
+interface HeaderProps {
+  onOpenTutorial: () => void;
+}
+
+export default function Header({ onOpenTutorial }: HeaderProps) {
   return (
     <header className="flex items-center h-16 px-6 bg-gradient-to-r from-green-500 to-green-200 shadow-md z-50 shrink-0">
       <div className="flex items-center gap-4">
@@ -14,6 +18,14 @@ export default function Header() {
           PeakSight
         </h1>
       </div>
+      <button
+        onClick={onOpenTutorial}
+        className="w-10 h-10 flex items-center justify-center rounded-full bg-green-600 hover:bg-green-700 text-white transition-colors shadow-lg"
+        title="チュートリアルを表示"
+        type="button"
+      >
+        <span className="text-xl font-bold">?</span>
+      </button>
     </header>
   );
 }

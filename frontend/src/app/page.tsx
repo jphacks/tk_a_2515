@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BottomSheet from "@/components/BottomSheet";
 import ContextPanel from "@/components/ContextPanel";
 import Header from "@/components/Header";
 import { MapPageClient } from "@/components/Map";
 import { ZOOM_LEVEL_THRESHOLD } from "@/components/MapTerrain";
+import Tutorial from "@/components/Tutorial";
 import type { Mountain, Path } from "./api/lib/models";
 import type { PathDetail } from "./api/lib/models/pathDetail";
 import { mountainsList } from "./api/lib/mountains/mountains";
@@ -32,6 +33,14 @@ export default function HomePage() {
     lat: number;
     lon: number;
   } | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    const tutorialCompleted = localStorage.getItem("tutorialCompleted");
+    if (!tutorialCompleted) {
+      setShowTutorial(true);
+    }
+  }, []);
 
   // ✨ MapTerrainからデータを受け取るためのコールバック関数
   const handleBoundsChange = async (newBounds: BoundingBox) => {
@@ -112,7 +121,8 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <Header />
+      <Header onOpenTutorial={() => setShowTutorial(true)} />
+      <Tutorial isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
       <main className="flex flex-1 overflow-hidden">
         <ContextPanel
           mountains={mountains}
