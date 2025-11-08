@@ -93,7 +93,7 @@ export const MapTerrain = ({
   const mountainMarkersRef = useRef<Map<number, maplibregl.Marker>>(new Map());
 
   // イベントハンドラーの参照を保持（クリーンアップ用）
-  const mountainsEventHandlers = useRef<{
+  const _mountainsEventHandlers = useRef<{
     handleClick?: (
       e: maplibregl.MapMouseEvent & {
         features?: maplibregl.MapGeoJSONFeature[];
@@ -117,7 +117,7 @@ export const MapTerrain = ({
     handleMouseLeave?: () => void;
   }>({});
 
-  const bearsEventHandlers = useRef<{
+  const _bearsEventHandlers = useRef<{
     handleClick?: (
       e: maplibregl.MapMouseEvent & {
         features?: maplibregl.MapGeoJSONFeature[];
@@ -715,7 +715,7 @@ export const MapTerrain = ({
           className: "custom-mountain-popup",
           maxWidth: "300px",
         })
-          .setLngLat([mountain.lon!, mountain.lat!])
+          .setLngLat([mountain.lon ?? 0, mountain.lat ?? 0])
           .setHTML(tooltipHtml)
           .addTo(m);
 
@@ -807,7 +807,7 @@ export const MapTerrain = ({
 
     // 座標を丸めてグループ化するヘルパー関数
     const roundCoordinate = (coord: number, precision: number = 6): number => {
-      const factor = Math.pow(10, precision);
+      const factor = 10 ** precision;
       return Math.round(coord * factor) / factor;
     };
 
@@ -821,7 +821,7 @@ export const MapTerrain = ({
       } else {
         return;
       }
-      const bearId = feature.properties!.id;
+      const bearId = feature.properties?.id;
       const bear = bears.find(b => b.id === bearId);
 
       if (!bear) return;

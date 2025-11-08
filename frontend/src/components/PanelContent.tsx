@@ -41,7 +41,6 @@ export default function PanelContent({
   onToggleFavorite,
   showOnlyFavorites,
   onToggleShowOnlyFavorites,
-  favorites,
 }: Props) {
   // ✨ 2. スクロール位置を保持するためのstateと、リストコンテナへの参照(ref)を作成
   const listContainerRef = useRef<HTMLDivElement>(null);

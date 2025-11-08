@@ -12,11 +12,7 @@ import { bearList } from "./api/lib/bear/bear";
 import type { BearSighting, Mountain, Path } from "./api/lib/models";
 import type { PathDetail } from "./api/lib/models/pathDetail";
 import { mountainsList } from "./api/lib/mountains/mountains";
-import {
-  pathsList,
-  pathsRetrieve,
-  pathsRouteList,
-} from "./api/lib/paths/paths";
+import { pathsList, pathsRetrieve } from "./api/lib/paths/paths";
 
 export type BoundingBox = {
   minLon: number;
