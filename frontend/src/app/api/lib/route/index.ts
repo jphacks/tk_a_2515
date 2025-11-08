@@ -5,9 +5,8 @@
  * Django backend for Collect Map API - Mountain and Path data management
  * OpenAPI spec version: 1.0.0
  */
-import type { PaginatedPathList, Path, RouteListParams } from ".././models";
-
-import { customFetch } from ".././custom-fetch";
+import { customFetch } from "../custom-fetch";
+import type { PaginatedPathList, Path, RouteListParams } from "../models";
 
 /**
  * ダイクストラ法でstartノードからdestノードまでの最短経路のPath一覧を取得

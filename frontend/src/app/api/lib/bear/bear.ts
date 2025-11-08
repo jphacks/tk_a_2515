@@ -5,9 +5,8 @@
  * Django backend for Collect Map API - Mountain and Path data management
  * OpenAPI spec version: 1.0.0
  */
-import type { BearListParams, PaginatedBearSightingList } from ".././models";
-
 import { customFetch } from ".././custom-fetch";
+import type { BearListParams, PaginatedBearSightingList } from ".././models";
 
 /**
  * BearSighting一覧を取得

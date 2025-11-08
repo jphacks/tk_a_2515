@@ -5,8 +5,8 @@
  * Django backend for Collect Map API - Mountain and Path data management
  * OpenAPI spec version: 1.0.0
  */
-import type { Point } from "./point";
 import type { PathGeometryWithSequence } from "./pathGeometryWithSequence";
+import type { Point } from "./point";
 
 /**
  * Pathの詳細情報Serializer

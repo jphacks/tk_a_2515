@@ -5,16 +5,15 @@
  * Django backend for Collect Map API - Mountain and Path data management
  * OpenAPI spec version: 1.0.0
  */
+import { customFetch } from ".././custom-fetch";
 import type {
   Mountain,
   MountainCreate,
-  MountainUpdate,
   MountainsListParams,
+  MountainUpdate,
   PaginatedMountainList,
   PatchedMountainUpdate,
 } from ".././models";
-
-import { customFetch } from ".././custom-fetch";
 
 /**
  * Mountain一覧を取得（フィルタリング・ページネーション対応）
@@ -185,7 +184,7 @@ export const mountainsPartialUpdate = async (
  * Mountainを削除
  */
 export type mountainsDestroyResponse204 = {
-  data: void;
+  data: undefined;
   status: 204;
 };
 
@@ -213,7 +212,7 @@ export const mountainsDestroy = async (
  * Prefecture一覧を取得
  */
 export type mountainsPrefecturesRetrieveResponse200 = {
-  data: void;
+  data: undefined;
   status: 200;
 };
 
@@ -245,7 +244,7 @@ export const mountainsPrefecturesRetrieve = async (
  * Type一覧を取得
  */
 export type mountainsTypesRetrieveResponse200 = {
-  data: void;
+  data: undefined;
   status: 200;
 };
 

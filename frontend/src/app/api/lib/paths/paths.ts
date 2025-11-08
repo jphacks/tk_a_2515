@@ -5,13 +5,12 @@
  * Django backend for Collect Map API - Mountain and Path data management
  * OpenAPI spec version: 1.0.0
  */
+import { customFetch } from ".././custom-fetch";
 import type {
   PaginatedPathList,
   PathDetail,
   PathsListParams,
 } from ".././models";
-
-import { customFetch } from ".././custom-fetch";
 
 /**
  * 指定されたIDのPathの詳細情報を取得
