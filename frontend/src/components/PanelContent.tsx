@@ -11,6 +11,7 @@ import ElevationChart from "./ElevationChart";
 
 type Props = {
   mountains: Mountain[];
+  allMountains: Mountain[];
   visibleMountainIds: Set<number>;
   selectedMountain: Mountain | null;
   selectedPath: PathDetail | null;
@@ -22,6 +23,9 @@ type Props = {
   onHoverPointChange: (point: { lat: number; lon: number } | null) => void;
   isFavorite: (mountainId: number) => boolean;
   onToggleFavorite: (mountain: Mountain) => void;
+  showOnlyFavorites: boolean;
+  onToggleShowOnlyFavorites: () => void;
+  favorites: Mountain[];
 };
 
 export default function PanelContent({
@@ -35,6 +39,9 @@ export default function PanelContent({
   onHoverPointChange,
   isFavorite,
   onToggleFavorite,
+  showOnlyFavorites,
+  onToggleShowOnlyFavorites,
+  favorites,
 }: Props) {
   // ✨ 2. スクロール位置を保持するためのstateと、リストコンテナへの参照(ref)を作成
   const listContainerRef = useRef<HTMLDivElement>(null);
@@ -374,7 +381,33 @@ export default function PanelContent({
   // リスト表示
   return (
     <div ref={listContainerRef} className="h-full overflow-y-auto">
-      {/* ヘッダー部分はスクロールしても追従するように sticky を指定 */}
+      
+        {!selectedMountain && !selectedPath && !selectedBear && (
+          <div className="p-3 border-b border-slate-200 bg-slate-50">
+            <button
+              type="button"
+              onClick={onToggleShowOnlyFavorites}
+              className={`w-full px-3 py-2 flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+                showOnlyFavorites
+                  ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                  : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+              }`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className={`w-4 h-4 ${showOnlyFavorites ? "text-yellow-500" : "text-gray-400"}`}
+              >
+                <title>お気に入りのみ表示</title>
+                <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+              </svg>
+              {showOnlyFavorites
+                ? `お気に入り (${favorites.length}件)`
+                : "お気に入りのみ表示"}
+            </button>
+          </div>
+        )}
       <div className="p-5 border-b border-slate-200 sticky top-0 bg-white z-10">
         <h2 className="text-xl font-bold text-slate-800">
           {mountains.length > 0
@@ -438,15 +471,16 @@ export default function PanelContent({
                         </span>
                       )}
                     </div>
-                    {mountain.elevation && !Number.isNaN(mountain.elevation) && (
-                      <p
-                        className={`text-sm ${
-                          isVisible ? "text-slate-500" : "text-slate-400"
-                        }`}
-                      >
-                        標高: {mountain.elevation.toLocaleString()} m
-                      </p>
-                    )}
+                    {mountain.elevation &&
+                      !Number.isNaN(mountain.elevation) && (
+                        <p
+                          className={`text-sm ${
+                            isVisible ? "text-slate-500" : "text-slate-400"
+                          }`}
+                        >
+                          標高: {mountain.elevation.toLocaleString()} m
+                        </p>
+                      )}
                     {mountain.prefectures &&
                       mountain.prefectures.length > 0 && (
                         <p

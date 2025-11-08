@@ -204,17 +204,24 @@ export default function HomePage() {
         />
       </main>
       <BottomSheet
-        mountains={displayMountains}
-        selectedMountain={selectedMountain}
-        selectedPath={selectedPath}
-        selectedBear={selectedBear}
-        onSelectMountain={handleSelectMountain}
-        onSelectPath={handleSelectPath}
-        onSelectBear={handleSelectBear}
-        onClearSelection={handleClearSelection}
-        onHoverPointChange={handleHoverPointChange}
-        isFavorite={isFavorite}
-        onToggleFavorite={toggleFavorite}
+          mountains={displayMountains}
+          allMountains={mountains}
+          visibleMountainIds={visibleMountainIds}
+          selectedMountain={selectedMountain}
+          selectedPath={selectedPath}
+          selectedBear={selectedBear}
+          onSelectMountain={handleSelectMountain}
+          onSelectPath={handleSelectPath}
+          onSelectBear={handleSelectBear}
+          onClearSelection={handleClearSelection}
+          onHoverPointChange={handleHoverPointChange}
+          isFavorite={isFavorite}
+          onToggleFavorite={toggleFavorite}
+          showOnlyFavorites={showOnlyFavorites}
+          onToggleShowOnlyFavorites={() =>
+            setShowOnlyFavorites(!showOnlyFavorites)
+          }
+          favorites={favorites}
         isOpen={isSheetOpen}
         onToggle={handleToggleSheet}
         onClose={handleCloseSheet}

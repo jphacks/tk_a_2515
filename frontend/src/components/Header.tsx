@@ -21,13 +21,14 @@ export default function Header({ onOpenTutorial }: HeaderProps) {
           PeakSight
         </h1>
       </div>
-      <div className="flex items-center gap-4 h-9">
+      <div className="flex items-center gap-4">
         <button
           type="button"
           onClick={onOpenTutorial}
-          className="flex items-center gap-2 h-full px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+          className="flex items-center justify-center w-9 h-9 text-lg font-bold text-gray-800 bg-blue-300 rounded-full hover:bg-blue-400 shadow-md hover:shadow-lg transition-all cursor-pointer"
+          aria-label="ヘルプ"
         >
-          <span className="text-base font-bold">?</span>
+          ?
         </button>
       </div>
     </header>
