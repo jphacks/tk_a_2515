@@ -11,6 +11,7 @@ import ElevationChart from "./ElevationChart";
 
 type Props = {
   mountains: Mountain[];
+  visibleMountainIds: Set<number>;
   selectedMountain: Mountain | null;
   selectedPath: PathDetail | null;
   selectedBear: BearSighting | null;
@@ -25,6 +26,7 @@ type Props = {
 
 export default function PanelContent({
   mountains,
+  visibleMountainIds,
   selectedMountain,
   selectedPath,
   selectedBear,
@@ -380,50 +382,87 @@ export default function PanelContent({
             : "山がある場所でズームしてください"}
         </h2>
       </div>
-      {mountains.length > 0 ? ( // ✨ mountains が存在する場合のみリストを表示
+      {mountains.length > 0 ? (
         <ul className="divide-y divide-slate-100">
-          {mountains.map(mountain => (
-            <li key={mountain.id} className="p-0">
-              <button
-                type="button"
-                onClick={() => handleSelectAndSaveScroll(mountain)}
-                onKeyDown={e => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    handleSelectAndSaveScroll(mountain);
-                  }
-                }}
-                className="w-full text-left p-5 hover:bg-green-50 cursor-pointer transition-colors flex items-center gap-4"
-              >
-                {mountain.photo_url ? (
-                  <Image
-                    src={mountain.photo_url}
-                    alt={mountain.name}
-                    className="w-16 h-16 object-cover rounded-lg border border-slate-200"
-                    width={64}
-                    height={64}
-                  />
-                ) : (
-                  <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 text-sm">
-                    画像なし
+          {mountains.map(mountain => {
+            const isVisible = visibleMountainIds?.has(mountain.id) ?? true;
+            return (
+              <li key={mountain.id} className="p-0">
+                <button
+                  type="button"
+                  onClick={() => handleSelectAndSaveScroll(mountain)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      handleSelectAndSaveScroll(mountain);
+                    }
+                  }}
+                  className={`w-full text-left p-5 cursor-pointer transition-colors flex items-center gap-4 ${
+                    isVisible
+                      ? "hover:bg-green-50"
+                      : "bg-slate-100 hover:bg-slate-200"
+                  }`}
+                >
+                  {mountain.photo_url ? (
+                    <Image
+                      src={mountain.photo_url}
+                      alt={mountain.name}
+                      className={`w-16 h-16 object-cover rounded-lg border ${
+                        isVisible
+                          ? "border-slate-200"
+                          : "border-slate-300 opacity-70"
+                      }`}
+                      width={64}
+                      height={64}
+                    />
+                  ) : (
+                    <div
+                      className={`w-16 h-16 rounded-lg flex items-center justify-center text-slate-400 text-sm ${
+                        isVisible ? "bg-slate-100" : "bg-slate-200 opacity-70"
+                      }`}
+                    >
+                      画像なし
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3
+                        className={`font-bold ${
+                          isVisible ? "text-slate-700" : "text-slate-500"
+                        }`}
+                      >
+                        {mountain.name}
+                      </h3>
+                      {!isVisible && (
+                        <span className="text-xs px-2 py-0.5 bg-slate-300 text-slate-600 rounded-full">
+                          画面外
+                        </span>
+                      )}
+                    </div>
+                    {mountain.elevation && !Number.isNaN(mountain.elevation) && (
+                      <p
+                        className={`text-sm ${
+                          isVisible ? "text-slate-500" : "text-slate-400"
+                        }`}
+                      >
+                        標高: {mountain.elevation.toLocaleString()} m
+                      </p>
+                    )}
+                    {mountain.prefectures &&
+                      mountain.prefectures.length > 0 && (
+                        <p
+                          className={`text-sm ${
+                            isVisible ? "text-slate-500" : "text-slate-400"
+                          }`}
+                        >
+                          都道府県:{" "}
+                          {mountain.prefectures.map(p => p.name).join(", ")}
+                        </p>
+                      )}
                   </div>
-                )}
-                <div>
-                  <h3 className="font-bold text-slate-700">{mountain.name}</h3>
-                  {mountain.elevation && !Number.isNaN(mountain.elevation) && (
-                    <p className="text-sm text-slate-500">
-                      標高: {mountain.elevation.toLocaleString()} m
-                    </p>
-                  )}
-                  {mountain.prefectures && mountain.prefectures.length > 0 && (
-                    <p className="text-sm text-slate-500">
-                      都道府県:{" "}
-                      {mountain.prefectures.map(p => p.name).join(", ")}
-                    </p>
-                  )}
-                </div>
-              </button>
-            </li>
-          ))}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <div className="p-5 text-center text-slate-500"></div>
