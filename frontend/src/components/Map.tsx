@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { Mountain, Path, PathDetail } from "@/app/api/lib/models";
+import type {
+  BearSighting,
+  Mountain,
+  Path,
+  PathDetail,
+} from "@/app/api/lib/models";
 import type { BoundingBox } from "@/app/page";
 import { MapTerrain } from "@/components/MapTerrain";
 
@@ -10,22 +15,28 @@ type StyleMode = "hybrid" | "normal";
 interface Props {
   mountains: Mountain[];
   paths: Path[];
+  bears: BearSighting[];
   onBoundsChange?: (bounds: BoundingBox) => void;
   onSelectMountain?: (mountain: Mountain) => void;
   selectedMountain?: Mountain | null;
   onSelectPath?: (path: Path) => void;
   selectedPath?: PathDetail | null;
+  onSelectBear?: (bear: BearSighting) => void;
+  selectedBear?: BearSighting | null;
   hoveredPoint?: { lat: number; lon: number } | null;
 }
 
 export const MapPageClient = ({
   mountains,
   paths,
+  bears,
   onBoundsChange,
   onSelectMountain,
   selectedMountain, // ✨ プロパティを受け取り
   onSelectPath, // 追加
   selectedPath, // 追加
+  onSelectBear, // クマ選択ハンドラ
+  selectedBear, // 選択されたクマ
   hoveredPoint, // ホバー地点
 }: Props) => {
   const [mode, setMode] = useState<StyleMode>("normal");
@@ -98,7 +109,7 @@ export const MapPageClient = ({
         </button>
         <div
           className={`overflow-hidden transition-all duration-300 ${
-            isLegendOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+            isLegendOpen ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
           }`}
         >
           <div className="p-3 text-sm border-t">
@@ -123,6 +134,16 @@ export const MapPageClient = ({
               ></div>
               <span>登山道</span>
             </div>
+            <div className="flex items-center gap-2 mb-1">
+              <div
+                className="w-4 h-4 rounded-full flex-shrink-0"
+                style={{
+                  backgroundColor: "#D97706",
+                  border: "2px solid #ffffff",
+                }}
+              ></div>
+              <span>クマ目撃情報</span>
+            </div>
           </div>
         </div>
       </div>
@@ -130,12 +151,15 @@ export const MapPageClient = ({
         styleMode={mode}
         mountains={mountains}
         paths={paths}
+        bears={bears}
         onBoundsChange={onBoundsChange}
         onSelectMountain={onSelectMountain}
         selectedMountain={selectedMountain}
-        onSelectPath={onSelectPath} // 追加
-        selectedPath={selectedPath} // 追加
-        hoveredPoint={hoveredPoint} // ホバー地点
+        onSelectPath={onSelectPath}
+        selectedPath={selectedPath}
+        onSelectBear={onSelectBear}
+        selectedBear={selectedBear}
+        hoveredPoint={hoveredPoint}
       />
     </div>
   );

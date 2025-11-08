@@ -4,7 +4,12 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { renderToString } from "react-dom/server";
-import type { Mountain, Path, PathDetail } from "@/app/api/lib/models";
+import type {
+  BearSighting,
+  Mountain,
+  Path,
+  PathDetail,
+} from "@/app/api/lib/models";
 import { MountainTooltip } from "./MountainTooltip";
 
 // 山とパスを表示するズームレベルの閾値
@@ -16,6 +21,7 @@ interface Props {
   styleMode?: StyleMode;
   mountains: Mountain[];
   paths: Path[];
+  bears: BearSighting[];
   onBoundsChange?: (bounds: {
     minLon: number;
     minLat: number;
@@ -26,7 +32,9 @@ interface Props {
   onSelectMountain?: (mountain: Mountain) => void;
   selectedMountain?: Mountain | null;
   onSelectPath?: (path: Path) => void;
+  onSelectBear?: (bear: BearSighting) => void;
   selectedPath?: PathDetail | null;
+  selectedBear?: BearSighting | null;
   hoveredPoint?: { lat: number; lon: number } | null;
 }
 
@@ -34,10 +42,13 @@ export const MapTerrain = ({
   styleMode = "hybrid",
   mountains,
   paths,
+  bears,
   onBoundsChange,
   onSelectMountain,
   selectedMountain,
+  selectedBear,
   onSelectPath,
+  onSelectBear,
   hoveredPoint,
 }: Props) => {
   if (!process.env.NEXT_PUBLIC_FULL_URL) {
@@ -62,14 +73,17 @@ export const MapTerrain = ({
   const hoveredPointMarker = useRef<maplibregl.Marker | null>(null);
   const pathsListenersRegistered = useRef<boolean>(false);
   const mountainsListenersRegistered = useRef<boolean>(false);
+  const bearsListenersRegistered = useRef<boolean>(false);
   const pathsRef = useRef<Path[]>(paths);
   const mountainsRef = useRef<Mountain[]>(mountains);
+  const bearsRef = useRef<BearSighting[]>(bears);
   const previousPathsHash = useRef<string>("");
   const previousMountainsHash = useRef<string>("");
   const isMountedRef = useRef<boolean>(true);
   const animationFrameIdsRef = useRef<Set<number>>(new Set());
   const selectedPathIdRef = useRef<number | null>(null);
   const selectedMountainIdRef = useRef<number | null>(null);
+  const selectedBearIdRef = useRef<number | null>(null);
   const geolocateControl = useRef<maplibregl.GeolocateControl | null>(null);
 
   // イベントハンドラーの参照を保持（クリーンアップ用）
@@ -94,6 +108,20 @@ export const MapTerrain = ({
       },
     ) => void;
     handleMouseEnter?: () => void;
+    handleMouseLeave?: () => void;
+  }>({});
+
+  const bearsEventHandlers = useRef<{
+    handleClick?: (
+      e: maplibregl.MapMouseEvent & {
+        features?: maplibregl.MapGeoJSONFeature[];
+      },
+    ) => void;
+    handleMouseEnter?: (
+      e: maplibregl.MapMouseEvent & {
+        features?: maplibregl.MapGeoJSONFeature[];
+      },
+    ) => void;
     handleMouseLeave?: () => void;
   }>({});
 
@@ -127,6 +155,10 @@ export const MapTerrain = ({
   useEffect(() => {
     mountainsRef.current = mountains;
   }, [mountains]);
+
+  useEffect(() => {
+    bearsRef.current = bears;
+  }, [bears]);
 
   // 地形タイルとDEMを追加
   const addDemAndTerrain = useCallback(() => {
@@ -211,6 +243,32 @@ export const MapTerrain = ({
     }
     mountainsEventHandlers.current = {};
     mountainsListenersRegistered.current = false;
+  }, []);
+
+  // クマのイベントリスナーをクリーンアップ
+  const cleanupBearsListeners = useCallback(() => {
+    const m = map.current;
+    if (!m || !bearsListenersRegistered.current) return;
+
+    if (bearsEventHandlers.current.handleClick) {
+      m.off("click", "bears-points", bearsEventHandlers.current.handleClick);
+    }
+    if (bearsEventHandlers.current.handleMouseEnter) {
+      m.off(
+        "mouseenter",
+        "bears-points",
+        bearsEventHandlers.current.handleMouseEnter,
+      );
+    }
+    if (bearsEventHandlers.current.handleMouseLeave) {
+      m.off(
+        "mouseleave",
+        "bears-points",
+        bearsEventHandlers.current.handleMouseLeave,
+      );
+    }
+    bearsEventHandlers.current = {};
+    bearsListenersRegistered.current = false;
   }, []);
 
   // パスデータをGeoJSON形式に変換
@@ -782,39 +840,6 @@ export const MapTerrain = ({
         filter: ["==", ["get", "id"], ""],
       });
 
-      // ラベルレイヤー
-      m.addLayer({
-        id: "mountains-labels",
-        type: "symbol",
-        source: "mountains-source",
-        layout: {
-          "text-field": ["get", "name"],
-          "text-font": ["Noto Sans Bold"],
-          "text-size": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            16,
-            14,
-            18,
-            14,
-            20,
-            14,
-          ],
-          "text-offset": [0, 1.5],
-          "text-anchor": "top",
-          "text-allow-overlap": true,
-          "text-optional": false,
-          "text-padding": 2,
-        },
-        paint: {
-          "text-color": "#2d3748",
-          "text-halo-color": "rgba(255, 255, 255, 0.95)",
-          "text-halo-width": 2,
-          "text-halo-blur": 1,
-        },
-      });
-
       registerMountainsEventListeners();
     } catch (error) {
       console.error("[MapTerrain] Error adding mountains layers:", error);
@@ -829,6 +854,298 @@ export const MapTerrain = ({
       return;
     }
   }, [mountainsGeoJSON, onSelectMountain, cleanupMountainsListeners]);
+
+  // クマデータをGeoJSON形式に変換（山のパターンを完全に模倣）
+  const bearsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
+    const features = bears
+      .filter(
+        bear =>
+          bear.longitude !== null &&
+          bear.longitude !== undefined &&
+          bear.latitude !== null &&
+          bear.latitude !== undefined,
+      )
+      .map(bear => ({
+        type: "Feature" as const,
+        properties: {
+          id: bear.id,
+          prefecture: bear.prefecture,
+          city: bear.city,
+          summary: bear.summary,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [bear.longitude, bear.latitude] as [number, number],
+        },
+      }));
+    return {
+      type: "FeatureCollection",
+      features,
+    };
+  }, [bears]);
+
+  // クマのレイヤーを追加または更新（山のパターンを完全に模倣）
+  const addOrUpdateBears = useCallback(() => {
+    const m = map.current;
+    if (!m || !isMountedRef.current) return;
+
+    // イベントリスナーを登録するヘルパー関数
+    const registerBearsEventListeners = () => {
+      if (
+        !onSelectBear ||
+        bearsListenersRegistered.current ||
+        !m.getLayer("bears-points")
+      ) {
+        return;
+      }
+
+      // クリックイベント: クマ情報を選択
+      const handleClick = (
+        e: maplibregl.MapMouseEvent & {
+          features?: maplibregl.MapGeoJSONFeature[];
+        },
+      ) => {
+        if (!e.features || !e.features[0]) return;
+        const feature = e.features[0];
+        const bearId = feature.properties?.id;
+
+        // 選択されたクマのIDを更新
+        selectedBearIdRef.current = bearId;
+
+        // 選択されたクマレイヤーのフィルターを更新
+        if (m.getLayer("bears-points-selected")) {
+          m.setFilter("bears-points-selected", ["==", ["get", "id"], bearId]);
+        }
+
+        // 最新のデータからクマ情報を取得
+        const latestBears = bearsRef.current;
+        const selectedBear = latestBears.find(b => b.id === bearId);
+
+        if (selectedBear && onSelectBear) {
+          onSelectBear(selectedBear);
+        }
+      };
+
+      // マウスエンターイベント: ホバーレイヤーを表示
+      const handleMouseEnter = (
+        e: maplibregl.MapMouseEvent & {
+          features?: maplibregl.MapGeoJSONFeature[];
+        },
+      ) => {
+        m.getCanvas().style.cursor = "pointer";
+        if (e.features?.[0]) {
+          const featureId = e.features[0].properties?.id;
+          m.setFilter("bears-points-hover", ["==", ["get", "id"], featureId]);
+        }
+      };
+
+      // マウスリーブイベント: ホバーレイヤーを非表示
+      const handleMouseLeave = () => {
+        m.getCanvas().style.cursor = "";
+        m.setFilter("bears-points-hover", ["==", ["get", "id"], ""]);
+      };
+
+      bearsEventHandlers.current = {
+        handleClick,
+        handleMouseEnter,
+        handleMouseLeave,
+      };
+
+      // ピンレイヤーにイベントを登録
+      m.on("click", "bears-points", handleClick);
+      m.on("mouseenter", "bears-points", handleMouseEnter);
+      m.on("mouseleave", "bears-points", handleMouseLeave);
+
+      bearsListenersRegistered.current = true;
+    };
+
+    const source = m.getSource("bears-source") as maplibregl.GeoJSONSource;
+
+    // ソースが既に存在する場合はデータのみ更新
+    if (source) {
+      source.setData(bearsGeoJSON);
+      registerBearsEventListeners();
+
+      // 選択されたクマのフィルターを再適用
+      if (
+        m.getLayer("bears-points-selected") &&
+        selectedBearIdRef.current !== null
+      ) {
+        m.setFilter("bears-points-selected", [
+          "==",
+          ["get", "id"],
+          selectedBearIdRef.current,
+        ]);
+      }
+      return;
+    }
+
+    // スタイルがロードされていない場合は次のフレームで再試行
+    if (!m.isStyleLoaded()) {
+      const frameId = requestAnimationFrame(() => {
+        animationFrameIdsRef.current.delete(frameId);
+        if (isMountedRef.current && map.current) {
+          addOrUpdateBears();
+        }
+      });
+      animationFrameIdsRef.current.add(frameId);
+      return;
+    }
+
+    // レイヤー追加時のエラーハンドリング
+    try {
+      m.addSource("bears-source", {
+        type: "geojson",
+        data: bearsGeoJSON,
+      });
+
+      // 影レイヤー
+      m.addLayer({
+        id: "bears-points-shadow",
+        type: "circle",
+        source: "bears-source",
+        paint: {
+          "circle-color": "rgba(0, 0, 0, 0.3)",
+          "circle-radius": 8,
+          "circle-translate": [2, 2],
+          "circle-blur": 0.5,
+        },
+      });
+
+      // メインのクマピンレイヤー
+      m.addLayer({
+        id: "bears-points",
+        type: "circle",
+        source: "bears-source",
+        paint: {
+          "circle-color": "#D97706",
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            8,
+            4,
+            12,
+            6,
+            16,
+            8,
+            20,
+            10,
+          ],
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            8,
+            1,
+            12,
+            2,
+            16,
+            3,
+            20,
+            4,
+          ],
+          "circle-opacity": 0.9,
+          "circle-stroke-opacity": 1,
+        },
+        filter: ["!=", ["get", "id"], selectedBearIdRef.current ?? -1],
+      });
+
+      // 選択されたクマ専用のレイヤー（大きく目立つ）
+      m.addLayer({
+        id: "bears-points-selected",
+        type: "circle",
+        source: "bears-source",
+        paint: {
+          "circle-color": "#FCD34D",
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            8,
+            7,
+            12,
+            10,
+            16,
+            14,
+            20,
+            18,
+          ],
+          "circle-stroke-color": "#D97706",
+          "circle-stroke-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            8,
+            2,
+            12,
+            3,
+            16,
+            5,
+            20,
+            7,
+          ],
+          "circle-opacity": 1,
+          "circle-stroke-opacity": 1,
+        },
+        filter: ["==", ["get", "id"], selectedBearIdRef.current ?? -1],
+      });
+
+      // ホバー時に表示する拡大レイヤー
+      m.addLayer({
+        id: "bears-points-hover",
+        type: "circle",
+        source: "bears-source",
+        paint: {
+          "circle-color": "#D97706",
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            8,
+            6,
+            12,
+            8,
+            16,
+            11,
+            20,
+            14,
+          ],
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            8,
+            2,
+            12,
+            3,
+            16,
+            4,
+            20,
+            5,
+          ],
+          "circle-opacity": 0.9,
+          "circle-stroke-opacity": 1,
+        },
+        filter: ["==", ["get", "id"], ""],
+      });
+
+      registerBearsEventListeners();
+    } catch (error) {
+      console.error("[MapTerrain] Error adding bears layers:", error);
+      // エラー時は次のフレームで再試行
+      const frameId = requestAnimationFrame(() => {
+        animationFrameIdsRef.current.delete(frameId);
+        if (isMountedRef.current && map.current) {
+          addOrUpdateBears();
+        }
+      });
+      animationFrameIdsRef.current.add(frameId);
+      return;
+    }
+  }, [bearsGeoJSON, onSelectBear]);
 
   // マップの初期化
   // biome-ignore lint/correctness/useExhaustiveDependencies: 初期化は一度だけ実行
@@ -926,6 +1243,7 @@ export const MapTerrain = ({
         // ズームレベルが閾値以上の場合、レイヤーを更新
         addOrUpdatePaths();
         addOrUpdateMountains();
+        addOrUpdateBears();
       }
 
       // バウンディングボックスの変更を通知
@@ -943,6 +1261,7 @@ export const MapTerrain = ({
         addOrUpdatePaths();
         addOrUpdateMountains();
       }
+      addOrUpdateBears();
     };
 
     // ピッチ変更時の処理
@@ -954,12 +1273,14 @@ export const MapTerrain = ({
         addOrUpdatePaths();
         addOrUpdateMountains();
       }
+      addOrUpdateBears();
     };
 
     map.current.on("load", () => {
       addDemAndTerrain();
       addOrUpdatePaths();
       addOrUpdateMountains();
+      addOrUpdateBears();
 
       // GeolocateControlを追加
       if (geolocateControl.current && map.current) {
@@ -996,6 +1317,7 @@ export const MapTerrain = ({
       if (m) {
         cleanupPathsListeners();
         cleanupMountainsListeners();
+        cleanupBearsListeners();
       }
 
       map.current?.off("moveend", handleMapMove);
@@ -1013,14 +1335,17 @@ export const MapTerrain = ({
     // スタイル変更前にリスナーをクリーンアップ
     cleanupPathsListeners();
     cleanupMountainsListeners();
+    cleanupBearsListeners();
 
     m.setStyle(styleUrls[styleMode]);
     m.once("styledata", () => {
       pathsListenersRegistered.current = false;
       mountainsListenersRegistered.current = false;
+      bearsListenersRegistered.current = false;
       addDemAndTerrain();
       addOrUpdatePaths();
       addOrUpdateMountains();
+      addOrUpdateBears();
     });
     currentMode.current = styleMode;
   }, [
@@ -1029,8 +1354,10 @@ export const MapTerrain = ({
     addDemAndTerrain,
     addOrUpdatePaths,
     addOrUpdateMountains,
+    addOrUpdateBears,
     cleanupPathsListeners,
     cleanupMountainsListeners,
+    cleanupBearsListeners,
   ]);
 
   // パスデータ変更時の処理（ハッシュベースで変更検知）
@@ -1113,6 +1440,28 @@ export const MapTerrain = ({
       }
     }
   }, [mountainsHash, mountains.length, addOrUpdateMountains]);
+
+  // クマデータ変更時の処理（初期化時のみ実行）
+  useEffect(() => {
+    if (!map.current || !isMountedRef.current) return;
+    if (bears.length === 0) return;
+
+    console.log("[MapTerrain] Bears data loaded, adding layers...", {
+      bearCount: bears.length,
+    });
+
+    const frameId = requestAnimationFrame(() => {
+      animationFrameIdsRef.current.delete(frameId);
+      if (isMountedRef.current && map.current) {
+        try {
+          addOrUpdateBears();
+        } catch (error) {
+          console.error("[MapTerrain] Error adding bears:", error);
+        }
+      }
+    });
+    animationFrameIdsRef.current.add(frameId);
+  }, [bears.length, addOrUpdateBears]);
 
   // 指定された山にカメラを移動
   const jumpToMountain = useCallback((mountain: Mountain) => {
@@ -1212,6 +1561,34 @@ export const MapTerrain = ({
       }
     }
   }, [selectedMountain, jumpToMountain]);
+
+  // 選択されたクマが変更されたら表示を更新
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+
+    if (selectedBear) {
+      // 選択されたクマのIDを更新
+      selectedBearIdRef.current = selectedBear.id;
+
+      // マップが存在し、レイヤーが存在する場合はフィルターを更新
+      if (m.getLayer("bears-points-selected")) {
+        m.setFilter("bears-points-selected", [
+          "==",
+          ["get", "id"],
+          selectedBear.id,
+        ]);
+        m.setFilter("bears-points", ["!=", ["get", "id"], selectedBear.id]);
+      }
+    } else {
+      // 選択解除時
+      selectedBearIdRef.current = null;
+      if (m.getLayer("bears-points-selected")) {
+        m.setFilter("bears-points-selected", ["==", ["get", "id"], -1]);
+        m.setFilter("bears-points", ["!=", ["get", "id"], -1]);
+      }
+    }
+  }, [selectedBear]);
 
   // ホバーポイントのマーカー表示
   useEffect(() => {

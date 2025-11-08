@@ -7,7 +7,8 @@ import Header from "@/components/Header";
 import { MapPageClient } from "@/components/Map";
 import { ZOOM_LEVEL_THRESHOLD } from "@/components/MapTerrain";
 import Tutorial from "@/components/Tutorial";
-import type { Mountain, Path } from "./api/lib/models";
+import { bearList } from "./api/lib/bear/bear";
+import type { BearSighting, Mountain, Path } from "./api/lib/models";
 import type { PathDetail } from "./api/lib/models/pathDetail";
 import { mountainsList } from "./api/lib/mountains/mountains";
 import { pathsList, pathsRetrieve } from "./api/lib/paths/paths";
@@ -25,10 +26,12 @@ export default function HomePage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [mountains, setMountains] = useState<Mountain[]>([]);
   const [paths, setPaths] = useState<Path[]>([]);
+  const [bears, setBears] = useState<BearSighting[]>([]);
   const [selectedMountain, setSelectedMountain] = useState<Mountain | null>(
     null,
   );
   const [selectedPath, setSelectedPath] = useState<PathDetail | null>(null);
+  const [selectedBear, setSelectedBear] = useState<BearSighting | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<{
     lat: number;
     lon: number;
@@ -40,6 +43,21 @@ export default function HomePage() {
     if (!tutorialCompleted) {
       setShowTutorial(true);
     }
+
+    // クマ情報を初期化時に全件取得
+    const fetchBears = async () => {
+      const response = await bearList({});
+      if (response.status === 200) {
+        const bearsData = Array.isArray(response.data)
+          ? response.data
+          : response.data.results || [];
+        setBears(bearsData);
+      } else {
+        console.error("Failed to fetch bears:", response);
+      }
+    };
+
+    fetchBears();
   }, []);
 
   // ✨ MapTerrainからデータを受け取るためのコールバック関数
@@ -100,9 +118,17 @@ export default function HomePage() {
     }
   };
 
+  const handleSelectBear = (bear: BearSighting) => {
+    setSelectedMountain(null);
+    setSelectedPath(null);
+    setSelectedBear(bear);
+    setIsSheetOpen(true);
+  };
+
   const handleClearSelection = () => {
     setSelectedMountain(null);
-    setSelectedPath(null); // 追加
+    setSelectedPath(null);
+    setSelectedBear(null);
   };
 
   const handleToggleSheet = () => {
@@ -127,29 +153,36 @@ export default function HomePage() {
         <ContextPanel
           mountains={mountains}
           selectedMountain={selectedMountain}
-          selectedPath={selectedPath} // 追加
+          selectedPath={selectedPath}
+          selectedBear={selectedBear}
           onSelectMountain={handleSelectMountain}
-          onSelectPath={handleSelectPath} // 追加
+          onSelectPath={handleSelectPath}
+          onSelectBear={handleSelectBear}
           onClearSelection={handleClearSelection}
-          onHoverPointChange={handleHoverPointChange} // ホバー地点の変更
+          onHoverPointChange={handleHoverPointChange}
         />
         <MapPageClient
           mountains={mountains}
           paths={paths}
+          bears={bears}
           onBoundsChange={handleBoundsChange}
           onSelectMountain={handleSelectMountain}
           selectedMountain={selectedMountain}
-          onSelectPath={handleSelectPath} // 追加
-          selectedPath={selectedPath} // 追加
-          hoveredPoint={hoveredPoint} // ホバー地点
+          onSelectPath={handleSelectPath}
+          selectedPath={selectedPath}
+          onSelectBear={handleSelectBear}
+          selectedBear={selectedBear}
+          hoveredPoint={hoveredPoint}
         />
       </main>
       <BottomSheet
         mountains={mountains}
         selectedMountain={selectedMountain}
-        selectedPath={selectedPath} // 追加
+        selectedPath={selectedPath}
+        selectedBear={selectedBear}
         onSelectMountain={handleSelectMountain}
-        onSelectPath={handleSelectPath} // 追加
+        onSelectPath={handleSelectPath}
+        onSelectBear={handleSelectBear}
         onClearSelection={handleClearSelection}
         isOpen={isSheetOpen}
         onToggle={handleToggleSheet}
