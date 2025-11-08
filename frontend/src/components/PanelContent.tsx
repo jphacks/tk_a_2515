@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Heart } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type {
@@ -19,6 +19,8 @@ type Props = {
   onSelectBear?: (bear: BearSighting) => void;
   onClearSelection: () => void;
   onHoverPointChange?: (point: { lat: number; lon: number } | null) => void;
+  isFavorite?: (mountainId: number) => boolean;
+  onToggleFavorite?: (mountain: Mountain) => void;
 };
 
 export default function PanelContent({
@@ -29,6 +31,8 @@ export default function PanelContent({
   onSelectMountain,
   onClearSelection,
   onHoverPointChange,
+  isFavorite,
+  onToggleFavorite,
 }: Props) {
   // ✨ 2. スクロール位置を保持するためのstateと、リストコンテナへの参照(ref)を作成
   const listContainerRef = useRef<HTMLDivElement>(null);
@@ -62,17 +66,33 @@ export default function PanelContent({
   }, [mountains]); // mountains が変化するたびに実行
 
   if (selectedMountain) {
+    const isFav = isFavorite?.(selectedMountain.id) ?? false;
+
     // 詳細表示
     return (
       <div className="p-5">
-        <button
-          type="button"
-          onClick={onClearSelection}
-          className="cursor-pointer flex items-center gap-2 mb-4 text-sm text-green-700 font-semibold hover:text-green-800 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          山の一覧に戻る
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            type="button"
+            onClick={onClearSelection}
+            className="cursor-pointer flex items-center gap-2 text-base text-green-700 font-semibold hover:text-green-800 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            山の一覧に戻る
+          </button>
+            <button
+              type="button"
+              onClick={() => onToggleFavorite!(selectedMountain)}
+              className={`flex items-center gap-2 px-2 py-1 rounded-lg font-semibold text-base transition-colors cursor-pointer ${
+                isFav
+                  ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <Heart className={`h-4 w-4 ${isFav ? "fill-current" : ""}`} />
+              {isFav ? "お気に入り解除" : "お気に入り登録"}
+            </button>
+        </div>
         <div className="aspect-video bg-slate-200 rounded-lg mb-4 flex items-center justify-center">
           {selectedMountain.photo_url ? (
             <Image

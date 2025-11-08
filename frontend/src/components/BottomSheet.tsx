@@ -16,6 +16,9 @@ type Props = {
   onSelectPath?: (path: Path) => void;
   onSelectBear?: (bear: BearSighting) => void;
   onClearSelection: () => void;
+  isFavorite?: (mountainId: number) => boolean;
+  onToggleFavorite?: (mountain: Mountain) => void;
+  onHoverPointChange?: (point: { lat: number; lon: number } | null) => void;
   isOpen: boolean;
   onToggle: () => void;
   onClose: () => void;

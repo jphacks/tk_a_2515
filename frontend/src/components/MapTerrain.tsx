@@ -36,6 +36,8 @@ interface Props {
   selectedPath?: PathDetail | null;
   selectedBear?: BearSighting | null;
   hoveredPoint?: { lat: number; lon: number } | null;
+  showOnlyFavorites?: boolean;
+  favoriteIds?: Set<number>;
 }
 
 export const MapTerrain = ({
@@ -50,6 +52,8 @@ export const MapTerrain = ({
   onSelectPath,
   onSelectBear,
   hoveredPoint,
+  showOnlyFavorites,
+  favoriteIds,
 }: Props) => {
   if (!process.env.NEXT_PUBLIC_FULL_URL) {
     throw new Error(
@@ -431,9 +435,17 @@ export const MapTerrain = ({
     registerPathsEventListeners();
   }, [pathsGeoJSON, onSelectPath, cleanupPathsListeners]);
 
-  // 山データをGeoJSON形式に変換
+  // お気に入りフィルタリングを適用した山リスト
+  const displayMountains = useMemo(() => {
+    if (!showOnlyFavorites || !favoriteIds) {
+      return mountains;
+    }
+    return mountains.filter(m => favoriteIds.has(m.id));
+  }, [mountains, showOnlyFavorites, favoriteIds]);
+
+  // 山データをGeoJSON形式に変換（フィルタリング適用）
   const mountainsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
-    const features = mountains
+    const features = displayMountains
       .filter(
         mountain =>
           mountain.lon !== null &&
@@ -457,9 +469,9 @@ export const MapTerrain = ({
       type: "FeatureCollection",
       features,
     };
-  }, [mountains]);
+  }, [displayMountains]);
 
-  // 山のレイヤーを追加または更新（カスタムマーカーを使用）
+  // 山のレイヤーを追加または更新（カスタムマーカーを使用、フィルタリング適用）
   const addOrUpdateMountains = useCallback(() => {
     const m = map.current;
     if (!m || !isMountedRef.current) return;
@@ -482,8 +494,8 @@ export const MapTerrain = ({
       return "#ff6b6b";
     };
 
-    // 各山にマーカーを追加
-    mountains.forEach((mountain) => {
+    // フィルタリングされた山にマーカーを追加
+    displayMountains.forEach((mountain) => {
       if (
         mountain.lon === null ||
         mountain.lon === undefined ||
@@ -640,7 +652,7 @@ export const MapTerrain = ({
     });
 
     mountainsListenersRegistered.current = true;
-  }, [mountains, onSelectMountain, cleanupMountainsListeners]);
+  }, [displayMountains, onSelectMountain, cleanupMountainsListeners]);
 
   // クマデータをGeoJSON形式に変換（山のパターンを完全に模倣）
   const bearsGeoJSON = useMemo((): GeoJSON.FeatureCollection => {
@@ -1099,6 +1111,17 @@ export const MapTerrain = ({
   }, [pathsHash, paths.length, addOrUpdatePaths]);
 
   // 山データ変更時の処理（ハッシュベースで変更検知）
+  // displayMountainsの変更を検知するためのハッシュを生成
+  const displayMountainsHash = useMemo((): string => {
+    if (!displayMountains || displayMountains.length === 0) return "empty";
+    // showOnlyFavoritesの状態もハッシュに含める
+    const filterState = showOnlyFavorites ? "favorites-only" : "all";
+    return `${filterState}:${displayMountains
+      .map(m => `${m.id}-${m.lon}-${m.lat}-${m.elevation}`)
+      .sort()
+      .join("|")}`;
+  }, [displayMountains, showOnlyFavorites]);
+
   useEffect(() => {
     if (!map.current || !isMountedRef.current) return;
 
@@ -1106,15 +1129,18 @@ export const MapTerrain = ({
 
     if (zoomLevel >= ZOOM_LEVEL_THRESHOLD) {
       const isFirstLoad = previousMountainsHash.current === "";
-      const hasChanged = mountainsHash !== previousMountainsHash.current;
+      const hasChanged = displayMountainsHash !== previousMountainsHash.current;
 
-      if (mountainsHash !== "empty" && (isFirstLoad || hasChanged)) {
+      // showOnlyFavoritesがtrueの場合は常に更新
+      if (displayMountainsHash !== "empty" && (isFirstLoad || hasChanged || showOnlyFavorites)) {
         console.log("[MapTerrain] Mountains data changed, updating...", {
-          mountainCount: mountains.length,
+          mountainCount: displayMountains.length,
           isFirstLoad,
+          showOnlyFavorites,
+          favoriteCount: favoriteIds?.size || 0,
           previousHash:
             previousMountainsHash.current.substring(0, 50) || "(empty)",
-          currentHash: mountainsHash.substring(0, 50),
+          currentHash: displayMountainsHash.substring(0, 50),
         });
 
         // 次のフレームで更新を実行
@@ -1128,7 +1154,7 @@ export const MapTerrain = ({
             try {
               addOrUpdateMountains();
               // 成功時のみハッシュを更新
-              previousMountainsHash.current = mountainsHash;
+              previousMountainsHash.current = displayMountainsHash;
             } catch (error) {
               console.error("[MapTerrain] Error updating mountains:", error);
             }
@@ -1137,7 +1163,7 @@ export const MapTerrain = ({
         animationFrameIdsRef.current.add(frameId);
       }
     }
-  }, [mountainsHash, mountains.length, addOrUpdateMountains]);
+  }, [displayMountainsHash, displayMountains.length, addOrUpdateMountains, showOnlyFavorites, favoriteIds]);
 
   // クマデータ変更時の処理
   useEffect(() => {
@@ -1481,7 +1507,7 @@ export const MapTerrain = ({
           >
             <title>Toggle 2D/3D View</title>
             <path d="M288.3 61.5C308.1 50.1 332.5 50.1 352.3 61.5L528.2 163C548 174.4 560.2 195.6 560.2 218.4L560.2 421.4C560.2 444.3 548 465.4 528.2 476.8L352.3 578.5C332.5 589.9 308.1 589.9 288.3 578.5L112.5 477C92.7 465.6 80.5 444.4 80.5 421.6L80.5 218.6C80.5 195.7 92.7 174.6 112.5 163.2L288.3 61.5zM496.1 421.5L496.1 255.4L352.3 338.4L352.3 504.5L496.1 421.5z" />
-          </svg>
+        </svg>
         </button>
       </div>
     </div>

@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import BottomSheet from "@/components/BottomSheet";
 import ContextPanel from "@/components/ContextPanel";
+import FavoritesModal from "@/components/FavoritesModal";
 import Header from "@/components/Header";
 import { MapPageClient } from "@/components/Map";
 import { ZOOM_LEVEL_THRESHOLD } from "@/components/MapTerrain";
 import Tutorial from "@/components/Tutorial";
+import { useFavorites } from "@/hooks/useFavorites";
 import { bearList } from "./api/lib/bear/bear";
 import type { BearSighting, Mountain, Path } from "./api/lib/models";
 import type { PathDetail } from "./api/lib/models/pathDetail";
@@ -37,6 +39,16 @@ export default function HomePage() {
     lon: number;
   } | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showFavoritesModal, setShowFavoritesModal] = useState(false);
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+
+  const { favorites, isFavorite, toggleFavorite } = useFavorites();
+  const favoriteIds = new Set(favorites.map(m => m.id));
+
+  // 表示用の山リスト（お気に入りフィルター適用）
+  const displayMountains = showOnlyFavorites
+    ? mountains.filter(m => favoriteIds.has(m.id))
+    : mountains;
 
   useEffect(() => {
     const tutorialCompleted = localStorage.getItem("tutorialCompleted");
@@ -147,11 +159,21 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <Header onOpenTutorial={() => setShowTutorial(true)} />
+      <Header
+        onOpenTutorial={() => setShowTutorial(true)}
+        onOpenFavorites={() => setShowFavoritesModal(true)}
+        favoritesCount={favorites.length}
+      />
       <Tutorial isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
+      <FavoritesModal
+        isOpen={showFavoritesModal}
+        favorites={favorites}
+        onClose={() => setShowFavoritesModal(false)}
+        onSelectMountain={handleSelectMountain}
+      />
       <main className="flex flex-1 overflow-hidden">
         <ContextPanel
-          mountains={mountains}
+          mountains={displayMountains}
           selectedMountain={selectedMountain}
           selectedPath={selectedPath}
           selectedBear={selectedBear}
@@ -160,6 +182,8 @@ export default function HomePage() {
           onSelectBear={handleSelectBear}
           onClearSelection={handleClearSelection}
           onHoverPointChange={handleHoverPointChange}
+          isFavorite={isFavorite}
+          onToggleFavorite={toggleFavorite}
         />
         <MapPageClient
           mountains={mountains}
@@ -173,10 +197,13 @@ export default function HomePage() {
           onSelectBear={handleSelectBear}
           selectedBear={selectedBear}
           hoveredPoint={hoveredPoint}
+          showOnlyFavorites={showOnlyFavorites}
+          onToggleShowOnlyFavorites={() => setShowOnlyFavorites(!showOnlyFavorites)}
+          favoriteIds={favoriteIds}
         />
       </main>
       <BottomSheet
-        mountains={mountains}
+        mountains={displayMountains}
         selectedMountain={selectedMountain}
         selectedPath={selectedPath}
         selectedBear={selectedBear}
@@ -184,6 +211,9 @@ export default function HomePage() {
         onSelectPath={handleSelectPath}
         onSelectBear={handleSelectBear}
         onClearSelection={handleClearSelection}
+        onHoverPointChange={handleHoverPointChange}
+        isFavorite={isFavorite}
+        onToggleFavorite={toggleFavorite}
         isOpen={isSheetOpen}
         onToggle={handleToggleSheet}
         onClose={handleCloseSheet}
