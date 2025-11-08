@@ -12,7 +12,11 @@ import { bearList } from "./api/lib/bear/bear";
 import type { BearSighting, Mountain, Path } from "./api/lib/models";
 import type { PathDetail } from "./api/lib/models/pathDetail";
 import { mountainsList } from "./api/lib/mountains/mountains";
-import { pathsList, pathsRetrieve } from "./api/lib/paths/paths";
+import {
+  pathsList,
+  pathsRetrieve,
+  pathsRouteList,
+} from "./api/lib/paths/paths";
 
 export type BoundingBox = {
   minLon: number;
@@ -204,24 +208,24 @@ export default function HomePage() {
         />
       </main>
       <BottomSheet
-          mountains={displayMountains}
-          allMountains={mountains}
-          visibleMountainIds={visibleMountainIds}
-          selectedMountain={selectedMountain}
-          selectedPath={selectedPath}
-          selectedBear={selectedBear}
-          onSelectMountain={handleSelectMountain}
-          onSelectPath={handleSelectPath}
-          onSelectBear={handleSelectBear}
-          onClearSelection={handleClearSelection}
-          onHoverPointChange={handleHoverPointChange}
-          isFavorite={isFavorite}
-          onToggleFavorite={toggleFavorite}
-          showOnlyFavorites={showOnlyFavorites}
-          onToggleShowOnlyFavorites={() =>
-            setShowOnlyFavorites(!showOnlyFavorites)
-          }
-          favorites={favorites}
+        mountains={displayMountains}
+        allMountains={mountains}
+        visibleMountainIds={visibleMountainIds}
+        selectedMountain={selectedMountain}
+        selectedPath={selectedPath}
+        selectedBear={selectedBear}
+        onSelectMountain={handleSelectMountain}
+        onSelectPath={handleSelectPath}
+        onSelectBear={handleSelectBear}
+        onClearSelection={handleClearSelection}
+        onHoverPointChange={handleHoverPointChange}
+        isFavorite={isFavorite}
+        onToggleFavorite={toggleFavorite}
+        showOnlyFavorites={showOnlyFavorites}
+        onToggleShowOnlyFavorites={() =>
+          setShowOnlyFavorites(!showOnlyFavorites)
+        }
+        favorites={favorites}
         isOpen={isSheetOpen}
         onToggle={handleToggleSheet}
         onClose={handleCloseSheet}

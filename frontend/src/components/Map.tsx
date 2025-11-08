@@ -46,6 +46,18 @@ export const MapPageClient = ({
   const [mode, setMode] = useState<StyleMode>("normal");
   const [isLegendOpen, setIsLegendOpen] = useState(false);
 
+  const handleCloseLegend = () => setIsLegendOpen(false);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" || e.key === "Enter") {
+      handleCloseLegend();
+    }
+  };
+
+  const handleDialogKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <div className="w-full h-full relative">
       <div className="absolute top-2.5 left-2.5 z-10 bg-white p-2 rounded shadow-md flex gap-2 w-28">
@@ -112,20 +124,27 @@ export const MapPageClient = ({
       </button>
 
       {isLegendOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
+        <button
+          type="button"
+          className="fixed inset-0 z-50 flex items-center justify-center border-0 p-0 cursor-default"
           style={{ backgroundColor: "rgba(128, 128, 128, 0.5)" }}
-          onClick={() => setIsLegendOpen(false)}
+          onClick={handleCloseLegend}
+          onKeyDown={handleKeyDown}
+          aria-label="モーダルを閉じる"
         >
           <div
             className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+            onKeyDown={handleDialogKeyDown}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="legend-title"
           >
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="font-bold text-lg">凡例</h3>
               <button
                 type="button"
-                onClick={() => setIsLegendOpen(false)}
+                onClick={handleCloseLegend}
                 className="p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
                 aria-label="閉じる"
               >
@@ -219,7 +238,9 @@ export const MapPageClient = ({
                 <span className="text-sm">クマ目撃情報</span>
               </div>
               <div className="mt-4 pt-4 border-t">
-                <div className="font-semibold mb-3 text-sm">標高による色分け</div>
+                <div className="font-semibold mb-3 text-sm">
+                  標高による色分け
+                </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <div
@@ -260,7 +281,7 @@ export const MapPageClient = ({
               </div>
             </div>
           </div>
-        </div>
+        </button>
       )}
 
       <MapTerrain

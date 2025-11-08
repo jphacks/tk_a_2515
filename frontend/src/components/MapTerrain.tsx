@@ -510,23 +510,23 @@ export const MapTerrain = ({
           16,
           5,
           20,
-          7,
+          6,
         ],
-        "circle-color": "#ffffff",
-        "circle-stroke-color": "#ff0000",
+        "circle-color": "#5a65ffff",
+        "circle-stroke-color": "#1660ffff",
         "circle-stroke-width": [
           "interpolate",
           ["linear"],
           ["zoom"],
           12,
-          2,
+          1,
           16,
-          3,
+          2,
           20,
-          4,
+          3,
         ],
-        "circle-opacity": 1,
-        "circle-stroke-opacity": 1,
+        "circle-opacity": 0.8,
+        "circle-stroke-opacity": 0.8,
       },
     });
 
@@ -1330,22 +1330,8 @@ export const MapTerrain = ({
         zoom = 15;
       }
 
-      const pitch =
-        elevation >= 3000
-          ? 60
-          : elevation >= 2000
-            ? 45
-            : elevation >= 1000
-              ? 30
-              : 15;
-      const bearing =
-        elevation >= 3000
-          ? 45
-          : elevation >= 2000
-            ? 30
-            : elevation >= 1000
-              ? 15
-              : 0;
+      const pitch = 0;
+      const bearing = 0;
 
       const duration =
         elevation >= 3000 ? 3500 : elevation >= 2000 ? 3000 : 2500;
