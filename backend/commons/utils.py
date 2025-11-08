@@ -3,51 +3,61 @@ import time
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 from geopy.geocoders import Nominatim
 
-# --- 1. Initialize the geocoder ---
-# Always set a user_agent for Nominatim.
+# ジオコーダーの初期化
+# Nominatim使用時は必ずuser_agentを設定する
 geolocator = Nominatim(
     user_agent="bear_sighting_app_v1", domain="nominatim.openstreetmap.org"
 )
 
-# --- 2. Cache ---
-# Avoid querying the same location (e.g., "Morioka City") multiple times during execution.
-# (For better robustness, consider using Redis or a database.)
+# ジオコーディング結果のキャッシュ
+# 同じ場所を複数回検索することを避けるため
+# より堅牢な実装にはRedisやデータベースの使用を検討
 LOCATION_CACHE: dict[str, tuple[float, float] | None] = {}
 
 
-# --- 3. Geocoding function ---
 def get_coordinates_for_location(
     prefecture: str | None, city: str | None
 ) -> tuple[float, float] | None:
     """
-    Retrieve latitude and longitude from prefecture and city.
+    都道府県と市区町村から緯度経度を取得する
+    都道府県のみ指定された場合は県庁所在地などの代表地点の座標を返す
     """
-    if not prefecture or not city:
+    # 都道府県が指定されていない場合は取得不可
+    if not prefecture:
         return None
 
-    query = f"{city}, {prefecture}, Japan"
+    # クエリ文字列の構築
+    # 市区町村が指定されていない場合は都道府県名のみでジオコーディング
+    if not city:
+        query = f"{prefecture}, Japan"
+    else:
+        query = f"{city}, {prefecture}, Japan"
 
-    # 1. Check the cache.
+    # キャッシュの確認
     if query in LOCATION_CACHE:
         return LOCATION_CACHE[query]
 
     try:
-        # 2. Query the API (Nominatim has rate limits).
+        # Nominatim APIへのリクエスト（レート制限あり）
         print(f"🌐 Performing geocoding: {query}")
         location_data = geolocator.geocode(query, timeout=5.0)
 
         if location_data:
+            # 取得成功時は結果をキャッシュに保存
             result = (location_data.latitude, location_data.longitude)
-            LOCATION_CACHE[query] = result  # 3. Save to cache.
+            LOCATION_CACHE[query] = result
             return result
         else:
-            LOCATION_CACHE[query] = None  # 3. Cache None if not found.
+            # 取得失敗時もキャッシュに保存（再検索を避けるため）
+            LOCATION_CACHE[query] = None
             return None
 
     except (GeocoderTimedOut, GeocoderUnavailable) as e:
+        # タイムアウトまたはサービス利用不可エラー時は待機
         print(f"⚠️ Geocoding error: {e}")
-        time.sleep(5)  # Wait before retrying.
+        time.sleep(5)
         return None
     except Exception as e:
+        # その他の予期しないエラー
         print(f"❌ Unexpected geocoding error: {e}")
         return None

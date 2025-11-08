@@ -1,26 +1,38 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Heart } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react"; // ✨ 1. 必要なフックをインポート
-import type { Mountain, Path, PathDetail } from "@/app/api/lib/models"; // Path を追加
+import { useEffect, useRef, useState } from "react";
+import type {
+  BearSighting,
+  Mountain,
+  Path,
+  PathDetail,
+} from "@/app/api/lib/models";
 import ElevationChart from "./ElevationChart";
 
 type Props = {
   mountains: Mountain[];
   selectedMountain: Mountain | null;
-  selectedPath?: PathDetail | null; // 追加
+  selectedPath: PathDetail | null;
+  selectedBear: BearSighting | null;
   onSelectMountain: (mountain: Mountain) => void;
-  onSelectPath?: (path: Path) => void; // 追加
+  onSelectPath: (path: Path) => void;
+  onSelectBear: (bear: BearSighting) => void;
   onClearSelection: () => void;
-  onHoverPointChange?: (point: { lat: number; lon: number } | null) => void;
+  onHoverPointChange: (point: { lat: number; lon: number } | null) => void;
+  isFavorite: (mountainId: number) => boolean;
+  onToggleFavorite: (mountain: Mountain) => void;
 };
 
 export default function PanelContent({
   mountains,
   selectedMountain,
-  selectedPath, // 追加
+  selectedPath,
+  selectedBear,
   onSelectMountain,
   onClearSelection,
   onHoverPointChange,
+  isFavorite,
+  onToggleFavorite,
 }: Props) {
   // ✨ 2. スクロール位置を保持するためのstateと、リストコンテナへの参照(ref)を作成
   const listContainerRef = useRef<HTMLDivElement>(null);
@@ -54,17 +66,33 @@ export default function PanelContent({
   }, [mountains]); // mountains が変化するたびに実行
 
   if (selectedMountain) {
+    const isFav = isFavorite?.(selectedMountain.id) ?? false;
+
     // 詳細表示
     return (
       <div className="p-5">
-        <button
-          type="button"
-          onClick={onClearSelection}
-          className="cursor-pointer flex items-center gap-2 mb-4 text-sm text-green-700 font-semibold hover:text-green-800 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          山の一覧に戻る
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            type="button"
+            onClick={onClearSelection}
+            className="cursor-pointer flex items-center gap-2 text-base text-green-700 font-semibold hover:text-green-800 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            山の一覧に戻る
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleFavorite(selectedMountain)}
+            className={`flex items-center gap-2 px-2 py-1 rounded-lg font-semibold text-base transition-colors cursor-pointer ${
+              isFav
+                ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            <Heart className={`h-4 w-4 ${isFav ? "fill-current" : ""}`} />
+            {isFav ? "お気に入り解除" : "お気に入り登録"}
+          </button>
+        </div>
         <div className="aspect-video bg-slate-200 rounded-lg mb-4 flex items-center justify-center">
           {selectedMountain.photo_url ? (
             <Image
@@ -227,6 +255,99 @@ export default function PanelContent({
             {selectedPath.path_graphic?.length || 0}
           </p>
         </div> */}
+      </div>
+    );
+  }
+
+  if (selectedBear) {
+    return (
+      <div className="p-5 h-full overflow-y-auto">
+        <button
+          type="button"
+          onClick={() => {
+            onClearSelection();
+          }}
+          className="cursor-pointer flex items-center gap-2 mb-4 text-sm text-green-700 font-semibold hover:text-green-800 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          山の一覧に戻る
+        </button>
+        <h2 className="text-3xl font-bold text-slate-800 mb-4">クマ目撃情報</h2>
+
+        {selectedBear.image_url && (
+          <div className="aspect-video bg-slate-200 rounded-lg mb-4 flex items-center justify-center">
+            <Image
+              src={selectedBear.image_url}
+              alt="クマ目撃情報"
+              className="object-cover w-full h-full rounded-lg"
+              width={800}
+              height={600}
+            />
+          </div>
+        )}
+
+        <div className="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 mb-4">
+          <p className="text-amber-800 font-medium">⚠️ 注意が必要なエリアです</p>
+        </div>
+
+        <table className="w-full text-sm text-left text-slate-500 mb-4">
+          <tbody>
+            <tr>
+              <th className="font-medium text-slate-700 pr-4 py-2">都道府県</th>
+              <td className="py-2">{selectedBear.prefecture}</td>
+            </tr>
+            <tr>
+              <th className="font-medium text-slate-700 pr-4 py-2">市区町村</th>
+              <td className="py-2">{selectedBear.city}</td>
+            </tr>
+            <tr>
+              <th className="font-medium text-slate-700 pr-4 py-2">座標</th>
+              <td className="py-2">
+                緯度: {selectedBear.latitude.toFixed(6)}, 経度:{" "}
+                {selectedBear.longitude.toFixed(6)}
+              </td>
+            </tr>
+            {selectedBear.reported_at && (
+              <tr>
+                <th className="font-medium text-slate-700 pr-4 py-2">
+                  報告日時
+                </th>
+                <td className="py-2">
+                  {new Date(selectedBear.reported_at).toLocaleString("ja-JP")}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        {selectedBear.summary && (
+          <div className="mb-4">
+            <h3 className="font-semibold text-slate-700 mb-2">概要</h3>
+            <p className="text-slate-600 text-sm leading-relaxed">
+              {selectedBear.summary}
+            </p>
+          </div>
+        )}
+
+        {selectedBear.source_url && (
+          <a
+            href={selectedBear.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-green-700 font-semibold hover:text-green-800 transition-colors flex items-center gap-1"
+          >
+            詳細情報を見る
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-4 h-4"
+            >
+              <title>詳細情報を見る</title>
+              <path d="M14 3H21V10H19V6.41L10.41 15L9 13.59L17.59 5H14V3ZM5 5H11V7H5V19H17V13H19V19C19 20.1 18.1 21 17 21H5C3.9 21 3 20.1 3 19V7C3 5.9 3.9 5 5 5Z" />
+            </svg>
+          </a>
+        )}
       </div>
     );
   }

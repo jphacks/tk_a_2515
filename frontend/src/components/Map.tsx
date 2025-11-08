@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { Mountain, Path, PathDetail } from "@/app/api/lib/models";
+import type {
+  BearSighting,
+  Mountain,
+  Path,
+  PathDetail,
+} from "@/app/api/lib/models";
 import type { BoundingBox } from "@/app/page";
 import { MapTerrain } from "@/components/MapTerrain";
 
@@ -10,33 +15,46 @@ type StyleMode = "hybrid" | "normal";
 interface Props {
   mountains: Mountain[];
   paths: Path[];
+  bears: BearSighting[];
   onBoundsChange?: (bounds: BoundingBox) => void;
   onSelectMountain?: (mountain: Mountain) => void;
   selectedMountain?: Mountain | null;
   onSelectPath?: (path: Path) => void;
   selectedPath?: PathDetail | null;
+  onSelectBear?: (bear: BearSighting) => void;
+  selectedBear?: BearSighting | null;
   hoveredPoint?: { lat: number; lon: number } | null;
+  showOnlyFavorites?: boolean;
+  onToggleShowOnlyFavorites?: () => void;
+  favoriteIds?: Set<number>;
 }
 
 export const MapPageClient = ({
   mountains,
   paths,
+  bears,
   onBoundsChange,
   onSelectMountain,
-  selectedMountain, // ✨ プロパティを受け取り
-  onSelectPath, // 追加
-  selectedPath, // 追加
-  hoveredPoint, // ホバー地点
+  selectedMountain,
+  onSelectPath,
+  selectedPath,
+  onSelectBear,
+  selectedBear,
+  hoveredPoint,
+  showOnlyFavorites,
+  onToggleShowOnlyFavorites,
+  favoriteIds,
 }: Props) => {
   const [mode, setMode] = useState<StyleMode>("normal");
+  const [isLegendOpen, setIsLegendOpen] = useState(false);
 
   return (
     <div className="w-full h-full relative">
-      <div className="absolute top-2.5 left-2.5 z-10 bg-white p-2.5 rounded shadow-md flex gap-2">
+      <div className="absolute top-2.5 left-2.5 z-10 bg-white p-2.5 rounded shadow-md flex gap-2 w-48">
         <button
           type="button"
           onClick={() => setMode("normal")}
-          className={`flex items-center gap-2 px-3 py-2 rounded transition-colors cursor-pointer ${
+          className={`flex items-center gap-2 p-2 rounded transition-colors cursor-pointer flex-1 justify-center ${
             mode === "normal"
               ? "bg-blue-500 text-white hover:bg-blue-600"
               : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -56,7 +74,7 @@ export const MapPageClient = ({
         <button
           type="button"
           onClick={() => setMode("hybrid")}
-          className={`flex items-center gap-2 px-3 py-2 rounded transition-colors cursor-pointer ${
+          className={`flex items-center gap-2 p-2 rounded transition-colors cursor-pointer flex-1 justify-center ${
             mode === "hybrid"
               ? "bg-blue-500 text-white hover:bg-blue-600"
               : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -74,17 +92,185 @@ export const MapPageClient = ({
           航空
         </button>
       </div>
-
+      {onToggleShowOnlyFavorites && (
+        <div className="absolute top-32 left-2.5 z-10 bg-white rounded shadow-md">
+          <button
+            type="button"
+            onClick={onToggleShowOnlyFavorites}
+            className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 transition-colors rounded text-sm cursor-pointer ${
+              showOnlyFavorites
+                ? "bg-yellow-50 text-yellow-700"
+                : "text-gray-700"
+            }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className={`w-5 h-5 ${showOnlyFavorites ? "text-yellow-500" : "text-gray-400"}`}
+            >
+              <title>Show only favorites</title>
+              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+            </svg>
+            お気に入りのみ
+          </button>
+        </div>
+      )}
+      <div className="absolute top-20 left-2.5 z-10 bg-white bg-opacity-90 rounded shadow w-48">
+        <button
+          type="button"
+          onClick={() => setIsLegendOpen(!isLegendOpen)}
+          className="w-full px-3 py-2 flex items-center justify-between hover:bg-gray-100 transition-colors rounded-t cursor-pointer"
+        >
+          <h3 className="font-bold text-sm">凡例</h3>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`w-4 h-4 transition-transform ${isLegendOpen ? "rotate-180" : ""}`}
+          >
+            <title>Toggle legend</title>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <div
+          className={`overflow-hidden transition-all duration-300 ${
+            isLegendOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="p-3 text-sm border-t">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 100 100"
+                  width="100%"
+                  height="100%"
+                >
+                  <title>山頂</title>
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="48"
+                    fill="#4e8fdf"
+                    stroke="white"
+                    strokeWidth="4"
+                  />
+                  <text
+                    x="50"
+                    y="50"
+                    fontSize="48"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill="white"
+                  >
+                    ⛰️
+                  </text>
+                </svg>
+              </div>
+              <span className="text-xs">山頂（標高に応じた色）</span>
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <div
+                className="w-5 h-1 flex-shrink-0"
+                style={{
+                  backgroundColor: "#829DFF",
+                  opacity: 0.8,
+                }}
+              ></div>
+              <span className="text-xs">登山道</span>
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 100 100"
+                  width="100%"
+                  height="100%"
+                >
+                  <title>クマ</title>
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="48"
+                    fill="#D97706"
+                    stroke="white"
+                    strokeWidth="4"
+                  />
+                  <text
+                    x="50"
+                    y="50"
+                    fontSize="48"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill="white"
+                  >
+                    🐻
+                  </text>
+                </svg>
+              </div>
+              <span className="text-xs">クマ目撃情報</span>
+            </div>
+            <div className="mt-2 pt-2 border-t text-xs text-gray-600">
+              <div className="mb-1">標高による色分け</div>
+              <div className="flex items-center gap-1 text-[10px]">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: "#ff6b6b" }}
+                ></div>
+                <span>～1000m</span>
+              </div>
+              <div className="flex items-center gap-1 text-[10px]">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: "#ff8e53" }}
+                ></div>
+                <span>1000～2000m</span>
+              </div>
+              <div className="flex items-center gap-1 text-[10px]">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: "#ff6b9d" }}
+                ></div>
+                <span>2000～3000m</span>
+              </div>
+              <div className="flex items-center gap-1 text-[10px]">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: "#845ec2" }}
+                ></div>
+                <span>3000～4000m</span>
+              </div>
+              <div className="flex items-center gap-1 text-[10px]">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: "#4e8fdf" }}
+                ></div>
+                <span>4000m～</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <MapTerrain
         styleMode={mode}
         mountains={mountains}
         paths={paths}
+        bears={bears}
         onBoundsChange={onBoundsChange}
         onSelectMountain={onSelectMountain}
         selectedMountain={selectedMountain}
-        onSelectPath={onSelectPath} // 追加
-        selectedPath={selectedPath} // 追加
-        hoveredPoint={hoveredPoint} // ホバー地点
+        onSelectPath={onSelectPath}
+        selectedPath={selectedPath}
+        onSelectBear={onSelectBear}
+        selectedBear={selectedBear}
+        hoveredPoint={hoveredPoint}
+        showOnlyFavorites={showOnlyFavorites}
+        favoriteIds={favoriteIds}
       />
     </div>
   );

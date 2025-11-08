@@ -26,7 +26,7 @@ export async function GET(
         return new NextResponse(cachedStyle, {
           headers: {
             "Content-Type": "application/json",
-            "Cache-Control": "public, max-age=31536000, immutable",
+            "Cache-Control": "public, max-age=2592000, immutable",
             "X-Cache-Status": "HIT",
           },
         });
@@ -57,7 +57,12 @@ export async function GET(
   // Redisにキャッシュを保存
   try {
     const redis = await getRedisClient();
-    await redis.set(cacheKey, styleString);
+    await redis.set(cacheKey, styleString, {
+      expiration: {
+        type: "EX",
+        value: 2592000,
+      },
+    });
   } catch (error) {
     console.error(`Redis SET error for style ${cacheKey}:`, error);
   }
@@ -65,7 +70,7 @@ export async function GET(
   return new NextResponse(styleString, {
     headers: {
       "Content-Type": "application/json",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Cache-Control": "public, max-age=2592000, immutable",
       "X-Cache-Status": "MISS",
     },
   });

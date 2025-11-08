@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "yamareco.info",
       },
+      {
+        protocol: "https",
+        hostname: "imgu.web.nhk",
+      },
     ],
   },
 };
