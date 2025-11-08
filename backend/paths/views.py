@@ -15,6 +15,10 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Path.objects.all()
     serializer_class = PathSerializer
 
+    @extend_schema(
+        responses={200: PathDetailSerializer},
+        description="指定されたIDのPathの詳細情報を取得（標高グラフデータ付き）",
+    )
     def retrieve(self, request, pk=None):
         """指定されたIDのPathの詳細情報を取得（標高グラフデータ付き）"""
         try:

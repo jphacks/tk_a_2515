@@ -7,7 +7,11 @@
  */
 
 import { customFetch } from ".././custom-fetch";
-import type { PaginatedPathList, Path, PathsListParams } from ".././models";
+import type {
+  PaginatedPathList,
+  PathDetail,
+  PathsListParams,
+} from ".././models";
 
 /**
  * 指定されたIDのPathの詳細情報を取得
@@ -53,7 +57,7 @@ export const pathsList = async (
  * 指定されたIDのPathの詳細情報を取得（標高グラフデータ付き）
  */
 export type pathsRetrieveResponse200 = {
-  data: Path;
+  data: PathDetail;
   status: 200;
 };
 

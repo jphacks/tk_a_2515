@@ -347,7 +347,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Path'
+                $ref: '#/components/schemas/PathDetail'
           description: ''
 components:
   schemas:
@@ -805,6 +805,36 @@ components:
       - tags
       - type
       - updated_at
+    PathDetail:
+      type: object
+      description: Pathの詳細情報Serializer
+      properties:
+        id:
+          type: integer
+          nullable: true
+        path_id:
+          type: integer
+          nullable: true
+        osm_id:
+          type: integer
+        type:
+          type: string
+        difficulty:
+          type: integer
+          nullable: true
+        path_graphic:
+          type: array
+          items:
+            $ref: '#/components/schemas/Point'
+          nullable: true
+        geometries:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathGeometryWithSequence'
+          nullable: true
+      required:
+      - osm_id
+      - type
     PathGeometryWithSequence:
       type: object
       description: PathGeometry with sequence from through model
@@ -863,6 +893,27 @@ components:
       required:
       - created_at
       - id
+    Point:
+      type: object
+      description: 座標点のSerializer
+      properties:
+        x:
+          type: number
+          format: double
+        y:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+        lat:
+          type: number
+          format: double
+      required:
+      - lat
+      - lon
+      - x
+      - y
     Prefecture:
       type: object
       description: Prefecture serializer
