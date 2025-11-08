@@ -347,7 +347,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Path'
+                $ref: '#/components/schemas/PathDetail'
           description: ''
 components:
   schemas:
@@ -782,7 +782,7 @@ components:
         geometries:
           type: array
           items:
-            $ref: '#/components/schemas/PathGeometry'
+            $ref: '#/components/schemas/PathGeometryWithSequence'
           readOnly: true
         tags:
           type: array
@@ -805,28 +805,57 @@ components:
       - tags
       - type
       - updated_at
-    PathGeometry:
+    PathDetail:
       type: object
-      description: PathGeometry serializer
+      description: Pathの詳細情報Serializer
+      properties:
+        id:
+          type: integer
+          nullable: true
+        path_id:
+          type: integer
+          nullable: true
+        osm_id:
+          type: integer
+        type:
+          type: string
+        difficulty:
+          type: integer
+          nullable: true
+        path_graphic:
+          type: array
+          items:
+            $ref: '#/components/schemas/Point'
+          nullable: true
+        geometries:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathGeometryWithSequence'
+          nullable: true
+      required:
+      - osm_id
+      - type
+    PathGeometryWithSequence:
+      type: object
+      description: PathGeometry with sequence from through model
       properties:
         id:
           type: integer
           readOnly: true
         node_id:
           type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
+          readOnly: true
         lat:
           type: number
           format: double
+          readOnly: true
         lon:
           type: number
           format: double
+          readOnly: true
         sequence:
           type: integer
-          maximum: 2147483647
-          minimum: -2147483648
+          readOnly: true
       required:
       - id
       - lat
@@ -864,6 +893,27 @@ components:
       required:
       - created_at
       - id
+    Point:
+      type: object
+      description: 座標点のSerializer
+      properties:
+        x:
+          type: number
+          format: double
+        y:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+        lat:
+          type: number
+          format: double
+      required:
+      - lat
+      - lon
+      - x
+      - y
     Prefecture:
       type: object
       description: Prefecture serializer

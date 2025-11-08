@@ -233,7 +233,7 @@ export default function PanelContent({
         )}
 
         {/* 経路情報 */}
-        {/* <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+        <div className="bg-slate-50 rounded-lg p-4 space-y-2">
           <h3 className="text-lg font-semibold text-slate-800 mb-3">
             経路情報
           </h3>
@@ -254,7 +254,24 @@ export default function PanelContent({
             <span className="font-medium">データポイント数:</span>{" "}
             {selectedPath.path_graphic?.length || 0}
           </p>
-        </div> */}
+          {selectedPath.geometries && selectedPath.geometries.length > 0 && (
+            <>
+              <p className="text-sm text-slate-600">
+                <span className="font-medium">始点 Geometry ID:</span>{" "}
+                {selectedPath.geometries[0].id}
+              </p>
+              {selectedPath.geometries.length > 1 && (
+                <p className="text-sm text-slate-600">
+                  <span className="font-medium">終点 Geometry ID:</span>{" "}
+                  {
+                    selectedPath.geometries[selectedPath.geometries.length - 1]
+                      .id
+                  }
+                </p>
+              )}
+            </>
+          )}
+        </div>
       </div>
     );
   }

@@ -23,7 +23,7 @@ description = "Start backend services using Docker Compose"
 [tasks.prepare-db]
 run = """
 cd backend && docker compose exec -T api \
-bash -lc 'uv run python -u manage.py migrate'
+bash -lc 'uv run python -u manage.py makemigrations && uv run python -u manage.py migrate'
 """
 
 [tasks.backend-uv]

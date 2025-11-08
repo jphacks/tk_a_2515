@@ -15,10 +15,14 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Path.objects.all()
     serializer_class = PathSerializer
 
+    @extend_schema(
+        responses={200: PathDetailSerializer},
+        description="指定されたIDのPathの詳細情報を取得（標高グラフデータ付き）",
+    )
     def retrieve(self, request, pk=None):
         """指定されたIDのPathの詳細情報を取得（標高グラフデータ付き）"""
         try:
-            path = Path.objects.prefetch_related("geometries", "tags").get(osm_id=pk)
+            path = Path.objects.prefetch_related("geometry_orders__geometry", "tags").get(osm_id=pk)
         except Path.DoesNotExist:
             raise NotFound(f"Path with osm_id {pk} not found")
 
@@ -49,25 +53,25 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
         print(f"Fetched DEM data for {len(dem_data)} tiles")
 
         # 各ジオメトリポイントの標高と累積距離を計算
-        geometries = list(path.geometries.order_by("sequence"))
-        if not geometries:
+        geometry_orders = list(path.geometry_orders.select_related('geometry').order_by("sequence"))
+        if not geometry_orders:
             return {
                 "id": path.id,
                 "path_id": path.id,
                 "osm_id": path.osm_id,
                 "type": path.type,
-                "difficulty": path.tags.first().difficulty
-                if path.tags.exists()
-                else None,
+                "difficulty": path.tags.first().difficulty if path.tags.exists() else None,
                 "path_graphic": [],
+                "geometries": [],
             }
 
-        base_lon = geometries[0].lon
-        base_lat = geometries[0].lat
+        base_lon = geometry_orders[0].geometry.lon
+        base_lat = geometry_orders[0].geometry.lat
         distance = 0.0
         points = []
 
-        for geom in geometries:
+        for order in geometry_orders:
+            geom = order.geometry
             elevation_value = get_nearest_elevation(geom.lat, geom.lon, dem_data)
             distance += int(local_distance_m(base_lat, base_lon, geom.lat, geom.lon))
             points.append(
@@ -88,6 +92,7 @@ class PathViewSet(viewsets.ReadOnlyModelViewSet):
             "type": path.type,
             "difficulty": path.tags.first().difficulty if path.tags.exists() else None,
             "path_graphic": points,
+            "geometries": geometry_orders,
         }
 
     @extend_schema(
